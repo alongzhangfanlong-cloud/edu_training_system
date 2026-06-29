@@ -1,0 +1,427 @@
+{
+  "flows": [
+    {
+      "flow_id": "FLOW_001",
+      "flow_name": "学员报名完整流程",
+      "actors": [
+        "家长/学员",
+        "系统",
+        "教务人员"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "家长/学员",
+          "action": "浏览课程列表",
+          "system_action": "查询courses表，返回上架课程",
+          "ui": "课程列表页"
+        },
+        {
+          "step": 2,
+          "actor": "家长/学员",
+          "action": "选择课程，查看详情",
+          "system_action": "查询course详情+班级列表",
+          "ui": "课程详情页"
+        },
+        {
+          "step": 3,
+          "actor": "家长/学员",
+          "action": "选择班级/时段",
+          "system_action": "校验班级容量、学员年级匹配",
+          "ui": "班级选择器"
+        },
+        {
+          "step": 4,
+          "actor": "家长/学员",
+          "action": "确认报名，填写学员信息",
+          "system_action": "如学员不存在则创建students记录",
+          "ui": "报名表单"
+        },
+        {
+          "step": 5,
+          "actor": "系统",
+          "action": "生成订单",
+          "system_action": "创建orders记录+order_items记录，计算优惠",
+          "ui": "订单确认页"
+        },
+        {
+          "step": 6,
+          "actor": "家长/学员",
+          "action": "选择支付方式并支付",
+          "system_action": "调用微信支付/支付宝API",
+          "ui": "支付页面"
+        },
+        {
+          "step": 7,
+          "actor": "系统",
+          "action": "支付回调处理",
+          "system_action": "更新orders.pay_status=1，创建student_classes记录，创建hour_transactions记录(type=1)",
+          "ui": "支付成功页"
+        },
+        {
+          "step": 8,
+          "actor": "系统",
+          "action": "发送通知",
+          "system_action": "推送微信订阅消息给家长",
+          "ui": "-"
+        },
+        {
+          "step": 9,
+          "actor": "教务人员",
+          "action": "确认排课",
+          "system_action": "为学员排入班级课表",
+          "ui": "排课管理页"
+        }
+      ],
+      "exception_flows": [
+        {
+          "condition": "支付超时",
+          "action": "订单自动取消，释放库存",
+          "timeout": "30分钟"
+        },
+        {
+          "condition": "支付失败",
+          "action": "保留订单，允许重新支付",
+          "retry_limit": 3
+        },
+        {
+          "condition": "班级已满",
+          "action": "提示选择其他班级或加入等待列表"
+        }
+      ]
+    },
+    {
+      "flow_id": "FLOW_002",
+      "flow_name": "上课签到消课完整流程",
+      "actors": [
+        "系统",
+        "教师",
+        "学员",
+        "家长"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "系统",
+          "action": "课前提醒",
+          "system_action": "定时任务查询schedules，提前1小时发送微信订阅消息",
+          "trigger": "cron job"
+        },
+        {
+          "step": 2,
+          "actor": "学员",
+          "action": "到达教室，扫码签到",
+          "system_action": "POST /attendances/check-in，校验二维码+GPS",
+          "ui": "扫码签到页"
+        },
+        {
+          "step": 3,
+          "actor": "系统",
+          "action": "签到成功",
+          "system_action": "创建attendances记录(status=1, check_in_method=1)，推送消息给家长",
+          "ui": "签到成功提示"
+        },
+        {
+          "step": 4,
+          "actor": "教师",
+          "action": "开始上课，确认学员出勤",
+          "system_action": "教师端批量点名，更新attendances.status",
+          "ui": "课堂点名页"
+        },
+        {
+          "step": 5,
+          "actor": "教师",
+          "action": "课后提交反馈",
+          "system_action": "POST /feedbacks，创建class_feedbacks+student_feedbacks",
+          "ui": "反馈提交页"
+        },
+        {
+          "step": 6,
+          "actor": "系统",
+          "action": "执行消课",
+          "system_action": "根据RULE_002计算consume_hours，创建hour_transactions，更新student_classes.used_hours/remain_hours",
+          "trigger": "教师确认考勤后"
+        },
+        {
+          "step": 7,
+          "actor": "系统",
+          "action": "发送课后通知",
+          "system_action": "推送课堂反馈给家长，包含作业内容",
+          "ui": "-"
+        },
+        {
+          "step": 8,
+          "actor": "学员",
+          "action": "查看反馈，提交作业",
+          "system_action": "更新homework_status",
+          "ui": "课程详情页"
+        }
+      ],
+      "alternative_flows": [
+        {
+          "condition": "学员请假",
+          "flow": "请假流程(FLOW_003)",
+          "merge_at": "消课步骤"
+        },
+        {
+          "condition": "学员旷课",
+          "action": "教师标记旷课，正常消课",
+          "system_action": "attendances.status=3，执行消课"
+        },
+        {
+          "condition": "教师代课",
+          "action": "记录代课信息，课时费归属原教师",
+          "system_action": "schedules.teacher_id更新为代课教师"
+        }
+      ]
+    },
+    {
+      "flow_id": "FLOW_003",
+      "flow_name": "请假申请审批流程",
+      "actors": [
+        "家长/学员",
+        "系统",
+        "教师/教务"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "家长/学员",
+          "action": "选择要请假的课程",
+          "system_action": "查询学员已报名且未上课的课程",
+          "ui": "请假申请页"
+        },
+        {
+          "step": 2,
+          "actor": "家长/学员",
+          "action": "填写请假类型和原因",
+          "system_action": "-",
+          "ui": "请假表单"
+        },
+        {
+          "step": 3,
+          "actor": "系统",
+          "action": "计算消课规则",
+          "system_action": "应用RULE_001，显示预计消课情况",
+          "ui": "消课提示"
+        },
+        {
+          "step": 4,
+          "actor": "家长/学员",
+          "action": "提交申请",
+          "system_action": "创建attendances记录(status=2, leave_approve_status=0)",
+          "ui": "提交成功"
+        },
+        {
+          "step": 5,
+          "actor": "系统",
+          "action": "通知审批人",
+          "system_action": "推送消息给教师/教务",
+          "ui": "-"
+        },
+        {
+          "step": 6,
+          "actor": "教师/教务",
+          "action": "审批请假",
+          "system_action": "PUT /attendances/leave/{id}/approve",
+          "ui": "请假审批页"
+        },
+        {
+          "step": 7,
+          "actor": "系统",
+          "action": "审批通过处理",
+          "system_action": "更新leave_approve_status=1，执行消课(RULE_002)，生成补课资格",
+          "condition": "审批通过"
+        },
+        {
+          "step": 8,
+          "actor": "系统",
+          "action": "审批拒绝处理",
+          "system_action": "更新leave_approve_status=2，attendances.status=3(旷课)，执行消课",
+          "condition": "审批拒绝"
+        },
+        {
+          "step": 9,
+          "actor": "系统",
+          "action": "通知结果",
+          "system_action": "推送审批结果给家长",
+          "ui": "-"
+        }
+      ],
+      "auto_approve": {
+        "enabled": true,
+        "condition": "提前24小时以上请假且学员信誉良好",
+        "action": "系统自动审批通过"
+      }
+    },
+    {
+      "flow_id": "FLOW_004",
+      "flow_name": "补课预约流程",
+      "actors": [
+        "家长/学员",
+        "系统"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "家长/学员",
+          "action": "查看可补课列表",
+          "system_action": "GET /attendances/makeup-options，查询有补课资格的请假记录",
+          "ui": "补课预约页"
+        },
+        {
+          "step": 2,
+          "actor": "系统",
+          "action": "查询可补课时段",
+          "system_action": "查询schedules：同课程其他班级+未满员+时间未过期",
+          "ui": "时段选择列表"
+        },
+        {
+          "step": 3,
+          "actor": "家长/学员",
+          "action": "选择补课时段",
+          "system_action": "校验时段有效性",
+          "ui": "时段确认"
+        },
+        {
+          "step": 4,
+          "actor": "家长/学员",
+          "action": "确认预约",
+          "system_action": "POST /attendances/makeup，创建新attendances记录(is_makeup=1, original_attendance_id=原ID)",
+          "ui": "预约成功"
+        },
+        {
+          "step": 5,
+          "actor": "系统",
+          "action": "更新原请假记录",
+          "system_action": "标记原attendance为已补课",
+          "ui": "-"
+        },
+        {
+          "step": 6,
+          "actor": "系统",
+          "action": "发送确认通知",
+          "system_action": "推送补课预约成功消息",
+          "ui": "-"
+        }
+      ],
+      "constraints": [
+        "补课必须在请假后30天内完成",
+        "补课时段必须与学员其他课程无冲突",
+        "补课班级必须有剩余名额"
+      ]
+    },
+    {
+      "flow_id": "FLOW_005",
+      "flow_name": "排课管理流程",
+      "actors": [
+        "教务人员",
+        "系统"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "教务人员",
+          "action": "创建班级",
+          "system_action": "POST /classes，创建classes记录",
+          "ui": "班级创建页"
+        },
+        {
+          "step": 2,
+          "actor": "教务人员",
+          "action": "设置排课规则",
+          "system_action": "更新classes.schedule_rule",
+          "ui": "排课规则设置"
+        },
+        {
+          "step": 3,
+          "actor": "教务人员",
+          "action": "执行排课",
+          "system_action": "POST /schedules/batch，根据规则生成schedules记录",
+          "ui": "批量排课页"
+        },
+        {
+          "step": 4,
+          "actor": "系统",
+          "action": "冲突检测",
+          "system_action": "应用RULE_004，检测教师/教室/学员冲突",
+          "ui": "冲突提示"
+        },
+        {
+          "step": 5,
+          "actor": "教务人员",
+          "action": "处理冲突",
+          "system_action": "修改排课时间或更换资源",
+          "ui": "冲突解决"
+        },
+        {
+          "step": 6,
+          "actor": "系统",
+          "action": "保存排课",
+          "system_action": "插入schedules记录，发送课程通知给学员",
+          "ui": "排课成功"
+        },
+        {
+          "step": 7,
+          "actor": "教务人员",
+          "action": "日常调课",
+          "system_action": "PUT /schedules/{id}，更新排课信息，重新检测冲突",
+          "ui": "调课页面"
+        }
+      ]
+    },
+    {
+      "flow_id": "FLOW_006",
+      "flow_name": "财务结算流程",
+      "actors": [
+        "系统",
+        "财务人员",
+        "教师"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "actor": "系统",
+          "action": "每日自动统计",
+          "system_action": "定时任务汇总当日收支",
+          "trigger": "每日凌晨"
+        },
+        {
+          "step": 2,
+          "actor": "系统",
+          "action": "计算教师课时费",
+          "system_action": "根据attendances统计教师授课情况，按配置规则计算",
+          "ui": "-"
+        },
+        {
+          "step": 3,
+          "actor": "财务人员",
+          "action": "查看财务报表",
+          "system_action": "GET /statistics/finance，汇总数据",
+          "ui": "财务报表页"
+        },
+        {
+          "step": 4,
+          "actor": "财务人员",
+          "action": "核对课时费",
+          "system_action": "查看教师课时明细，确认无误",
+          "ui": "课时费核对页"
+        },
+        {
+          "step": 5,
+          "actor": "财务人员",
+          "action": "确认发放",
+          "system_action": "更新课时费发放状态，记录流水",
+          "ui": "确认发放"
+        },
+        {
+          "step": 6,
+          "actor": "系统",
+          "action": "通知教师",
+          "system_action": "推送课时费发放通知",
+          "ui": "-"
+        }
+      ]
+    }
+  ]
+}

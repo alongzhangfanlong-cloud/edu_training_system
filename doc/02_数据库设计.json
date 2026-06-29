@@ -1,0 +1,1459 @@
+{
+  "database_name": "edu_training_db",
+  "charset": "utf8mb4",
+  "tables": [
+    {
+      "table_name": "students",
+      "comment": "学员表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true,
+          "comment": "主键ID"
+        },
+        {
+          "name": "student_no",
+          "type": "VARCHAR(32)",
+          "is_unique": true,
+          "comment": "学员编号 STU20240001"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)",
+          "is_nullable": false,
+          "comment": "学员姓名"
+        },
+        {
+          "name": "avatar",
+          "type": "VARCHAR(255)",
+          "comment": "头像URL"
+        },
+        {
+          "name": "gender",
+          "type": "TINYINT",
+          "default": 0,
+          "comment": "性别 0-未知 1-男 2-女"
+        },
+        {
+          "name": "birthday",
+          "type": "DATE",
+          "comment": "生日"
+        },
+        {
+          "name": "grade",
+          "type": "VARCHAR(20)",
+          "comment": "年级 如:初二"
+        },
+        {
+          "name": "school",
+          "type": "VARCHAR(100)",
+          "comment": "就读学校"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(20)",
+          "comment": "学员手机号"
+        },
+        {
+          "name": "tags",
+          "type": "JSON",
+          "comment": "标签 [\"VIP\",\"数学薄弱\"]"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 0,
+          "comment": "状态 0-意向 1-在读 2-停课 3-结课 4-流失"
+        },
+        {
+          "name": "source",
+          "type": "VARCHAR(50)",
+          "comment": "来源渠道"
+        },
+        {
+          "name": "consultant_id",
+          "type": "BIGINT",
+          "comment": "顾问ID"
+        },
+        {
+          "name": "remark",
+          "type": "TEXT",
+          "comment": "备注"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "is_deleted",
+          "type": "TINYINT",
+          "default": 0,
+          "comment": "逻辑删除 0-正常 1-删除"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_name",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        },
+        {
+          "name": "idx_phone",
+          "fields": [
+            "phone"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "student_parents",
+      "comment": "学员家长关系表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "student_id",
+          "type": "BIGINT",
+          "is_nullable": false,
+          "comment": "学员ID"
+        },
+        {
+          "name": "parent_name",
+          "type": "VARCHAR(50)",
+          "is_nullable": false,
+          "comment": "家长姓名"
+        },
+        {
+          "name": "relation",
+          "type": "VARCHAR(20)",
+          "comment": "关系 父亲/母亲/其他"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(20)",
+          "is_nullable": false,
+          "comment": "家长手机号"
+        },
+        {
+          "name": "is_primary",
+          "type": "TINYINT",
+          "default": 0,
+          "comment": "是否主联系人 0-否 1-是"
+        },
+        {
+          "name": "wx_openid",
+          "type": "VARCHAR(100)",
+          "comment": "微信openid"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_student_id",
+          "fields": [
+            "student_id"
+          ]
+        },
+        {
+          "name": "idx_phone",
+          "fields": [
+            "phone"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "teachers",
+      "comment": "教师表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "teacher_no",
+          "type": "VARCHAR(32)",
+          "is_unique": true,
+          "comment": "教师编号"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)",
+          "is_nullable": false
+        },
+        {
+          "name": "avatar",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(20)",
+          "is_nullable": false
+        },
+        {
+          "name": "gender",
+          "type": "TINYINT",
+          "default": 0
+        },
+        {
+          "name": "subjects",
+          "type": "JSON",
+          "comment": "可授科目 [\"数学\",\"物理\"]"
+        },
+        {
+          "name": "introduction",
+          "type": "TEXT",
+          "comment": "教师简介"
+        },
+        {
+          "name": "hire_date",
+          "type": "DATE",
+          "comment": "入职日期"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 1,
+          "comment": "状态 0-离职 1-在职 2-休假"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_phone",
+          "fields": [
+            "phone"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "classrooms",
+      "comment": "教室表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)",
+          "is_nullable": false,
+          "comment": "教室名称"
+        },
+        {
+          "name": "capacity",
+          "type": "INT",
+          "default": 30,
+          "comment": "容纳人数"
+        },
+        {
+          "name": "location",
+          "type": "VARCHAR(255)",
+          "comment": "位置描述"
+        },
+        {
+          "name": "latitude",
+          "type": "DECIMAL(10,8)",
+          "comment": "纬度"
+        },
+        {
+          "name": "longitude",
+          "type": "DECIMAL(11,8)",
+          "comment": "经度"
+        },
+        {
+          "name": "facilities",
+          "type": "JSON",
+          "comment": "设施 [\"投影仪\",\"钢琴\"]"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 1,
+          "comment": "0-停用 1-正常"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "table_name": "courses",
+      "comment": "课程表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)",
+          "is_nullable": false,
+          "comment": "课程名称"
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(50)",
+          "is_unique": true,
+          "comment": "课程编码"
+        },
+        {
+          "name": "type",
+          "type": "TINYINT",
+          "is_nullable": false,
+          "comment": "类型 1-班课 2-一对一 3-小班"
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(50)",
+          "comment": "科目"
+        },
+        {
+          "name": "grade_range",
+          "type": "VARCHAR(50)",
+          "comment": "适用年级范围"
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "default": 120,
+          "comment": "单次课时分钟数"
+        },
+        {
+          "name": "unit_price",
+          "type": "DECIMAL(10,2)",
+          "comment": "单价(元/课时)"
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "comment": "课程介绍"
+        },
+        {
+          "name": "cover_image",
+          "type": "VARCHAR(255)",
+          "comment": "封面图"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 1,
+          "comment": "0-下架 1-上架"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_type",
+          "fields": [
+            "type"
+          ]
+        },
+        {
+          "name": "idx_subject",
+          "fields": [
+            "subject"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "classes",
+      "comment": "班级表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "course_id",
+          "type": "BIGINT",
+          "is_nullable": false,
+          "comment": "课程ID"
+        },
+        {
+          "name": "teacher_id",
+          "type": "BIGINT",
+          "is_nullable": false,
+          "comment": "主教老师ID"
+        },
+        {
+          "name": "assistant_id",
+          "type": "BIGINT",
+          "comment": "助教老师ID"
+        },
+        {
+          "name": "classroom_id",
+          "type": "BIGINT",
+          "comment": "默认教室ID"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)",
+          "is_nullable": false,
+          "comment": "班级名称"
+        },
+        {
+          "name": "max_students",
+          "type": "INT",
+          "default": 20,
+          "comment": "最大人数"
+        },
+        {
+          "name": "current_students",
+          "type": "INT",
+          "default": 0,
+          "comment": "当前人数"
+        },
+        {
+          "name": "schedule_rule",
+          "type": "JSON",
+          "comment": "排课规则 {\"weekday\":6,\"start_time\":\"09:00\",\"end_time\":\"11:00\"}"
+        },
+        {
+          "name": "start_date",
+          "type": "DATE",
+          "comment": "开班日期"
+        },
+        {
+          "name": "end_date",
+          "type": "DATE",
+          "comment": "结课日期"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 1,
+          "comment": "0-未开班 1-进行中 2-已结课"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_course_id",
+          "fields": [
+            "course_id"
+          ]
+        },
+        {
+          "name": "idx_teacher_id",
+          "fields": [
+            "teacher_id"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "schedules",
+      "comment": "课表（排课结果）",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "class_id",
+          "type": "BIGINT",
+          "is_nullable": false,
+          "comment": "班级ID"
+        },
+        {
+          "name": "course_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "teacher_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "classroom_id",
+          "type": "BIGINT",
+          "comment": "教室ID"
+        },
+        {
+          "name": "date",
+          "type": "DATE",
+          "is_nullable": false,
+          "comment": "上课日期"
+        },
+        {
+          "name": "start_time",
+          "type": "TIME",
+          "is_nullable": false
+        },
+        {
+          "name": "end_time",
+          "type": "TIME",
+          "is_nullable": false
+        },
+        {
+          "name": "lesson_no",
+          "type": "INT",
+          "comment": "第几课次"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 1,
+          "comment": "0-取消 1-正常 2-调课 3-补课 4-停课"
+        },
+        {
+          "name": "original_schedule_id",
+          "type": "BIGINT",
+          "comment": "原课表ID（调课/补课时）"
+        },
+        {
+          "name": "remark",
+          "type": "VARCHAR(255)",
+          "comment": "备注"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_class_id_date",
+          "fields": [
+            "class_id",
+            "date"
+          ]
+        },
+        {
+          "name": "idx_teacher_id_date",
+          "fields": [
+            "teacher_id",
+            "date"
+          ]
+        },
+        {
+          "name": "idx_classroom_id_date",
+          "fields": [
+            "classroom_id",
+            "date"
+          ]
+        },
+        {
+          "name": "idx_date",
+          "fields": [
+            "date"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "type": "UNIQUE",
+          "fields": [
+            "teacher_id",
+            "date",
+            "start_time"
+          ],
+          "comment": "教师时间唯一"
+        },
+        {
+          "type": "UNIQUE",
+          "fields": [
+            "classroom_id",
+            "date",
+            "start_time"
+          ],
+          "comment": "教室时间唯一"
+        }
+      ]
+    },
+    {
+      "table_name": "student_classes",
+      "comment": "学员班级关系（报名记录）",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "student_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "class_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "comment": "关联订单ID"
+        },
+        {
+          "name": "total_hours",
+          "type": "DECIMAL(6,1)",
+          "is_nullable": false,
+          "comment": "总课时"
+        },
+        {
+          "name": "used_hours",
+          "type": "DECIMAL(6,1)",
+          "default": 0,
+          "comment": "已用课时"
+        },
+        {
+          "name": "remain_hours",
+          "type": "DECIMAL(6,1)",
+          "comment": "剩余课时"
+        },
+        {
+          "name": "gift_hours",
+          "type": "DECIMAL(6,1)",
+          "default": 0,
+          "comment": "赠送课时"
+        },
+        {
+          "name": "expire_date",
+          "type": "DATE",
+          "comment": "有效期"
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "default": 1,
+          "comment": "1-正常 2-停课 3-结课 4-转班"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_student_id",
+          "fields": [
+            "student_id"
+          ]
+        },
+        {
+          "name": "idx_class_id",
+          "fields": [
+            "class_id"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "attendances",
+      "comment": "考勤记录表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "schedule_id",
+          "type": "BIGINT",
+          "is_nullable": false,
+          "comment": "课表ID"
+        },
+        {
+          "name": "student_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "class_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TINYINT",
+          "is_nullable": false,
+          "comment": "1-出勤 2-请假 3-旷课 4-补课"
+        },
+        {
+          "name": "check_in_time",
+          "type": "TIMESTAMP",
+          "comment": "签到时间"
+        },
+        {
+          "name": "check_in_method",
+          "type": "TINYINT",
+          "comment": "1-扫码 2-教师点名 3-人脸 4-蓝牙 5-补签"
+        },
+        {
+          "name": "check_in_lat",
+          "type": "DECIMAL(10,8)",
+          "comment": "签到纬度"
+        },
+        {
+          "name": "check_in_lng",
+          "type": "DECIMAL(11,8)",
+          "comment": "签到经度"
+        },
+        {
+          "name": "leave_type",
+          "type": "TINYINT",
+          "comment": "请假类型 1-病假 2-事假 3-其他"
+        },
+        {
+          "name": "leave_reason",
+          "type": "VARCHAR(255)",
+          "comment": "请假原因"
+        },
+        {
+          "name": "leave_apply_time",
+          "type": "TIMESTAMP",
+          "comment": "请假申请时间"
+        },
+        {
+          "name": "leave_approve_status",
+          "type": "TINYINT",
+          "comment": "0-待审批 1-通过 2-拒绝"
+        },
+        {
+          "name": "leave_approve_time",
+          "type": "TIMESTAMP",
+          "comment": "审批时间"
+        },
+        {
+          "name": "consume_hours",
+          "type": "DECIMAL(3,1)",
+          "comment": "本次消课课时"
+        },
+        {
+          "name": "is_makeup",
+          "type": "TINYINT",
+          "default": 0,
+          "comment": "是否补课 0-否 1-是"
+        },
+        {
+          "name": "original_attendance_id",
+          "type": "BIGINT",
+          "comment": "原考勤ID（补课时关联）"
+        },
+        {
+          "name": "remark",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_schedule_id",
+          "fields": [
+            "schedule_id"
+          ]
+        },
+        {
+          "name": "idx_student_id",
+          "fields": [
+            "student_id"
+          ]
+        },
+        {
+          "name": "idx_class_id",
+          "fields": [
+            "class_id"
+          ]
+        },
+        {
+          "name": "idx_status",
+          "fields": [
+            "status"
+          ]
+        },
+        {
+          "name": "idx_date",
+          "fields": [
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "orders",
+      "comment": "订单表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "order_no",
+          "type": "VARCHAR(32)",
+          "is_unique": true,
+          "comment": "订单编号"
+        },
+        {
+          "name": "student_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "parent_id",
+          "type": "BIGINT",
+          "comment": "下单家长ID"
+        },
+        {
+          "name": "type",
+          "type": "TINYINT",
+          "comment": "1-新报 2-续费 3-扩科 4-补费"
+        },
+        {
+          "name": "total_amount",
+          "type": "DECIMAL(10,2)",
+          "comment": "订单总金额"
+        },
+        {
+          "name": "discount_amount",
+          "type": "DECIMAL(10,2)",
+          "default": 0,
+          "comment": "优惠金额"
+        },
+        {
+          "name": "pay_amount",
+          "type": "DECIMAL(10,2)",
+          "comment": "实付金额"
+        },
+        {
+          "name": "pay_status",
+          "type": "TINYINT",
+          "default": 0,
+          "comment": "0-未支付 1-已支付 2-部分退款 3-全额退款"
+        },
+        {
+          "name": "pay_method",
+          "type": "TINYINT",
+          "comment": "1-微信支付 2-支付宝 3-线下 4-余额"
+        },
+        {
+          "name": "pay_time",
+          "type": "TIMESTAMP",
+          "comment": "支付时间"
+        },
+        {
+          "name": "transaction_id",
+          "type": "VARCHAR(100)",
+          "comment": "第三方支付流水号"
+        },
+        {
+          "name": "remark",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_student_id",
+          "fields": [
+            "student_id"
+          ]
+        },
+        {
+          "name": "idx_pay_status",
+          "fields": [
+            "pay_status"
+          ]
+        },
+        {
+          "name": "idx_created_at",
+          "fields": [
+            "created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "order_items",
+      "comment": "订单明细表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "course_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "class_id",
+          "type": "BIGINT",
+          "comment": "班级ID（班课）"
+        },
+        {
+          "name": "item_type",
+          "type": "TINYINT",
+          "comment": "1-课时包 2-按期 3-按年 4-次卡"
+        },
+        {
+          "name": "hours",
+          "type": "DECIMAL(6,1)",
+          "comment": "课时数"
+        },
+        {
+          "name": "unit_price",
+          "type": "DECIMAL(10,2)",
+          "comment": "单价"
+        },
+        {
+          "name": "total_price",
+          "type": "DECIMAL(10,2)",
+          "comment": "小计"
+        },
+        {
+          "name": "gift_hours",
+          "type": "DECIMAL(6,1)",
+          "default": 0,
+          "comment": "赠送课时"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_order_id",
+          "fields": [
+            "order_id"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "hour_transactions",
+      "comment": "课时流水表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "student_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "student_class_id",
+          "type": "BIGINT",
+          "is_nullable": false,
+          "comment": "学员班级关系ID"
+        },
+        {
+          "name": "type",
+          "type": "TINYINT",
+          "is_nullable": false,
+          "comment": "1-报名增加 2-上课消耗 3-请假返还 4-补课消耗 5-赠课 6-退课"
+        },
+        {
+          "name": "change_hours",
+          "type": "DECIMAL(6,1)",
+          "is_nullable": false,
+          "comment": "变动课时(正数增加/负数减少)"
+        },
+        {
+          "name": "before_hours",
+          "type": "DECIMAL(6,1)",
+          "comment": "变动前"
+        },
+        {
+          "name": "after_hours",
+          "type": "DECIMAL(6,1)",
+          "comment": "变动后"
+        },
+        {
+          "name": "schedule_id",
+          "type": "BIGINT",
+          "comment": "关联课表ID"
+        },
+        {
+          "name": "attendance_id",
+          "type": "BIGINT",
+          "comment": "关联考勤ID"
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "comment": "关联订单ID"
+        },
+        {
+          "name": "remark",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_student_id",
+          "fields": [
+            "student_id"
+          ]
+        },
+        {
+          "name": "idx_student_class_id",
+          "fields": [
+            "student_class_id"
+          ]
+        },
+        {
+          "name": "idx_type",
+          "fields": [
+            "type"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "class_feedbacks",
+      "comment": "课堂反馈表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "schedule_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "class_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "teacher_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "comment": "教学内容"
+        },
+        {
+          "name": "homework",
+          "type": "TEXT",
+          "comment": "作业布置"
+        },
+        {
+          "name": "photos",
+          "type": "JSON",
+          "comment": "课堂照片URL列表"
+        },
+        {
+          "name": "overall_comment",
+          "type": "TEXT",
+          "comment": "整体评语"
+        },
+        {
+          "name": "next_preview",
+          "type": "TEXT",
+          "comment": "下节课预告"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_schedule_id",
+          "fields": [
+            "schedule_id"
+          ]
+        },
+        {
+          "name": "idx_class_id",
+          "fields": [
+            "class_id"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "student_feedbacks",
+      "comment": "学员个人课堂反馈",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "schedule_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "student_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "teacher_id",
+          "type": "BIGINT",
+          "is_nullable": false
+        },
+        {
+          "name": "performance_score",
+          "type": "TINYINT",
+          "comment": "课堂表现评分 1-5"
+        },
+        {
+          "name": "performance_comment",
+          "type": "TEXT",
+          "comment": "表现评语"
+        },
+        {
+          "name": "homework_status",
+          "type": "TINYINT",
+          "comment": "作业状态 1-已完成 2-部分完成 3-未完成"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_schedule_student",
+          "fields": [
+            "schedule_id",
+            "student_id"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "system_configs",
+      "comment": "系统配置表",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "is_pk": true,
+          "is_auto_increment": true
+        },
+        {
+          "name": "config_key",
+          "type": "VARCHAR(100)",
+          "is_unique": true,
+          "comment": "配置键"
+        },
+        {
+          "name": "config_value",
+          "type": "TEXT",
+          "comment": "配置值"
+        },
+        {
+          "name": "description",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "table_name": "campuses",
+      "comment": "校区表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "campus_name", "type": "VARCHAR(100)", "is_nullable": false, "comment": "校区名称"},
+        {"name": "address", "type": "VARCHAR(255)", "comment": "地址"},
+        {"name": "phone", "type": "VARCHAR(20)", "comment": "电话"},
+        {"name": "principal_id", "type": "BIGINT", "comment": "校长用户ID"},
+        {"name": "status", "type": "TINYINT", "default": 1, "comment": "0-停用 1-正常"},
+        {"name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ]
+    },
+    {
+      "table_name": "homework",
+      "comment": "作业表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "schedule_id", "type": "BIGINT", "comment": "排课ID"},
+        {"name": "class_id", "type": "BIGINT", "comment": "班级ID"},
+        {"name": "teacher_id", "type": "BIGINT", "comment": "教师ID"},
+        {"name": "content", "type": "TEXT", "comment": "作业内容"},
+        {"name": "campus_id", "type": "BIGINT", "default": 1, "comment": "校区ID"},
+        {"name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ]
+    },
+    {
+      "table_name": "growth_records",
+      "comment": "成长档案表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "student_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "teacher_id", "type": "BIGINT", "comment": "教师ID"},
+        {"name": "record_date", "type": "DATE", "comment": "记录日期"},
+        {"name": "content", "type": "TEXT", "comment": "评语"},
+        {"name": "score", "type": "TINYINT", "default": 3, "comment": "评分1-5"},
+        {"name": "campus_id", "type": "BIGINT", "default": 1},
+        {"name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ],
+      "indexes": [{"name": "idx_student", "fields": ["student_id"]}]
+    },
+    {
+      "table_name": "points",
+      "comment": "积分表(每个学员一条记录)",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "student_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "balance", "type": "INT", "default": 0, "comment": "积分余额"},
+        {"name": "campus_id", "type": "BIGINT", "default": 1},
+        {"name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ],
+      "indexes": [{"name": "uk_student", "type": "UNIQUE", "fields": ["student_id"]}]
+    },
+    {
+      "table_name": "point_transactions",
+      "comment": "积分流水表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "student_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "change_amount", "type": "INT", "comment": "变动量(+/-)"},
+        {"name": "reason", "type": "VARCHAR(100)", "comment": "变动原因"},
+        {"name": "campus_id", "type": "BIGINT", "default": 1},
+        {"name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ],
+      "indexes": [{"name": "idx_student", "fields": ["student_id"]}]
+    },
+    {
+      "table_name": "birthday_greetings",
+      "comment": "生日祝福表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "student_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "greeting_date", "type": "DATE", "comment": "祝福日期"},
+        {"name": "message", "type": "VARCHAR(255)", "comment": "祝福内容"},
+        {"name": "campus_id", "type": "BIGINT", "default": 1},
+        {"name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ]
+    },
+    {
+      "table_name": "leaves",
+      "comment": "请假表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "student_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "schedule_id", "type": "BIGINT", "comment": "排课ID"},
+        {"name": "leave_type", "type": "TINYINT", "default": 1, "comment": "1-病假 2-事假 3-其他"},
+        {"name": "reason", "type": "VARCHAR(255)", "comment": "请假原因"},
+        {"name": "status", "type": "TINYINT", "default": 0, "comment": "0-待审批 1-通过 2-拒绝"},
+        {"name": "approve_remark", "type": "VARCHAR(255)", "comment": "审批备注"},
+        {"name": "campus_id", "type": "BIGINT", "default": 1},
+        {"name": "created_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"},
+        {"name": "updated_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP"}
+      ],
+      "indexes": [
+        {"name": "idx_student", "fields": ["student_id"]},
+        {"name": "idx_status", "fields": ["status"]}
+      ]
+    },
+    {
+      "table_name": "menus",
+      "comment": "菜单表(RBAC)",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "parent_id", "type": "BIGINT", "default": 0, "comment": "父菜单ID"},
+        {"name": "menu_name", "type": "VARCHAR(50)", "is_nullable": false},
+        {"name": "menu_path", "type": "VARCHAR(200)", "comment": "前端路由"},
+        {"name": "menu_icon", "type": "VARCHAR(50)", "comment": "图标"},
+        {"name": "menu_type", "type": "TINYINT", "default": 2, "comment": "1-目录 2-菜单"},
+        {"name": "perm_code", "type": "VARCHAR(50)", "comment": "权限编码"},
+        {"name": "sort_order", "type": "INT", "default": 0},
+        {"name": "visible", "type": "TINYINT", "default": 1}
+      ]
+    },
+    {
+      "table_name": "roles",
+      "comment": "角色表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "role_code", "type": "VARCHAR(30)", "is_unique": true},
+        {"name": "role_name", "type": "VARCHAR(50)", "is_nullable": false},
+        {"name": "description", "type": "VARCHAR(255)"}
+      ]
+    },
+    {
+      "table_name": "permissions",
+      "comment": "权限表",
+      "fields": [
+        {"name": "id", "type": "BIGINT", "is_pk": true, "is_auto_increment": true},
+        {"name": "perm_code", "type": "VARCHAR(50)", "is_unique": true},
+        {"name": "perm_name", "type": "VARCHAR(50)", "is_nullable": false},
+        {"name": "perm_type", "type": "VARCHAR(20)", "default": "menu"},
+        {"name": "parent_id", "type": "BIGINT", "default": 0},
+        {"name": "sort_order", "type": "INT", "default": 0}
+      ]
+    },
+    {
+      "table_name": "user_roles",
+      "comment": "用户角色关联",
+      "fields": [
+        {"name": "user_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "role_id", "type": "BIGINT", "is_nullable": false}
+      ]
+    },
+    {
+      "table_name": "role_permissions",
+      "comment": "角色权限关联",
+      "fields": [
+        {"name": "role_id", "type": "BIGINT", "is_nullable": false},
+        {"name": "perm_id", "type": "BIGINT", "is_nullable": false}
+      ]
+    }
+  ],
+  "initial_configs": [
+    {
+      "config_key": "leave_free_hours",
+      "config_value": "24",
+      "description": "免费请假需提前小时数"
+    },
+    {
+      "config_key": "leave_charge_hours",
+      "config_value": "2",
+      "description": "收费请假需提前小时数"
+    },
+    {
+      "config_key": "checkin_qr_expire_minutes",
+      "config_value": "5",
+      "description": "签到二维码有效期(分钟)"
+    },
+    {
+      "config_key": "checkin_distance_meters",
+      "config_value": "500",
+      "description": "签到允许最大距离(米)"
+    },
+    {
+      "config_key": "hour_warning_threshold",
+      "config_value": "5",
+      "description": "课时预警阈值"
+    },
+    {
+      "config_key": "makeup_valid_days",
+      "config_value": "30",
+      "description": "补课有效期(天)"
+    }
+  ]
+}

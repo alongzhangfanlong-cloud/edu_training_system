@@ -1,0 +1,855 @@
+{
+  "base_url": "/api/v1",
+  "auth": {
+    "type": "JWT",
+    "header": "Authorization: Bearer {token}",
+    "token_expire": "7天"
+  },
+  "response_format": {
+    "success": {
+      "code": 200,
+      "message": "success",
+      "data": {}
+    },
+    "error": {
+      "code": 400,
+      "message": "错误信息",
+      "data": null
+    }
+  },
+  "modules": [
+    {
+      "module": "认证模块",
+      "apis": [
+        {
+          "path": "/auth/login",
+          "method": "POST",
+          "description": "用户登录",
+          "request": {
+            "phone": "string 手机号",
+            "code": "string 验证码",
+            "role": "string 角色 boss/principal/teacher/parent/student"
+          },
+          "response": {
+            "token": "string JWT令牌",
+            "user": {
+              "id": "long 用户ID",
+              "name": "string 姓名",
+              "avatar": "string 头像",
+              "role": "string 角色",
+              "permissions": [
+                "string 权限列表"
+              ]
+            }
+          }
+        },
+        {
+          "path": "/auth/send-sms",
+          "method": "POST",
+          "description": "发送验证码",
+          "request": {
+            "phone": "string 手机号"
+          },
+          "response": {
+            "expire_seconds": "int 验证码有效期"
+          }
+        },
+        {
+          "path": "/auth/refresh",
+          "method": "POST",
+          "description": "刷新Token",
+          "request": {
+            "refresh_token": "string"
+          },
+          "response": {
+            "token": "string",
+            "expire_at": "timestamp"
+          }
+        }
+      ]
+    },
+    {
+      "module": "学员管理模块",
+      "apis": [
+        {
+          "path": "/students",
+          "method": "GET",
+          "description": "学员列表",
+          "params": {
+            "keyword": "string 搜索关键词",
+            "status": "int 状态筛选",
+            "page": "int 页码",
+            "page_size": "int 每页数量"
+          },
+          "response": {
+            "total": "int 总数",
+            "list": [
+              {
+                "id": "long",
+                "student_no": "string",
+                "name": "string",
+                "grade": "string",
+                "phone": "string",
+                "status": "int",
+                "total_courses": "int 在读课程数",
+                "total_hours": "decimal 总课时",
+                "remain_hours": "decimal 剩余课时"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/students",
+          "method": "POST",
+          "description": "新增学员",
+          "request": {
+            "name": "string 必填",
+            "phone": "string",
+            "gender": "int",
+            "birthday": "date",
+            "grade": "string",
+            "school": "string",
+            "tags": [
+              "string"
+            ],
+            "parents": [
+              {
+                "name": "string",
+                "relation": "string",
+                "phone": "string",
+                "is_primary": "boolean"
+              }
+            ]
+          },
+          "response": {
+            "id": "long 学员ID"
+          }
+        },
+        {
+          "path": "/students/{id}",
+          "method": "GET",
+          "description": "学员详情",
+          "response": {
+            "id": "long",
+            "student_no": "string",
+            "name": "string",
+            "avatar": "string",
+            "gender": "int",
+            "birthday": "date",
+            "grade": "string",
+            "school": "string",
+            "phone": "string",
+            "tags": [
+              "string"
+            ],
+            "status": "int",
+            "source": "string",
+            "remark": "string",
+            "parents": [
+              {
+                "id": "long",
+                "parent_name": "string",
+                "relation": "string",
+                "phone": "string",
+                "is_primary": "boolean"
+              }
+            ],
+            "courses": [
+              {
+                "class_id": "long",
+                "class_name": "string",
+                "course_name": "string",
+                "teacher_name": "string",
+                "total_hours": "decimal",
+                "used_hours": "decimal",
+                "remain_hours": "decimal",
+                "status": "int"
+              }
+            ],
+            "attendance_stats": {
+              "total": "int 总课次",
+              "present": "int 出勤",
+              "leave": "int 请假",
+              "absent": "int 旷课",
+              "present_rate": "decimal 出勤率"
+            }
+          }
+        },
+        {
+          "path": "/students/{id}",
+          "method": "PUT",
+          "description": "更新学员信息",
+          "request": {
+            "name": "string",
+            "phone": "string",
+            "grade": "string",
+            "tags": [
+              "string"
+            ],
+            "remark": "string"
+          },
+          "response": {
+            "success": "boolean"
+          }
+        },
+        {
+          "path": "/students/{id}/hours",
+          "method": "GET",
+          "description": "学员课时明细",
+          "params": {
+            "class_id": "long 班级ID筛选",
+            "page": "int",
+            "page_size": "int"
+          },
+          "response": {
+            "total": "int",
+            "list": [
+              {
+                "id": "long",
+                "type": "int 1-报名增加 2-上课消耗 3-请假返还 4-补课消耗 5-赠课 6-退课",
+                "type_name": "string",
+                "change_hours": "decimal",
+                "before_hours": "decimal",
+                "after_hours": "decimal",
+                "class_name": "string",
+                "schedule_date": "date",
+                "remark": "string",
+                "created_at": "timestamp"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "排课模块",
+      "apis": [
+        {
+          "path": "/schedules",
+          "method": "GET",
+          "description": "查询课表",
+          "params": {
+            "start_date": "date 开始日期",
+            "end_date": "date 结束日期",
+            "teacher_id": "long 教师筛选",
+            "classroom_id": "long 教室筛选",
+            "class_id": "long 班级筛选",
+            "student_id": "long 学员筛选"
+          },
+          "response": {
+            "schedules": [
+              {
+                "id": "long",
+                "class_id": "long",
+                "class_name": "string",
+                "course_name": "string",
+                "teacher_id": "long",
+                "teacher_name": "string",
+                "classroom_id": "long",
+                "classroom_name": "string",
+                "date": "date",
+                "start_time": "time",
+                "end_time": "time",
+                "lesson_no": "int",
+                "status": "int",
+                "student_count": "int 应到人数",
+                "present_count": "int 实到人数",
+                "color": "string 前端显示颜色"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/schedules",
+          "method": "POST",
+          "description": "新增排课",
+          "request": {
+            "class_id": "long 必填",
+            "teacher_id": "long 必填",
+            "classroom_id": "long 必填",
+            "date": "date 必填",
+            "start_time": "time 必填",
+            "end_time": "time 必填",
+            "lesson_no": "int",
+            "remark": "string"
+          },
+          "response": {
+            "id": "long",
+            "conflict_info": "object 冲突信息(如有)"
+          }
+        },
+        {
+          "path": "/schedules/batch",
+          "method": "POST",
+          "description": "批量排课",
+          "request": {
+            "class_id": "long",
+            "teacher_id": "long",
+            "classroom_id": "long",
+            "start_date": "date",
+            "end_date": "date",
+            "weekdays": [
+              "int 星期几 1-7"
+            ],
+            "start_time": "time",
+            "end_time": "time",
+            "skip_holidays": "boolean 是否跳过节假日"
+          },
+          "response": {
+            "created_count": "int",
+            "conflict_count": "int",
+            "conflicts": [
+              "object"
+            ]
+          }
+        },
+        {
+          "path": "/schedules/{id}",
+          "method": "PUT",
+          "description": "修改排课",
+          "request": {
+            "teacher_id": "long",
+            "classroom_id": "long",
+            "date": "date",
+            "start_time": "time",
+            "end_time": "time",
+            "status": "int",
+            "remark": "string"
+          },
+          "response": {
+            "success": "boolean",
+            "conflict_info": "object"
+          }
+        },
+        {
+          "path": "/schedules/{id}",
+          "method": "DELETE",
+          "description": "删除排课",
+          "response": {
+            "success": "boolean"
+          }
+        },
+        {
+          "path": "/schedules/conflict-check",
+          "method": "POST",
+          "description": "排课冲突检测",
+          "request": {
+            "teacher_id": "long",
+            "classroom_id": "long",
+            "date": "date",
+            "start_time": "time",
+            "end_time": "time",
+            "exclude_schedule_id": "long 排除当前排课ID(修改时用)"
+          },
+          "response": {
+            "has_conflict": "boolean",
+            "conflicts": [
+              {
+                "type": "string teacher/classroom/student",
+                "message": "string",
+                "related_schedule": "object"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "考勤签到模块",
+      "apis": [
+        {
+          "path": "/attendances/qr-code",
+          "method": "GET",
+          "description": "获取签到二维码",
+          "params": {
+            "schedule_id": "long 课表ID"
+          },
+          "response": {
+            "qr_code": "string base64图片",
+            "qr_token": "string 二维码token",
+            "expire_at": "timestamp 过期时间",
+            "expire_seconds": "int 剩余秒数"
+          }
+        },
+        {
+          "path": "/attendances/check-in",
+          "method": "POST",
+          "description": "学员扫码签到",
+          "request": {
+            "qr_token": "string 二维码token",
+            "latitude": "decimal 纬度",
+            "longitude": "decimal 经度"
+          },
+          "response": {
+            "success": "boolean",
+            "schedule": {
+              "id": "long",
+              "class_name": "string",
+              "start_time": "time"
+            },
+            "check_in_time": "timestamp",
+            "message": "string"
+          }
+        },
+        {
+          "path": "/attendances/batch-check",
+          "method": "POST",
+          "description": "教师批量点名",
+          "request": {
+            "schedule_id": "long",
+            "attendances": [
+              {
+                "student_id": "long",
+                "status": "int 1-出勤 2-请假 3-旷课",
+                "remark": "string"
+              }
+            ]
+          },
+          "response": {
+            "success": "boolean",
+            "processed_count": "int"
+          }
+        },
+        {
+          "path": "/attendances/leave",
+          "method": "POST",
+          "description": "请假申请",
+          "request": {
+            "schedule_id": "long 单个请假",
+            "schedule_ids": [
+              "long 批量请假"
+            ],
+            "leave_type": "int 1-病假 2-事假 3-其他",
+            "reason": "string 请假原因"
+          },
+          "response": {
+            "success": "boolean",
+            "leave_results": [
+              {
+                "schedule_id": "long",
+                "status": "int 审批状态",
+                "consume_hours": "decimal 预计消课",
+                "message": "string"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/attendances/leave/{id}/approve",
+          "method": "PUT",
+          "description": "请假审批",
+          "request": {
+            "approve_status": "int 1-通过 2-拒绝",
+            "remark": "string"
+          },
+          "response": {
+            "success": "boolean"
+          }
+        },
+        {
+          "path": "/attendances/makeup",
+          "method": "POST",
+          "description": "预约补课",
+          "request": {
+            "original_attendance_id": "long 原考勤记录ID",
+            "target_schedule_id": "long 目标课表ID"
+          },
+          "response": {
+            "success": "boolean",
+            "new_attendance_id": "long"
+          }
+        },
+        {
+          "path": "/attendances/makeup-options",
+          "method": "GET",
+          "description": "获取可补课时段",
+          "params": {
+            "original_attendance_id": "long",
+            "student_id": "long"
+          },
+          "response": {
+            "options": [
+              {
+                "schedule_id": "long",
+                "class_name": "string",
+                "date": "date",
+                "start_time": "time",
+                "end_time": "time",
+                "teacher_name": "string",
+                "available_seats": "int 剩余名额"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "消课模块",
+      "apis": [
+        {
+          "path": "/consume/calculate",
+          "method": "POST",
+          "description": "计算消课规则",
+          "request": {
+            "student_id": "long",
+            "schedule_id": "long",
+            "attendance_status": "int 考勤状态"
+          },
+          "response": {
+            "consume_hours": "decimal 应消课时",
+            "rule": "string 应用的规则说明",
+            "is_free": "boolean 是否免费"
+          }
+        },
+        {
+          "path": "/consume/execute",
+          "method": "POST",
+          "description": "执行消课",
+          "request": {
+            "attendance_id": "long",
+            "consume_hours": "decimal"
+          },
+          "response": {
+            "success": "boolean",
+            "transaction_id": "long 流水ID",
+            "remain_hours": "decimal 剩余课时"
+          }
+        },
+        {
+          "path": "/consume/rollback",
+          "method": "POST",
+          "description": "消课回滚",
+          "request": {
+            "attendance_id": "long",
+            "reason": "string"
+          },
+          "response": {
+            "success": "boolean",
+            "restored_hours": "decimal"
+          }
+        }
+      ]
+    },
+    {
+      "module": "报名订单模块",
+      "apis": [
+        {
+          "path": "/orders",
+          "method": "POST",
+          "description": "创建报名订单",
+          "request": {
+            "student_id": "long",
+            "type": "int 1-新报 2-续费 3-扩科",
+            "items": [
+              {
+                "course_id": "long",
+                "class_id": "long",
+                "item_type": "int 1-课时包 2-按期 3-按年 4-次卡",
+                "hours": "decimal",
+                "unit_price": "decimal",
+                "gift_hours": "decimal"
+              }
+            ],
+            "discount_code": "string 优惠码",
+            "remark": "string"
+          },
+          "response": {
+            "order_id": "long",
+            "order_no": "string",
+            "total_amount": "decimal",
+            "discount_amount": "decimal",
+            "pay_amount": "decimal"
+          }
+        },
+        {
+          "path": "/orders/{id}/pay",
+          "method": "POST",
+          "description": "订单支付",
+          "request": {
+            "pay_method": "int 1-微信 2-支付宝 3-线下",
+            "offline_remark": "string 线下支付备注"
+          },
+          "response": {
+            "pay_status": "int",
+            "wx_pay_params": "object 微信支付参数(如适用)"
+          }
+        },
+        {
+          "path": "/orders/{id}",
+          "method": "GET",
+          "description": "订单详情",
+          "response": {
+            "id": "long",
+            "order_no": "string",
+            "student_name": "string",
+            "type_name": "string",
+            "total_amount": "decimal",
+            "discount_amount": "decimal",
+            "pay_amount": "decimal",
+            "pay_status": "int",
+            "pay_status_name": "string",
+            "pay_method_name": "string",
+            "pay_time": "timestamp",
+            "items": [
+              {
+                "course_name": "string",
+                "class_name": "string",
+                "hours": "decimal",
+                "unit_price": "decimal",
+                "total_price": "decimal",
+                "gift_hours": "decimal"
+              }
+            ],
+            "created_at": "timestamp"
+          }
+        }
+      ]
+    },
+    {
+      "module": "课堂反馈模块",
+      "apis": [
+        {
+          "path": "/feedbacks",
+          "method": "POST",
+          "description": "提交课堂反馈",
+          "request": {
+            "schedule_id": "long",
+            "content": "string 教学内容",
+            "homework": "string 作业布置",
+            "photos": [
+              "string URL列表"
+            ],
+            "overall_comment": "string 整体评语",
+            "next_preview": "string 下节课预告",
+            "student_feedbacks": [
+              {
+                "student_id": "long",
+                "performance_score": "int 1-5",
+                "performance_comment": "string",
+                "homework_status": "int 1-已完成 2-部分完成 3-未完成"
+              }
+            ]
+          },
+          "response": {
+            "feedback_id": "long"
+          }
+        },
+        {
+          "path": "/feedbacks/schedule/{schedule_id}",
+          "method": "GET",
+          "description": "查看课堂反馈",
+          "response": {
+            "id": "long",
+            "teacher_name": "string",
+            "content": "string",
+            "homework": "string",
+            "photos": [
+              "string"
+            ],
+            "overall_comment": "string",
+            "next_preview": "string",
+            "student_feedback": {
+              "performance_score": "int",
+              "performance_comment": "string",
+              "homework_status": "int"
+            },
+            "created_at": "timestamp"
+          }
+        }
+      ]
+    },
+    {
+      "module": "数据统计模块",
+      "apis": [
+        {
+          "path": "/statistics/dashboard",
+          "method": "GET",
+          "description": "管理端数据看板",
+          "params": {
+            "date_range": "string today/week/month"
+          },
+          "response": {
+            "today_classes": "int 今日课程数",
+            "today_students": "int 今日上课学员",
+            "today_revenue": "decimal 今日营收",
+            "new_students": "int 新增学员",
+            "attendance_rate": "decimal 出勤率",
+            "hour_warning_count": "int 课时预警学员数",
+            "pending_leaves": "int 待审批请假数",
+            "revenue_trend": [
+              {
+                "date": "string",
+                "amount": "decimal"
+              }
+            ],
+            "attendance_trend": [
+              {
+                "date": "string",
+                "rate": "decimal"
+              }
+            ]
+          }
+        },
+        {
+          "path": "/statistics/teacher/{id}",
+          "method": "GET",
+          "description": "教师课时统计",
+          "params": {
+            "start_date": "date",
+            "end_date": "date"
+          },
+          "response": {
+            "total_schedules": "int",
+            "completed_schedules": "int",
+            "total_students": "int",
+            "total_hours": "decimal",
+            "estimated_salary": "decimal"
+          }
+        }
+      ]
+    },
+    {
+      "module": "用户管理模块",
+      "apis": [
+        {"path": "/users", "method": "GET", "description": "用户列表"},
+        {"path": "/users", "method": "POST", "description": "创建用户"},
+        {"path": "/users/{id}", "method": "PUT", "description": "更新用户"},
+        {"path": "/users/{id}/status", "method": "PUT", "description": "启/禁用用户"}
+      ]
+    },
+    {
+      "module": "校区管理模块",
+      "apis": [
+        {"path": "/campuses", "method": "GET", "description": "校区列表"},
+        {"path": "/campuses", "method": "POST", "description": "创建校区"},
+        {"path": "/campuses/{id}", "method": "GET", "description": "校区详情"},
+        {"path": "/campuses/{id}", "method": "PUT", "description": "更新校区"},
+        {"path": "/campuses/{id}", "method": "DELETE", "description": "删除校区"}
+      ]
+    },
+    {
+      "module": "菜单管理模块",
+      "apis": [
+        {"path": "/menus/tree", "method": "GET", "description": "动态菜单树"},
+        {"path": "/menus", "method": "GET", "description": "菜单列表"},
+        {"path": "/menus", "method": "POST", "description": "创建菜单"},
+        {"path": "/menus/{id}", "method": "PUT", "description": "更新菜单"},
+        {"path": "/menus/{id}", "method": "DELETE", "description": "删除菜单"}
+      ]
+    },
+    {
+      "module": "权限管理模块",
+      "apis": [
+        {"path": "/permissions", "method": "GET", "description": "权限列表"},
+        {"path": "/permissions/role-permissions", "method": "GET", "description": "角色权限矩阵"},
+        {"path": "/permissions/assign", "method": "POST", "description": "分配权限"}
+      ]
+    },
+    {
+      "module": "课程管理模块",
+      "apis": [
+        {"path": "/courses", "method": "GET", "description": "课程列表"},
+        {"path": "/courses", "method": "POST", "description": "创建课程"},
+        {"path": "/courses/{id}", "method": "GET", "description": "课程详情"},
+        {"path": "/courses/{id}", "method": "PUT", "description": "更新课程"},
+        {"path": "/courses/{id}", "method": "DELETE", "description": "删除课程"}
+      ]
+    },
+    {
+      "module": "教师管理模块",
+      "apis": [
+        {"path": "/teachers", "method": "GET", "description": "教师列表"},
+        {"path": "/teachers", "method": "POST", "description": "创建教师"},
+        {"path": "/teachers/{id}", "method": "GET", "description": "教师详情"},
+        {"path": "/teachers/{id}", "method": "PUT", "description": "更新教师"},
+        {"path": "/teachers/{id}", "method": "DELETE", "description": "删除教师"}
+      ]
+    },
+    {
+      "module": "教室管理模块",
+      "apis": [
+        {"path": "/classrooms", "method": "GET", "description": "教室列表"},
+        {"path": "/classrooms", "method": "POST", "description": "创建教室"},
+        {"path": "/classrooms/{id}", "method": "GET", "description": "教室详情"},
+        {"path": "/classrooms/{id}", "method": "PUT", "description": "更新教室"},
+        {"path": "/classrooms/{id}", "method": "DELETE", "description": "删除教室"}
+      ]
+    },
+    {
+      "module": "班级管理模块",
+      "apis": [
+        {"path": "/classes", "method": "GET", "description": "班级列表"},
+        {"path": "/classes", "method": "POST", "description": "创建班级"},
+        {"path": "/classes/{id}", "method": "GET", "description": "班级详情"},
+        {"path": "/classes/{id}", "method": "PUT", "description": "更新班级"},
+        {"path": "/classes/{id}", "method": "DELETE", "description": "删除班级"}
+      ]
+    },
+    {
+      "module": "作业管理模块",
+      "apis": [
+        {"path": "/homework", "method": "GET", "description": "作业列表(按班级/教师筛选)"},
+        {"path": "/homework", "method": "POST", "description": "布置作业"},
+        {"path": "/homework/{id}", "method": "GET", "description": "作业详情"},
+        {"path": "/homework/{id}", "method": "PUT", "description": "修改作业"},
+        {"path": "/homework/{id}", "method": "DELETE", "description": "删除作业"}
+      ]
+    },
+    {
+      "module": "成长档案模块",
+      "apis": [
+        {"path": "/growth-records", "method": "GET", "description": "成长记录列表(含学生/教师姓名)"},
+        {"path": "/growth-records", "method": "POST", "description": "新增成长记录"},
+        {"path": "/growth-records/{id}", "method": "GET", "description": "记录详情"},
+        {"path": "/growth-records/{id}", "method": "PUT", "description": "修改记录"},
+        {"path": "/growth-records/{id}", "method": "DELETE", "description": "删除记录"}
+      ]
+    },
+    {
+      "module": "积分管理模块",
+      "apis": [
+        {"path": "/points", "method": "GET", "description": "积分列表(所有学员)"},
+        {"path": "/points/student/{id}", "method": "GET", "description": "学员积分余额"},
+        {"path": "/points/change", "method": "POST", "description": "积分变动(正数增加/负数扣减)"},
+        {"path": "/points/student/{id}/transactions", "method": "GET", "description": "积分流水记录"}
+      ]
+    },
+    {
+      "module": "请假管理模块",
+      "apis": [
+        {"path": "/leaves", "method": "GET", "description": "请假列表(按状态/学员筛选)"},
+        {"path": "/leaves", "method": "POST", "description": "提交请假申请"},
+        {"path": "/leaves/{id}/approve", "method": "POST", "description": "审批请假(通过/拒绝)"},
+        {"path": "/leaves/{id}", "method": "DELETE", "description": "删除请假记录"}
+      ]
+    },
+    {
+      "module": "生日祝福模块",
+      "apis": [
+        {"path": "/birthday-greetings", "method": "GET", "description": "祝福记录列表"},
+        {"path": "/birthday-greetings", "method": "POST", "description": "发送生日祝福"},
+        {"path": "/birthday-greetings/{id}", "method": "DELETE", "description": "删除祝福记录"}
+      ]
+    },
+    {
+      "module": "学员门户模块",
+      "apis": [
+        {"path": "/student-portal/{id}/dashboard", "method": "GET", "description": "学员首页聚合(积分+成长记录+请假)"}
+      ]
+    },
+    {
+      "module": "系统配置模块",
+      "apis": [
+        {"path": "/system-configs", "method": "GET", "description": "系统配置列表"},
+        {"path": "/system-configs/{key}", "method": "GET", "description": "配置详情"},
+        {"path": "/system-configs/{key}", "method": "PUT", "description": "更新配置"}
+      ]
+    },
+    {
+      "module": "健康检查",
+      "apis": [
+        {"path": "/health", "method": "GET", "description": "服务健康检查"}
+      ]
+    }
+  ]
+}

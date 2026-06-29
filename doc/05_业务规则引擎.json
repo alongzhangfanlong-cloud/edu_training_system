@@ -1,0 +1,279 @@
+{
+  "rule_engine_version": "1.0.0",
+  "rules": [
+    {
+      "rule_id": "RULE_001",
+      "rule_name": "请假消课规则",
+      "description": "根据请假提前时间决定消课策略",
+      "trigger": "请假申请提交",
+      "conditions": [
+        {
+          "name": "免费请假",
+          "expression": "hours_before_class >= config.leave_free_hours",
+          "action": {
+            "consume_hours": 0,
+            "allow_makeup": true,
+            "makeup_valid_days": "config.makeup_valid_days",
+            "message": "提前{hours}小时请假，不消课，可在{days}天内补课"
+          }
+        },
+        {
+          "name": "收费请假",
+          "expression": "hours_before_class >= config.leave_charge_hours AND hours_before_class < config.leave_free_hours",
+          "action": {
+            "consume_hours": "schedule.consume_hours * 0.5",
+            "allow_makeup": true,
+            "makeup_valid_days": "config.makeup_valid_days",
+            "message": "提前{hours}小时请假，消课50%，可补课"
+          }
+        },
+        {
+          "name": "临时请假/旷课",
+          "expression": "hours_before_class < config.leave_charge_hours",
+          "action": {
+            "consume_hours": "schedule.consume_hours",
+            "allow_makeup": false,
+            "message": "临时请假，正常消课，不可补课"
+          }
+        }
+      ],
+      "configurable": true,
+      "config_fields": [
+        "leave_free_hours",
+        "leave_charge_hours",
+        "makeup_valid_days"
+      ]
+    },
+    {
+      "rule_id": "RULE_002",
+      "rule_name": "签到消课规则",
+      "description": "根据考勤状态执行消课",
+      "trigger": "教师确认考勤 或 学员签到成功",
+      "conditions": [
+        {
+          "name": "正常出勤",
+          "expression": "attendance.status == 1",
+          "action": {
+            "consume_hours": "schedule.consume_hours",
+            "transaction_type": 2,
+            "message": "正常上课，消课{hours}课时"
+          }
+        },
+        {
+          "name": "请假通过",
+          "expression": "attendance.status == 2 AND attendance.leave_approve_status == 1",
+          "action": {
+            "consume_hours": "attendance.consume_hours",
+            "transaction_type": 3,
+            "message": "请假已审批，消课{hours}课时"
+          }
+        },
+        {
+          "name": "旷课",
+          "expression": "attendance.status == 3",
+          "action": {
+            "consume_hours": "schedule.consume_hours",
+            "transaction_type": 2,
+            "message": "未请假未到，正常消课{hours}课时"
+          }
+        },
+        {
+          "name": "补课",
+          "expression": "attendance.status == 4",
+          "action": {
+            "consume_hours": 0,
+            "transaction_type": 4,
+            "message": "补课完成，不额外消课"
+          }
+        }
+      ]
+    },
+    {
+      "rule_id": "RULE_003",
+      "rule_name": "课时预警规则",
+      "description": "学员课时余额预警",
+      "trigger": "定时任务每小时执行 / 消课后",
+      "conditions": [
+        {
+          "name": "黄色预警",
+          "expression": "student_class.remain_hours <= config.hour_warning_threshold AND student_class.remain_hours > 0",
+          "action": {
+            "level": "warning",
+            "notify_targets": [
+              "student",
+              "parent"
+            ],
+            "message": "您的{course_name}课程剩余{remain_hours}课时，请及时续费",
+            "push_type": "订阅消息"
+          }
+        },
+        {
+          "name": "红色预警",
+          "expression": "student_class.remain_hours <= 0",
+          "action": {
+            "level": "danger",
+            "notify_targets": [
+              "student",
+              "parent",
+              "admin"
+            ],
+            "message": "您的{course_name}课程课时已用完，请尽快续费",
+            "push_type": "订阅消息+短信",
+            "auto_action": "暂停预约新课程"
+          }
+        }
+      ]
+    },
+    {
+      "rule_id": "RULE_004",
+      "rule_name": "排课冲突检测规则",
+      "description": "排课时检测各类冲突",
+      "trigger": "排课保存前",
+      "conditions": [
+        {
+          "name": "教师时间冲突",
+          "expression": "EXISTS (SELECT 1 FROM schedules WHERE teacher_id = {teacher_id} AND date = {date} AND start_time < {end_time} AND end_time > {start_time} AND id != {exclude_id})",
+          "action": {
+            "block": true,
+            "error_code": "SCHEDULE_CONFLICT_TEACHER",
+            "message": "教师{name}在{date} {time}已有其他课程安排"
+          }
+        },
+        {
+          "name": "教室时间冲突",
+          "expression": "EXISTS (SELECT 1 FROM schedules WHERE classroom_id = {classroom_id} AND date = {date} AND start_time < {end_time} AND end_time > {start_time} AND id != {exclude_id})",
+          "action": {
+            "block": true,
+            "error_code": "SCHEDULE_CONFLICT_CLASSROOM",
+            "message": "教室{name}在{date} {time}已被占用"
+          }
+        },
+        {
+          "name": "学员时间冲突",
+          "expression": "EXISTS (SELECT 1 FROM student_classes sc JOIN schedules s ON sc.class_id = s.class_id WHERE sc.student_id IN (SELECT student_id FROM student_classes WHERE class_id = {class_id}) AND s.date = {date} AND s.start_time < {end_time} AND s.end_time > {start_time} AND s.id != {exclude_id})",
+          "action": {
+            "block": false,
+            "warning": true,
+            "error_code": "SCHEDULE_CONFLICT_STUDENT",
+            "message": "注意：部分学员在该时段已有其他课程"
+          }
+        },
+        {
+          "name": "教室容量超限",
+          "expression": "class.current_students > classroom.capacity",
+          "action": {
+            "block": true,
+            "error_code": "CLASSROOM_CAPACITY_EXCEEDED",
+            "message": "教室容量({capacity}人)不足，当前班级已有{students}人"
+          }
+        }
+      ]
+    },
+    {
+      "rule_id": "RULE_005",
+      "rule_name": "签到校验规则",
+      "description": "学员签到时的校验逻辑",
+      "trigger": "学员扫码签到",
+      "conditions": [
+        {
+          "name": "二维码有效性",
+          "expression": "qr_token_valid AND NOT expired",
+          "action": {
+            "pass": true
+          },
+          "else": {
+            "block": true,
+            "message": "二维码已过期，请刷新后重试"
+          }
+        },
+        {
+          "name": "定位距离校验",
+          "expression": "distance <= config.checkin_distance_meters",
+          "action": {
+            "pass": true
+          },
+          "else": {
+            "block": true,
+            "message": "您距离教室过远({distance}米)，请到达教室后再签到"
+          }
+        },
+        {
+          "name": "学员课程匹配",
+          "expression": "student_id IN (SELECT student_id FROM student_classes WHERE class_id = {class_id} AND status = 1)",
+          "action": {
+            "pass": true
+          },
+          "else": {
+            "block": true,
+            "message": "您未报名该课程，无法签到"
+          }
+        },
+        {
+          "name": "时间窗口校验",
+          "expression": "NOW() BETWEEN schedule.start_time - 30min AND schedule.end_time + 30min",
+          "action": {
+            "pass": true
+          },
+          "else": {
+            "block": false,
+            "warning": true,
+            "message": "当前不在签到时间范围内，确认要签到吗？"
+          }
+        }
+      ]
+    },
+    {
+      "rule_id": "RULE_006",
+      "rule_name": "订单优惠计算规则",
+      "description": "计算订单优惠金额",
+      "trigger": "创建订单时",
+      "conditions": [
+        {
+          "name": "满减优惠",
+          "expression": "order.total_amount >= discount.threshold",
+          "action": {
+            "discount_amount": "discount.amount",
+            "message": "满{threshold}减{amount}"
+          }
+        },
+        {
+          "name": "折扣优惠",
+          "expression": "discount.type == 'percent'",
+          "action": {
+            "discount_amount": "order.total_amount * (1 - discount.rate)",
+            "message": "{discount.rate * 10}折优惠"
+          }
+        },
+        {
+          "name": "赠课优惠",
+          "expression": "discount.type == 'gift_hours'",
+          "action": {
+            "gift_hours": "discount.gift_hours",
+            "message": "赠送{hours}课时"
+          }
+        },
+        {
+          "name": "优惠码",
+          "expression": "discount_code_valid AND discount_code.not_used",
+          "action": {
+            "discount_amount": "discount_code.amount",
+            "mark_code_used": true,
+            "message": "优惠码抵扣{amount}元"
+          }
+        }
+      ]
+    }
+  ],
+  "rule_execution_flow": {
+    "description": "规则执行流程",
+    "steps": [
+      "1. 接收触发事件",
+      "2. 加载相关配置参数",
+      "3. 按优先级排序规则条件",
+      "4. 依次评估条件表达式",
+      "5. 执行匹配的动作",
+      "6. 记录规则执行日志",
+      "7. 返回执行结果"
+    ]
+  }
+}

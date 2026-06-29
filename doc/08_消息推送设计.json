@@ -1,0 +1,88 @@
+{
+  "push_channels": {
+    "wechat_subscribe": {
+      "description": "微信订阅消息（主推）",
+      "template_ids": {
+        "class_reminder": "课前提醒模板",
+        "checkin_success": "签到成功通知模板",
+        "leave_approve": "请假审批结果模板",
+        "homework_notify": "作业布置通知模板",
+        "hour_warning": "课时预警模板",
+        "payment_success": "支付成功通知模板"
+      },
+      "rate_limit": "每个用户每条模板每月最多推送3次"
+    },
+    "sms": {
+      "description": "短信通知（备用）",
+      "scenarios": [
+        "课时预警紧急通知",
+        "支付验证码",
+        "密码重置"
+      ],
+      "provider": "阿里云SMS / 腾讯云SMS"
+    },
+    "in_app": {
+      "description": "站内消息",
+      "features": [
+        "消息列表",
+        "未读红点",
+        "消息分类",
+        "一键已读"
+      ]
+    }
+  },
+  "message_triggers": [
+    {
+      "trigger": "课前1小时",
+      "recipients": [
+        "student",
+        "parent"
+      ],
+      "content": "您有{course_name}课程即将开始，时间：{time}，教室：{classroom}",
+      "channel": "wechat_subscribe"
+    },
+    {
+      "trigger": "学员签到成功",
+      "recipients": [
+        "parent"
+      ],
+      "content": "您的孩子{name}已于{time}到达{classroom}上课",
+      "channel": "wechat_subscribe"
+    },
+    {
+      "trigger": "教师提交反馈后",
+      "recipients": [
+        "student",
+        "parent"
+      ],
+      "content": "{course_name}课堂反馈已发布，请查看",
+      "channel": "wechat_subscribe"
+    },
+    {
+      "trigger": "课时余额≤5",
+      "recipients": [
+        "student",
+        "parent"
+      ],
+      "content": "您的{course_name}剩余{remain_hours}课时，请及时续费",
+      "channel": "wechat_subscribe",
+      "repeat": "每3天提醒一次"
+    },
+    {
+      "trigger": "请假审批完成",
+      "recipients": [
+        "parent"
+      ],
+      "content": "您的请假申请已{approve_result}，{remark}",
+      "channel": "wechat_subscribe"
+    },
+    {
+      "trigger": "订单支付成功",
+      "recipients": [
+        "parent"
+      ],
+      "content": "报名成功！{course_name}，共{hours}课时，实付{amount}元",
+      "channel": "wechat_subscribe"
+    }
+  ]
+}
