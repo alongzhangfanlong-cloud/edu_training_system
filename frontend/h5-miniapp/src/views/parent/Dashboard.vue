@@ -40,7 +40,7 @@ const menus = [
   { label: '成长', icon: 'chart-trending-o', to: '/parent/growth' },
   { label: '积分', icon: 'gift-o', to: '/parent/points' },
   { label: '明细', icon: 'balance-o', to: '/parent/hours' },
-  { label: '提醒', icon: 'bell', to: '' }
+  { label: '提醒', icon: 'bell', to: '/parent/dashboard' }
 ]
 onMounted(async () => {
   const uid = userStore.userInfo.id

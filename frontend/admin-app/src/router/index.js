@@ -66,6 +66,7 @@ const routes = [
   { path: '/points-manage', name: 'PointsManage', meta: { title: '积分管理', requiresAuth: true }, component: () => import('../views/points-manage/index.vue') },
   { path: '/birthday-manage', name: 'BirthdayManage', meta: { title: '生日祝福', requiresAuth: true }, component: () => import('../views/birthday-manage/index.vue') },
   { path: '/statistics', name: 'Statistics', meta: { title: '数据分析', requiresAuth: true }, component: () => import('../views/dashboard/index.vue') },
+  { path: '/operation-log', name: 'OperationLog', meta: { title: '操作日志', requiresAuth: true }, component: () => import('../views/operation-log/index.vue') },
   { path: '/wechat-config', name: 'WechatConfig', meta: { title: '公众号设置', requiresAuth: true }, component: () => import('../views/wechat-config/index.vue') }
 ]
 

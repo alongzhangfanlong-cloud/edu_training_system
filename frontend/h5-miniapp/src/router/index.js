@@ -10,7 +10,16 @@ const routes = [
   { path: '/boss/users', name: 'BossUsers', component: () => import('../views/boss/UserManage.vue'), meta: { requiresAuth: true, role: 'boss' } },
   { path: '/boss/finance', name: 'BossFinance', component: () => import('../views/boss/Finance.vue'), meta: { requiresAuth: true, role: 'boss' } },
   { path: '/boss/jiaowu', name: 'BossJiaowu', component: () => import('../views/boss/Jiaowu.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/enroll', name: 'BossEnroll', component: () => import('../views/boss/Enroll.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/courses', name: 'BossCourses', component: () => import('../views/boss/Courses.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/schedules', name: 'BossSchedules', component: () => import('../views/boss/Schedules.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/students', name: 'BossStudents', component: () => import('../views/boss/StudentList.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/checkin', name: 'BossCheckin', component: () => import('../views/boss/Checkin.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/logs', name: 'BossOperationLog', component: () => import('../views/boss/OperationLog.vue'), meta: { requiresAuth: true, role: 'boss' } },
   { path: '/boss/system', name: 'BossSystem', component: () => import('../views/boss/System.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/permission', name: 'BossPermission', component: () => import('../views/boss/Permission.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/config', name: 'BossConfig', component: () => import('../views/boss/Config.vue'), meta: { requiresAuth: true, role: 'boss' } },
+  { path: '/boss/wechat', name: 'BossWechat', component: () => import('../views/boss/Wechat.vue'), meta: { requiresAuth: true, role: 'boss' } },
   // principal pages
   { path: '/principal/dashboard', name: 'PrincipalDashboard', component: () => import('../views/principal/Dashboard.vue'), meta: { requiresAuth: true, role: 'principal' } },
   { path: '/principal/teachers', name: 'PrincipalTeachers', component: () => import('../views/principal/Teachers.vue'), meta: { requiresAuth: true, role: 'principal' } },
@@ -43,7 +52,6 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !token) return next('/login')
   if (to.path === '/login' && token) return next('/home')
   if (to.meta.role && to.meta.role !== role) {
-    // redirect to role home
     const homeMap = { boss: '/boss/dashboard', principal: '/principal/dashboard', teacher: '/teacher/dashboard', parent: '/parent/dashboard', student: '/student/dashboard' }
     return next(homeMap[role] || '/home')
   }

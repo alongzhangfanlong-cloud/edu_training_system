@@ -13,6 +13,7 @@
       <div style="margin:20px 16px">
         <van-button round block type="primary" native-type="submit" :loading="loading">登 录</van-button>
       </div>
+      <div v-if="msg" class="login-msg" :class="msgType">{{ msg }}</div>
     </van-form>
     <p class="dev-hint">开发环境验证码: 123456</p>
 
@@ -25,7 +26,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
 import axios from 'axios'
 import { useUserStore } from '../../store/user'
 
@@ -37,21 +37,29 @@ const role = ref('boss')
 const loading = ref(false)
 const countdown = ref(0)
 const showRolePicker = ref(false)
+const msg = ref('')
+const msgType = ref('success')
 const roleOptions = [
   { text: '老板端', value: 'boss' }, { text: '校长端', value: 'principal' },
   { text: '教师端', value: 'teacher' }, { text: '家长端', value: 'parent' }, { text: '学员端', value: 'student' }
 ]
 
 async function sendSms() {
-  if (phone.value.length !== 11) return showToast('请输入正确手机号')
-  await axios.post('/api/v1/auth/send-sms', { phone: phone.value })
-  showToast('验证码已发送')
-  countdown.value = 60
-  const t = setInterval(() => { countdown.value--; if (countdown.value <= 0) clearInterval(t) }, 1000)
+  if (phone.value.length !== 11) { msg.value = '请输入正确手机号'; msgType.value = 'error'; return }
+  try {
+    await axios.post('/api/v1/auth/send-sms', { phone: phone.value })
+    msg.value = '验证码已发送 (开发环境默认: 123456)'
+    msgType.value = 'success'
+    countdown.value = 60
+    const t = setInterval(() => { countdown.value--; if (countdown.value <= 0) clearInterval(t) }, 1000)
+  } catch(e) {
+    msg.value = '发送失败，请检查网络'
+    msgType.value = 'error'
+  }
 }
 
 async function doLogin() {
-  loading.value = true
+  loading.value = true; msg.value = ''
   try {
     const res = await axios.post('/api/v1/auth/login', { phone: phone.value, code: code.value, role: role.value })
     if (res.data.code === 200) {
@@ -60,8 +68,8 @@ async function doLogin() {
       userStore.setUser(d.user)
       const homeMap = { boss: '/boss/dashboard', principal: '/principal/dashboard', teacher: '/teacher/dashboard', parent: '/parent/dashboard', student: '/student/dashboard' }
       router.push(homeMap[d.user.role] || '/home')
-    } else { showToast(res.data.message || '登录失败') }
-  } catch (e) { showToast('登录失败') }
+    } else { msg.value = res.data.message || '登录失败'; msgType.value = 'error' }
+  } catch (e) { msg.value = '登录失败，请检查网络'; msgType.value = 'error' }
   finally { loading.value = false }
 }
 
@@ -78,4 +86,7 @@ function onRoleConfirm({ selectedOptions }) {
 .login-header p { font-size: 14px; opacity: 0.8; margin-top: 8px; }
 .login-form { background: #fff; border-radius: 12px; overflow: hidden; margin: 0 10px; }
 .dev-hint { text-align: center; color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 20px; }
+.login-msg { padding: 10px 16px; margin: 8px 16px 0; border-radius: 6px; font-size: 14px; text-align: center; }
+.login-msg.success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.login-msg.error { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
 </style>
