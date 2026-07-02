@@ -262,6 +262,7 @@ INSERT INTO `flyway_schema_history` VALUES (7,'7','multi campus','SQL','V7__mult
 INSERT INTO `flyway_schema_history` VALUES (8,'8','add demo tables','SQL','V8__add_demo_tables.sql',199428410,'root','2026-06-28 10:27:56',161,1);
 INSERT INTO `flyway_schema_history` VALUES (9,'9','add leaves table','SQL','V9__add_leaves_table.sql',-1888246065,'root','2026-06-29 02:15:51',1,1);
 INSERT INTO `flyway_schema_history` VALUES (10,'10','fix feedback schema','SQL','V10__fix_feedback_schema.sql',-1321569714,'root','2026-06-29 03:11:27',89,1);
+INSERT INTO `flyway_schema_history` VALUES (11,'11','add operation logs','SQL','V11__add_operation_logs.sql',1493470904,'root','2026-07-02 11:53:47',37,1);
 /*!40000 ALTER TABLE `flyway_schema_history` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `growth_records`;
@@ -391,7 +392,7 @@ CREATE TABLE `menus` (
   PRIMARY KEY (`id`),
   KEY `idx_parent_id` (`parent_id`),
   KEY `idx_sort` (`sort_order`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `menus` WRITE;
@@ -421,7 +422,46 @@ INSERT INTO `menus` VALUES (22,20,'菜单管理','/menu-manage','',2,'user:manag
 INSERT INTO `menus` VALUES (23,20,'权限管理','/permission-manage','',2,'teacher:perm',3,1,1,'2026-06-28 10:27:55');
 INSERT INTO `menus` VALUES (24,20,'系统配置','/system-config','',2,'system:config',4,1,1,'2026-06-28 10:27:55');
 INSERT INTO `menus` VALUES (25,20,'公众号设置','/wechat-config','',2,'wechat:push',5,1,1,'2026-06-28 10:27:55');
+INSERT INTO `menus` VALUES (26,20,'操作日志','/operation-log','',2,'system:config',6,1,1,'2026-07-02 11:57:14');
 /*!40000 ALTER TABLE `menus` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `operation_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `operation_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint DEFAULT NULL COMMENT '操作用户ID',
+  `user_name` varchar(50) DEFAULT NULL COMMENT '操作用户名',
+  `role` varchar(30) DEFAULT NULL COMMENT '用户角色',
+  `module` varchar(50) DEFAULT NULL COMMENT '操作模块',
+  `action` varchar(50) DEFAULT NULL COMMENT '操作类型 CREATE/UPDATE/DELETE/LOGIN/LOGOUT',
+  `target` varchar(200) DEFAULT NULL COMMENT '操作对象',
+  `target_id` bigint DEFAULT NULL COMMENT '操作对象ID',
+  `detail` varchar(500) DEFAULT NULL COMMENT '操作详情',
+  `ip` varchar(50) DEFAULT NULL COMMENT 'IP地址',
+  `status` tinyint DEFAULT '1' COMMENT '1-成功 0-失败',
+  `error_msg` varchar(500) DEFAULT NULL COMMENT '错误信息',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_module` (`module`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `operation_logs` WRITE;
+/*!40000 ALTER TABLE `operation_logs` DISABLE KEYS */;
+INSERT INTO `operation_logs` VALUES (1,1,'刘老板','boss','系统','LOGIN','用户登录',1,'老板登录系统',NULL,1,NULL,'2026-07-02 11:53:47');
+INSERT INTO `operation_logs` VALUES (2,1,'刘老板','boss','学员管理','CREATE','新增学员',3,'新增学员: 李明',NULL,1,NULL,'2026-07-02 11:53:47');
+INSERT INTO `operation_logs` VALUES (3,2,'李校长','principal','排课管理','CREATE','批量排课',NULL,'批量排课 数学冲刺A班 5节',NULL,1,NULL,'2026-07-02 11:53:47');
+INSERT INTO `operation_logs` VALUES (4,3,'张老师','teacher','考勤签到','UPDATE','点名签到',1,'学员李明出勤, 陈小美出勤',NULL,1,NULL,'2026-07-01 11:53:47');
+INSERT INTO `operation_logs` VALUES (5,1,'刘老板','boss','校区管理','CREATE','创建校区',1,'创建校区: 海淀总校',NULL,1,NULL,'2026-06-30 11:53:47');
+INSERT INTO `operation_logs` VALUES (6,1,'刘老板','boss','用户管理','UPDATE','更新用户',2,'更新用户: 李校长 状态',NULL,1,NULL,'2026-06-29 11:53:47');
+INSERT INTO `operation_logs` VALUES (7,3,'张老师','teacher','成长档案','CREATE','新增评价',3,'新增学员李明成长记录',NULL,1,NULL,'2026-06-29 11:53:47');
+INSERT INTO `operation_logs` VALUES (8,2,'李校长','principal','课程管理','DELETE','删除课程',10,'删除测试课程',NULL,1,NULL,'2026-06-27 11:53:47');
+INSERT INTO `operation_logs` VALUES (9,NULL,'系统',NULL,'Auth','CREATE','AuthController',NULL,'执行: sendSms','127.0.0.1',1,NULL,'2026-07-02 11:53:49');
+INSERT INTO `operation_logs` VALUES (10,NULL,'系统',NULL,'Auth','UPDATE','AuthController',NULL,'执行: login','0:0:0:0:0:0:0:1',1,NULL,'2026-07-02 11:53:50');
+/*!40000 ALTER TABLE `operation_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `order_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -815,7 +855,7 @@ CREATE TABLE `schedules` (
   KEY `idx_date` (`date`),
   KEY `idx_status` (`status`),
   KEY `idx_course_id` (`course_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课表（排课结果）';
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课表（排课结果）';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `schedules` WRITE;
@@ -1095,8 +1135,8 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'boss','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','王老板','13800000000',NULL,NULL,1,'2026-06-29 05:14:46','2026-06-28 09:39:30','2026-06-28 09:39:30');
-INSERT INTO `users` VALUES (2,'principal','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','Updated Name','13800000001',NULL,NULL,1,'2026-06-29 05:33:00','2026-06-28 09:39:30','2026-06-28 09:39:30');
+INSERT INTO `users` VALUES (1,'boss','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','王老板','13800000000',NULL,NULL,1,'2026-07-02 11:42:28','2026-06-28 09:39:30','2026-06-28 09:39:30');
+INSERT INTO `users` VALUES (2,'principal','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','Updated Name','13800000001',NULL,NULL,1,'2026-07-02 11:53:50','2026-06-28 09:39:30','2026-06-28 09:39:30');
 INSERT INTO `users` VALUES (3,'teacher1','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','张老师','13900000001',NULL,NULL,1,'2026-06-29 03:32:59','2026-06-28 09:39:30','2026-06-28 09:39:30');
 INSERT INTO `users` VALUES (4,'teacher2','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','李老师','13900000002',NULL,NULL,1,NULL,'2026-06-28 09:39:30','2026-06-28 09:39:30');
 INSERT INTO `users` VALUES (5,'teacher3','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi','王老师','13900000003',NULL,NULL,1,NULL,'2026-06-28 09:39:30','2026-06-28 09:39:30');

@@ -266,7 +266,30 @@ CREATE TABLE `menus` (
   PRIMARY KEY (`id`),
   KEY `idx_parent_id` (`parent_id`),
   KEY `idx_sort` (`sort_order`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `operation_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `operation_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint DEFAULT NULL COMMENT '操作用户ID',
+  `user_name` varchar(50) DEFAULT NULL COMMENT '操作用户名',
+  `role` varchar(30) DEFAULT NULL COMMENT '用户角色',
+  `module` varchar(50) DEFAULT NULL COMMENT '操作模块',
+  `action` varchar(50) DEFAULT NULL COMMENT '操作类型 CREATE/UPDATE/DELETE/LOGIN/LOGOUT',
+  `target` varchar(200) DEFAULT NULL COMMENT '操作对象',
+  `target_id` bigint DEFAULT NULL COMMENT '操作对象ID',
+  `detail` varchar(500) DEFAULT NULL COMMENT '操作详情',
+  `ip` varchar(50) DEFAULT NULL COMMENT 'IP地址',
+  `status` tinyint DEFAULT '1' COMMENT '1-成功 0-失败',
+  `error_msg` varchar(500) DEFAULT NULL COMMENT '错误信息',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_module` (`module`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `order_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -408,7 +431,7 @@ CREATE TABLE `schedules` (
   KEY `idx_date` (`date`),
   KEY `idx_status` (`status`),
   KEY `idx_course_id` (`course_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课表（排课结果）';
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课表（排课结果）';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `student_classes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
