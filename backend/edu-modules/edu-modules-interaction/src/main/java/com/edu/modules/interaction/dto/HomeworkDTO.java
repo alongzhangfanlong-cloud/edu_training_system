@@ -10,6 +10,7 @@ public class HomeworkDTO {
     private Long classId;
     private Long teacherId;
     private String content;
+    private String images;
     private LocalDateTime createdAt;
     // joined fields
     private String className;

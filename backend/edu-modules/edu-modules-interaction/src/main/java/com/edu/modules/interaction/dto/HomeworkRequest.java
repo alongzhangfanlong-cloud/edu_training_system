@@ -11,4 +11,5 @@ public class HomeworkRequest {
     private Long teacherId;
     @NotBlank(message = "作业内容不能为空")
     private String content;
+    private String images;
 }

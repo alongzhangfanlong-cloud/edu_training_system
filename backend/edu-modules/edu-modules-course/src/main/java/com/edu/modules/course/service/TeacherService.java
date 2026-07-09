@@ -67,7 +67,10 @@ public class TeacherService {
         if (e == null) throw new BusinessException(ErrorCode.TEACHER_NOT_FOUND);
         if (StrUtil.isNotBlank(dto.getName())) e.setName(dto.getName());
         if (StrUtil.isNotBlank(dto.getPhone())) e.setPhone(dto.getPhone());
+        if (dto.getGender() != null) e.setGender(dto.getGender());
         if (dto.getSubjects() != null) e.setSubjects(JSONUtil.toJsonStr(dto.getSubjects()));
+        if (StrUtil.isNotBlank(dto.getIntroduction())) e.setIntroduction(dto.getIntroduction());
+        if (dto.getHireDate() != null) e.setHireDate(dto.getHireDate());
         if (dto.getStatus() != null) e.setStatus(dto.getStatus());
         teacherMapper.updateById(e);
     }
@@ -79,6 +82,20 @@ public class TeacherService {
 
     private String generateTeacherNo() {
         String year = String.valueOf(Year.now().getValue());
+
+        // 确保 Redis 序列号不低于数据库中已存在的最大编号
+        String maxNo = teacherMapper.selectMaxTeacherNo(year);
+        Long dbMax = 0L;
+        if (maxNo != null && maxNo.startsWith("TCH" + year)) {
+            try { dbMax = Long.parseLong(maxNo.substring(7)); } catch (NumberFormatException ignored) {}
+        }
+        Long redisSeq = redisTemplate.opsForValue().get(TEACHER_SEQ_KEY + ":" + year) != null
+                ? Long.parseLong(redisTemplate.opsForValue().get(TEACHER_SEQ_KEY + ":" + year))
+                : 0L;
+        if (redisSeq < dbMax) {
+            redisTemplate.opsForValue().set(TEACHER_SEQ_KEY + ":" + year, String.valueOf(dbMax));
+        }
+
         Long seq = redisTemplate.opsForValue().increment(TEACHER_SEQ_KEY + ":" + year);
         return "TCH" + year + String.format("%05d", seq);
     }

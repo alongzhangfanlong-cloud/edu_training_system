@@ -13,6 +13,7 @@ public class HomeworkEntity {
     private Long classId;
     private Long teacherId;
     private String content;
+    private String images;
     private Long campusId;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

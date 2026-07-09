@@ -23,6 +23,10 @@ const routes = [
     component: () => import('../views/course-manage/index.vue')
   },
   {
+    path: '/class-manage', name: 'ClassManage', meta: { title: '班级管理', requiresAuth: true },
+    component: () => import('../views/class-manage/index.vue')
+  },
+  {
     path: '/classroom-manage', name: 'ClassroomManage', meta: { title: '教室管理', requiresAuth: true },
     component: () => import('../views/classroom-manage/index.vue')
   },
