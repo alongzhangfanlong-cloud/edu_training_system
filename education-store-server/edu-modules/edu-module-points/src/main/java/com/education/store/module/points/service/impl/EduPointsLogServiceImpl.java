@@ -53,4 +53,14 @@ public class EduPointsLogServiceImpl extends ServiceImpl<EduPointsLogMapper, Edu
     public boolean existsBySource(String sourceType, Long sourceId) {
         return logMapper.countBySource(sourceType, sourceId) > 0;
     }
+
+    @Override
+    public boolean tryWriteLog(Long studentId, String changeType, Integer amount,
+                                String sourceType, Long sourceId, String remark) {
+        if (existsBySource(sourceType, sourceId)) {
+            return false;
+        }
+        writeLog(studentId, changeType, amount, 0, sourceType, sourceId, remark);
+        return true;
+    }
 }

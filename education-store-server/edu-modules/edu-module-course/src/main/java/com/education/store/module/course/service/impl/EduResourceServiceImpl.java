@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -35,6 +36,18 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
 
     @Value("${edu.file.upload-path:./uploads/resources}")
     private String uploadBasePath;
+
+    /** 允许上传的文件扩展名 */
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",           // 文档
+            "jpg", "jpeg", "png", "gif", "bmp", "svg", "webp",           // 图片
+            "mp4", "avi", "mov", "wmv", "flv", "mkv", "webm",           // 视频
+            "mp3", "wav", "aac", "flac", "ogg",                          // 音频
+            "txt", "csv", "zip", "rar", "7z"                              // 其他
+    );
+
+    /** 文件大小上限：50MB */
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024L;
 
     @Override
     public IPage<EduResource> selectResourceList(IPage<EduResource> page, EduResource resource) {
@@ -69,6 +82,7 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
         if (file == null || file.isEmpty()) {
             throw new BusinessException("上传文件不能为空");
         }
+        validateFile(file);
         // 存储文件
         saveFileToDisk(resource, file);
         return resourceMapper.insert(resource);
@@ -82,10 +96,12 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
             throw new BusinessException("课件不存在");
         }
 
-        // 如果上传了新文件，先删旧文件，再存新文件
+        // 如果上传了新文件，先存新文件成功后再删旧文件
         if (file != null && !file.isEmpty()) {
-            deletePhysicalFile(exist.getFilePath());
+            validateFile(file);
+            String oldFilePath = exist.getFilePath();
             saveFileToDisk(resource, file);
+            deletePhysicalFile(oldFilePath);
         } else {
             // 保留原文件信息
             resource.setFileName(exist.getFileName());
@@ -101,14 +117,21 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deleteResourceByIds(Long[] ids) {
-        // 删除前清理物理文件
+        // 先查文件路径（DB 删除前），再删 DB，最后清理物理文件
+        java.util.Map<Long, String> filePathMap = new java.util.LinkedHashMap<>();
         for (Long id : ids) {
             EduResource resource = resourceMapper.selectById(id);
-            if (resource != null) {
-                deletePhysicalFile(resource.getFilePath());
+            if (resource != null && resource.getFilePath() != null) {
+                filePathMap.put(id, resource.getFilePath());
             }
         }
-        return resourceMapper.deleteBatchIds(Arrays.asList(ids));
+        // 先删除数据库记录
+        int rows = resourceMapper.deleteBatchIds(Arrays.asList(ids));
+        // DB 删除成功后再清理物理文件（失败不影响事务，仅日志警告）
+        for (String filePath : filePathMap.values()) {
+            deletePhysicalFile(filePath);
+        }
+        return rows;
     }
 
     @Override
@@ -117,6 +140,20 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
     }
 
     // ========== 私有方法 ==========
+
+    /** 校验文件类型和大小 */
+    private void validateFile(MultipartFile file) {
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BusinessException("文件大小不能超过 " + (MAX_FILE_SIZE / 1024 / 1024) + "MB");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName != null) {
+            String ext = FileUtil.extName(originalName).toLowerCase();
+            if (!ALLOWED_EXTENSIONS.contains(ext)) {
+                throw new BusinessException("不支持的文件类型: ." + ext + "，允许的类型: " + ALLOWED_EXTENSIONS);
+            }
+        }
+    }
 
     /** 存储文件到磁盘，填充 resource 的文件字段 */
     private void saveFileToDisk(EduResource resource, MultipartFile file) {

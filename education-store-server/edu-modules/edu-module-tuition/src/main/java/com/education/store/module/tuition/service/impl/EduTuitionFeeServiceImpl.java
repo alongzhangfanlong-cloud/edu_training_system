@@ -22,6 +22,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -52,11 +54,20 @@ public class EduTuitionFeeServiceImpl extends ServiceImpl<EduTuitionFeeMapper, E
         fee.setPayTime(LocalDateTime.now());
         int rows = feeMapper.insert(fee);
 
-        // 回写报名记录收费状态
+        // 回写报名记录收费状态（累计所有已确认的收费记录判断是否全额付清）
         if (fee.getEnrollmentId() != null) {
             EduEnrollment enrollment = enrollmentMapper.selectById(fee.getEnrollmentId());
             if (enrollment != null) {
-                boolean fullPaid = fee.getAmountPaid().compareTo(enrollment.getAmount()) >= 0;
+                // 累加该报名下所有已确认收费记录的金额
+                LambdaQueryWrapper<EduTuitionFee> sumWrapper = new LambdaQueryWrapper<>();
+                sumWrapper.eq(EduTuitionFee::getEnrollmentId, fee.getEnrollmentId())
+                          .eq(EduTuitionFee::getStatus, "CONFIRMED");
+                java.util.List<EduTuitionFee> paidRecords = feeMapper.selectList(sumWrapper);
+                BigDecimal totalPaid = paidRecords.stream()
+                        .map(EduTuitionFee::getAmountPaid)
+                        .filter(Objects::nonNull)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                boolean fullPaid = totalPaid.compareTo(enrollment.getAmount()) >= 0;
                 enrollment.setPaymentStatus(fullPaid ? "PAID" : "PARTIAL");
                 if (enrollment.getTuitionRecordId() == null) enrollment.setTuitionRecordId(fee.getId());
                 enrollmentMapper.updateById(enrollment);
@@ -85,11 +96,9 @@ public class EduTuitionFeeServiceImpl extends ServiceImpl<EduTuitionFeeMapper, E
 
     private String generateFeeNo(String prefix) {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String todayPrefix = prefix + dateStr;
-        LambdaQueryWrapper<EduTuitionFee> wrapper = new LambdaQueryWrapper<>();
-        wrapper.likeRight(EduTuitionFee::getFeeNo, todayPrefix);
-        long count = feeMapper.selectCount(wrapper);
-        return todayPrefix + String.format("%04d", count + 1);
+        String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String random = String.format("%02d", ThreadLocalRandom.current().nextInt(100));
+        return prefix + dateStr + timeStr + random;
     }
 
     private void writeHoursLog(Long studentId, Long courseId, BigDecimal amount, String changeType, String sourceType, Long sourceId, String refNo) {

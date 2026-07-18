@@ -2,6 +2,8 @@ package com.education.store.module.teaching.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -14,6 +16,7 @@ import lombok.EqualsAndHashCode;
 public class EduHomework extends BaseEntity {
 
     /** 关联班级ID */
+    @NotNull(message = "班级ID不能为空")
     private Long classId;
 
     /** 关联课程ID */
@@ -23,12 +26,15 @@ public class EduHomework extends BaseEntity {
     private Long scheduleId;
 
     /** 作业标题 */
+    @NotBlank(message = "作业标题不能为空")
     private String title;
 
     /** 作业内容 */
+    @NotBlank(message = "作业内容不能为空")
     private String content;
 
     /** 布置教师ID */
+    @NotNull(message = "教师ID不能为空")
     private Long teacherId;
 
     /** 是否被编辑更新过: 0=否, 1=是 */

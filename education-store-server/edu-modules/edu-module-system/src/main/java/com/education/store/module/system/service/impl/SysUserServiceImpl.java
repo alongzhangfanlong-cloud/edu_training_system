@@ -196,6 +196,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int updateUser(SysUser user) {
+        // 检查并保护 admin 用户
+        SysUser exist = userMapper.selectById(user.getId());
+        if (exist != null) {
+            checkUserAllowed(exist);
+        }
+
         if (StrUtil.isNotBlank(user.getPassword())) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         } else {
@@ -204,8 +210,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
         int rows = userMapper.updateById(user);
 
-        userRoleService.deleteByUserId(user.getId());
-        userRoleService.insertUserRoles(user.getId(), user.getRoleIds());
+        // 仅当 roleIds 明确传入时才更新角色关联（null 表示不修改角色）
+        if (user.getRoleIds() != null) {
+            userRoleService.deleteByUserId(user.getId());
+            userRoleService.insertUserRoles(user.getId(), user.getRoleIds());
+        }
 
         // 清除权限缓存，使角色变更立即生效
         stringRedisTemplate.delete(Constants.REDIS_KEY_PERM + user.getId());
@@ -234,6 +243,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int resetPwd(SysUser user) {
+        SysUser exist = userMapper.selectById(user.getId());
+        if (exist != null) {
+            checkUserAllowed(exist);
+        }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userMapper.updateById(user);
     }
@@ -241,6 +254,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int updateUserStatus(SysUser user) {
+        SysUser exist = userMapper.selectById(user.getId());
+        if (exist != null) {
+            checkUserAllowed(exist);
+        }
         return userMapper.updateById(user);
     }
 

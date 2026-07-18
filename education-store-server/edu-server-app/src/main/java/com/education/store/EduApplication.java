@@ -3,12 +3,14 @@ package com.education.store;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.servlet.ServletComponentScan;
 
 /**
  * 新艺智源管理平台启动类
  */
 @SpringBootApplication
 @MapperScan("com.education.store.**.mapper")
+@ServletComponentScan(basePackages = "com.education.store.common.filter")
 public class EduApplication {
 
     public static void main(String[] args) {

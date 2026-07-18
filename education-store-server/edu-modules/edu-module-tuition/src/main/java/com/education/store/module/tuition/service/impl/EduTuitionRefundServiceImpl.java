@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -100,11 +101,9 @@ public class EduTuitionRefundServiceImpl extends ServiceImpl<EduTuitionRefundMap
 
     private String generateRefundNo() {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String prefix = "R" + dateStr;
-        LambdaQueryWrapper<EduTuitionRefund> wrapper = new LambdaQueryWrapper<>();
-        wrapper.likeRight(EduTuitionRefund::getRefundNo, prefix);
-        long count = refundMapper.selectCount(wrapper);
-        return prefix + String.format("%04d", count + 1);
+        String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String random = String.format("%02d", ThreadLocalRandom.current().nextInt(100));
+        return "R" + dateStr + timeStr + random;
     }
 
     private void updateStudentHoursCache(Long studentId) {

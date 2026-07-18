@@ -293,6 +293,17 @@ public class DashboardServiceImpl implements IDashboardService {
             });
         }
 
+        // 批量查询教师名称
+        Set<Long> teacherIds = classMap.values().stream()
+                .map(EduClass::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> teacherNameMap = new HashMap<>();
+        if (!teacherIds.isEmpty()) {
+            List<SysUser> teachers = sysUserMapper.selectBatchIds(teacherIds);
+            for (SysUser t : teachers) {
+                teacherNameMap.put(t.getId(), getDisplayName(t));
+            }
+        }
+
         // 按日期分组排课
         Map<LocalDate, List<EduSchedule>> scheduleByDate = schedules.stream()
                 .collect(Collectors.groupingBy(EduSchedule::getScheduleDate));
@@ -336,7 +347,8 @@ public class DashboardServiceImpl implements IDashboardService {
                         .endTime(s.getEndTime() != null ? s.getEndTime().format(TIME_FMT) : null)
                         .courseName(course != null ? course.getName() : "--")
                         .className(clazz != null ? clazz.getName() : "--")
-                        .teacherName(getTeacherName(clazz != null ? clazz.getTeacherId() : null))
+                        .teacherName(clazz != null && clazz.getTeacherId() != null
+                                ? teacherNameMap.getOrDefault(clazz.getTeacherId(), "--") : "--")
                         .classroomName(room != null ? room.getName() : "未分配")
                         .expectedCount(clazz != null ? clazz.getCurrentCount() : 0)
                         .attendedCount(attendedCountMap.getOrDefault(s.getId(), 0))
@@ -446,6 +458,17 @@ public class DashboardServiceImpl implements IDashboardService {
                 .last("LIMIT 3");
         List<EduLeaveTeacher> teacherLeaves = leaveTeacherMapper.selectList(leaveTeacherWrapper);
 
+        // 批量查询教师名称
+        Set<Long> leaveTeacherIds = teacherLeaves.stream()
+                .map(EduLeaveTeacher::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> leaveTeacherNameMap = new HashMap<>();
+        if (!leaveTeacherIds.isEmpty()) {
+            List<SysUser> leaveTeachers = sysUserMapper.selectBatchIds(leaveTeacherIds);
+            for (SysUser t : leaveTeachers) {
+                leaveTeacherNameMap.put(t.getId(), getDisplayName(t));
+            }
+        }
+
         List<TodosVO.PendingLeaveItem> leaveItems = new java.util.ArrayList<>();
         for (EduLeaveTeacher l : teacherLeaves) {
             String leaveTypeName;
@@ -457,7 +480,8 @@ public class DashboardServiceImpl implements IDashboardService {
             leaveItems.add(TodosVO.PendingLeaveItem.builder()
                     .leaveId(l.getId())
                     .applicantType("TEACHER")
-                    .teacherName(getTeacherName(l.getTeacherId()))
+                    .teacherName(l.getTeacherId() != null
+                            ? leaveTeacherNameMap.getOrDefault(l.getTeacherId(), "--") : "--")
                     .leaveType(String.valueOf(l.getLeaveType()))
                     .leaveTypeName(leaveTypeName)
                     .startDate(l.getLeaveStartDate() != null ? l.getLeaveStartDate().format(DATE_FMT) : null)
@@ -479,6 +503,17 @@ public class DashboardServiceImpl implements IDashboardService {
                 .last("LIMIT 3");
         List<EduLeaveStudent> studentLeaves = leaveStudentMapper.selectList(leaveStudentWrapper);
 
+        // 批量查询学生名称
+        Set<Long> leaveStudentIds_todos = studentLeaves.stream()
+                .map(EduLeaveStudent::getStudentId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> leaveStudentNameMap = new HashMap<>();
+        if (!leaveStudentIds_todos.isEmpty()) {
+            List<EduStudent> leaveStudents = studentMapper.selectBatchIds(leaveStudentIds_todos);
+            for (EduStudent s : leaveStudents) {
+                leaveStudentNameMap.put(s.getId(), s.getName());
+            }
+        }
+
         for (EduLeaveStudent l : studentLeaves) {
             String leaveTypeName;
             switch (l.getLeaveType() != null ? l.getLeaveType() : 0) {
@@ -489,7 +524,8 @@ public class DashboardServiceImpl implements IDashboardService {
             leaveItems.add(TodosVO.PendingLeaveItem.builder()
                     .leaveId(l.getId())
                     .applicantType("STUDENT")
-                    .studentName(getStudentName(l.getStudentId()))
+                    .studentName(l.getStudentId() != null
+                            ? leaveStudentNameMap.getOrDefault(l.getStudentId(), "--") : "--")
                     .leaveType(String.valueOf(l.getLeaveType()))
                     .leaveTypeName(leaveTypeName)
                     .startDate(l.getLeaveDate() != null ? l.getLeaveDate().format(DATE_FMT) : null)
@@ -560,6 +596,17 @@ public class DashboardServiceImpl implements IDashboardService {
                 .eq(EduSchedule::getDeleted, 0);
         List<EduSchedule> recentSchedules = scheduleMapper.selectList(conflictSw);
 
+        // 批量查询班级名称
+        Set<Long> conflictClassIds = recentSchedules.stream()
+                .map(EduSchedule::getClassId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, String> conflictClassNameMap = new HashMap<>();
+        if (!conflictClassIds.isEmpty()) {
+            List<EduClass> conflictClasses = classMapper.selectBatchIds(conflictClassIds);
+            for (EduClass c : conflictClasses) {
+                conflictClassNameMap.put(c.getId(), c.getName());
+            }
+        }
+
         // 检测教师冲突
         Set<String> reportedConflicts = new HashSet<>();
         for (int i = 0; i < recentSchedules.size() && conflictItems.size() < 3; i++) {
@@ -582,8 +629,8 @@ public class DashboardServiceImpl implements IDashboardService {
                                 .description("教师时间冲突")
                                 .date(s1.getScheduleDate().format(DATE_FMT))
                                 .timeRange(s1.getStartTime().format(TIME_FMT) + "-" + s1.getEndTime().format(TIME_FMT))
-                                .classA(getClassName(s1.getClassId()))
-                                .classB(getClassName(s2.getClassId()))
+                                .classA(conflictClassNameMap.getOrDefault(s1.getClassId(), "--"))
+                                .classB(conflictClassNameMap.getOrDefault(s2.getClassId(), "--"))
                                 .build());
                     }
                 }
@@ -595,8 +642,8 @@ public class DashboardServiceImpl implements IDashboardService {
                                 .description("教室时间冲突")
                                 .date(s1.getScheduleDate().format(DATE_FMT))
                                 .timeRange(s1.getStartTime().format(TIME_FMT) + "-" + s1.getEndTime().format(TIME_FMT))
-                                .classA(getClassName(s1.getClassId()))
-                                .classB(getClassName(s2.getClassId()))
+                                .classA(conflictClassNameMap.getOrDefault(s1.getClassId(), "--"))
+                                .classB(conflictClassNameMap.getOrDefault(s2.getClassId(), "--"))
                                 .build());
                     }
                 }

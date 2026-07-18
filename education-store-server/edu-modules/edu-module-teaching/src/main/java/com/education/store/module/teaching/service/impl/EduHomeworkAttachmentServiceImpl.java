@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +27,9 @@ public class EduHomeworkAttachmentServiceImpl extends ServiceImpl<EduHomeworkAtt
     @Transactional(rollbackFor = Exception.class)
     public void deleteByHomeworkId(Long homeworkId) {
         List<EduHomeworkAttachment> attachments = attachmentMapper.selectByHomeworkId(homeworkId);
-        for (EduHomeworkAttachment attachment : attachments) {
-            attachmentMapper.deleteById(attachment.getId());
+        if (!attachments.isEmpty()) {
+            attachmentMapper.deleteBatchIds(attachments.stream()
+                    .map(EduHomeworkAttachment::getId).collect(Collectors.toList()));
         }
     }
 }

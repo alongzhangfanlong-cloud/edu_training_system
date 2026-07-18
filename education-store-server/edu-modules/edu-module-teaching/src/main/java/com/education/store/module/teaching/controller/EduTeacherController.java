@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,7 +43,7 @@ public class EduTeacherController {
     @Operation(summary = "新增教师")
     @PreAuthorize("@ss.hasPermi('teaching:teacher:add')")
     @Log(title = "教师管理", businessType = BusinessType.INSERT)
-    public Result<?> add(@RequestBody EduTeacher teacher) {
+    public Result<?> add(@Valid @RequestBody EduTeacher teacher) {
         return Result.success(teacherService.save(teacher));
     }
 
@@ -50,7 +51,7 @@ public class EduTeacherController {
     @Operation(summary = "编辑教师")
     @PreAuthorize("@ss.hasPermi('teaching:teacher:edit')")
     @Log(title = "教师管理", businessType = BusinessType.UPDATE)
-    public Result<?> update(@RequestBody EduTeacher teacher) {
+    public Result<?> update(@Valid @RequestBody EduTeacher teacher) {
         return Result.success(teacherService.updateById(teacher));
     }
 

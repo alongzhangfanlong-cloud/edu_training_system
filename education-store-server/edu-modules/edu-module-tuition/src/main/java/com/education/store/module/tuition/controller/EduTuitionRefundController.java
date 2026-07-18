@@ -52,5 +52,6 @@ public class EduTuitionRefundController {
         refundService.rejectRefund(id, Long.valueOf(body.get("approverId")), body.getOrDefault("reason", "")); return Result.success(); }
 
     @DeleteMapping("/{ids}") @Log(title = "退费管理", businessType = BusinessType.DELETE)
+    @PreAuthorize("@ss.hasPermi('tuition:refund:delete')")
     public Result<Void> delete(@PathVariable Long[] ids) { refundService.deleteRefundByIds(ids); return Result.success(); }
 }

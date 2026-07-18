@@ -2,6 +2,9 @@ package com.education.store.module.teaching.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -22,6 +25,7 @@ public class EduTeacher extends BaseEntity {
     private Long userId;
 
     /** 教师姓名 */
+    @NotBlank(message = "教师姓名不能为空")
     private String realName;
 
     /** 在职状态: ACTIVE / INACTIVE */
@@ -34,9 +38,12 @@ public class EduTeacher extends BaseEntity {
     private LocalDate hireDate;
 
     /** 默认课酬单价（元/节） */
+    @NotNull(message = "课酬单价不能为空")
+    @Positive(message = "课酬单价必须大于0")
     private BigDecimal defaultPayPerLesson;
 
     /** 联系电话 */
+    @NotBlank(message = "联系电话不能为空")
     private String phone;
 
     /** 备注 */

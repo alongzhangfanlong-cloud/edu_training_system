@@ -1,13 +1,16 @@
 package com.education.store.module.system.security;
 
 import cn.hutool.core.util.StrUtil;
+import com.education.store.common.constant.Constants;
 import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.system.mapper.SysMenuMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 权限验证服务 - Spring Security @PreAuthorize 中使用
@@ -23,6 +26,25 @@ import java.util.Set;
 public class PermissionService {
 
     private final SysMenuMapper menuMapper;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    /**
+     * 获取用户权限集合（Redis优先，DB兜底并回写缓存）
+     */
+    private Set<String> getUserPermissions(Long userId) {
+        String permKey = Constants.REDIS_KEY_PERM + userId;
+        Set<String> cached = stringRedisTemplate.opsForSet().members(permKey);
+        if (cached != null && !cached.isEmpty()) {
+            return cached;
+        }
+        // Redis未命中，查数据库并回写缓存
+        Set<String> permissions = menuMapper.selectMenuPermsByUserId(userId);
+        if (permissions != null && !permissions.isEmpty()) {
+            stringRedisTemplate.opsForSet().add(permKey, permissions.toArray(new String[0]));
+            stringRedisTemplate.expire(permKey, 30, TimeUnit.MINUTES);
+        }
+        return permissions;
+    }
 
     /** 验证用户是否拥有指定权限 */
     public boolean hasPermi(String permission) {
@@ -37,7 +59,7 @@ public class PermissionService {
         if (userId == null) {
             return false;
         }
-        Set<String> permissions = menuMapper.selectMenuPermsByUserId(userId);
+        Set<String> permissions = getUserPermissions(userId);
         return permissions != null && permissions.contains(permission);
     }
 
@@ -53,7 +75,7 @@ public class PermissionService {
         if (userId == null) {
             return false;
         }
-        Set<String> userPerms = menuMapper.selectMenuPermsByUserId(userId);
+        Set<String> userPerms = getUserPermissions(userId);
         return Arrays.stream(permissions.split(","))
                 .map(String::trim)
                 .anyMatch(p -> userPerms != null && userPerms.contains(p));

@@ -24,4 +24,11 @@ public interface IEduPointsLogService extends IService<EduPointsLog> {
      * 检查重复（同一来源是否已有日志记录）
      */
     boolean existsBySource(String sourceType, Long sourceId);
+
+    /**
+     * 尝试写入积分日志（防重：同一 sourceType + sourceId 只写入一次）
+     * @return true 写入成功，false 已存在（防重跳过）
+     */
+    boolean tryWriteLog(Long studentId, String changeType, Integer amount,
+                        String sourceType, Long sourceId, String remark);
 }

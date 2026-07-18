@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +32,9 @@ public class EduEvaluationStudentServiceImpl extends ServiceImpl<EduEvaluationSt
     @Transactional(rollbackFor = Exception.class)
     public void deleteByEvaluationId(Long evaluationId) {
         List<EduEvaluationStudent> list = studentMapper.selectByEvaluationId(evaluationId);
-        for (EduEvaluationStudent s : list) {
-            studentMapper.deleteById(s.getId());
+        if (!list.isEmpty()) {
+            studentMapper.deleteBatchIds(list.stream()
+                    .map(EduEvaluationStudent::getId).collect(Collectors.toList()));
         }
     }
 }

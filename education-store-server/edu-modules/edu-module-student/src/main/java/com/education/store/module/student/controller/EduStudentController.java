@@ -1,19 +1,26 @@
 package com.education.store.module.student.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.store.common.annotation.Log;
 import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
+import com.education.store.module.student.dto.StudentCreateDTO;
+import com.education.store.module.student.dto.StudentUpdateDTO;
 import com.education.store.module.student.entity.EduStudent;
 import com.education.store.module.student.service.IEduStudentService;
+import com.education.store.module.student.vo.StudentVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 在学学员管理控制器
@@ -29,7 +36,7 @@ public class EduStudentController {
     @Operation(summary = "学员列表(分页)")
     @PreAuthorize("@ss.hasPermi('student:student:list')")
     @GetMapping("/list")
-    public Result<PageResult<EduStudent>> list(
+    public Result<PageResult<StudentVO>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String name,
@@ -47,21 +54,31 @@ public class EduStudentController {
         condition.setCounselorId(counselorId);
         condition.setSource(source);
         IPage<EduStudent> result = studentService.selectStudentList(p, condition);
-        return Result.success(PageResult.of(result));
+        List<StudentVO> records = result.getRecords().stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+        PageResult<StudentVO> pageResult = new PageResult<>();
+        pageResult.setRecords(records);
+        pageResult.setTotal(result.getTotal());
+        pageResult.setPage(result.getCurrent());
+        pageResult.setPageSize(result.getSize());
+        return Result.success(pageResult);
     }
 
     @Operation(summary = "学员详情")
     @PreAuthorize("@ss.hasPermi('student:student:query')")
     @GetMapping("/{id}")
-    public Result<EduStudent> detail(@PathVariable Long id) {
-        return Result.success(studentService.selectStudentById(id));
+    public Result<StudentVO> detail(@PathVariable Long id) {
+        EduStudent student = studentService.selectStudentById(id);
+        return Result.success(toVO(student));
     }
 
     @Operation(summary = "新增学员")
     @Log(title = "学员管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('student:student:add')")
     @PostMapping
-    public Result<Void> create(@Valid @RequestBody EduStudent student) {
+    public Result<Void> create(@Valid @RequestBody StudentCreateDTO dto) {
+        EduStudent student = BeanUtil.copyProperties(dto, EduStudent.class);
         if (!studentService.checkMobileUnique(student)) {
             return Result.error("手机号已被其他学员使用");
         }
@@ -73,10 +90,11 @@ public class EduStudentController {
     @Log(title = "学员管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('student:student:edit')")
     @PutMapping
-    public Result<Void> update(@Valid @RequestBody EduStudent student) {
-        if (student.getId() == null) {
+    public Result<Void> update(@Valid @RequestBody StudentUpdateDTO dto) {
+        if (dto.getId() == null) {
             return Result.badRequest("学员ID不能为空");
         }
+        EduStudent student = BeanUtil.copyProperties(dto, EduStudent.class);
         if (!studentService.checkMobileUnique(student)) {
             return Result.error("手机号已被其他学员使用");
         }
@@ -100,5 +118,9 @@ public class EduStudentController {
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam String status) {
         studentService.updateStudentStatus(id, status);
         return Result.success();
+    }
+
+    private StudentVO toVO(EduStudent student) {
+        return BeanUtil.copyProperties(student, StudentVO.class);
     }
 }

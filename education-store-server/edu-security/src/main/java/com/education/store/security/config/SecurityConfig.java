@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 /**
  * Spring Security 配置
@@ -58,9 +59,22 @@ public class SecurityConfig {
                     ).permitAll()
                     // WebSocket
                     .requestMatchers("/ws/**").permitAll()
-                    // 静态资源
+                    // 上传文件访问控制 — 仅允许安全文件扩展名，防止恶意脚本执行
+                    // 扩展名白名单：图片、文档、文本、视频/音频
+                    .requestMatchers(new RegexRequestMatcher(
+                            "/upload/.*\\.(jpg|jpeg|png|gif|bmp|svg|webp|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|mp4|mp3)$",
+                            null
+                    )).permitAll()
+                    // 拒绝 upload 目录下高危文件类型的直接访问（jsp/php/exe/sh/bat 等）
+                    // 建议：生产环境应同时在 Nginx/CDN 层配置 upload 目录只允许静态资源扩展名
+                    .requestMatchers(new RegexRequestMatcher(
+                            "/upload/.*\\.(jsp|jspx|php|asp|aspx|exe|sh|bat|cmd|com|msi|dll|so|war|jar|class)$",
+                            null
+                    )).denyAll()
+                    // 其他 upload 路径（不含扩展名或非白名单扩展名）需要认证
+                    .requestMatchers("/upload/**").authenticated()
+                    // 其他静态资源
                     .requestMatchers(
-                            "/upload/**",
                             "/static/**",
                             "/favicon.ico"
                     ).permitAll()

@@ -89,6 +89,22 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
         List<EduSchedule> todaySchedules = scheduleMapper.selectList(sw);
         int todayCourseCount = todaySchedules.size();
 
+        // 批量查询每个班级的学生数（供后续遍历复用，避免 N+1）
+        Map<Long, Long> classStudentCountMap = new HashMap<>();
+        if (!todaySchedules.isEmpty()) {
+            Set<Long> statClassIds = todaySchedules.stream()
+                    .map(EduSchedule::getClassId).collect(Collectors.toSet());
+            if (!statClassIds.isEmpty()) {
+                LambdaQueryWrapper<EduClassStudent> csAllWrapper = new LambdaQueryWrapper<>();
+                csAllWrapper.in(EduClassStudent::getClassId, statClassIds)
+                        .eq(EduClassStudent::getStatus, "ENROLLED")
+                        .eq(EduClassStudent::getDeleted, 0);
+                List<EduClassStudent> allClassStudents = classStudentMapper.selectList(csAllWrapper);
+                classStudentCountMap = allClassStudents.stream()
+                        .collect(Collectors.groupingBy(EduClassStudent::getClassId, Collectors.counting()));
+            }
+        }
+
         // 2. 待签到班级数（至少1人未签到的班级）
         int uncheckedClassCount = 0;
         Set<Long> checkedScheduleIds = new HashSet<>();
@@ -108,13 +124,8 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
                         .add(a.getStudentId());
             }
 
-            // 查询每个排课对应的班级学生
             for (EduSchedule s : todaySchedules) {
-                LambdaQueryWrapper<EduClassStudent> csWrapper = new LambdaQueryWrapper<>();
-                csWrapper.eq(EduClassStudent::getClassId, s.getClassId())
-                        .eq(EduClassStudent::getStatus, "ENROLLED")
-                        .eq(EduClassStudent::getDeleted, 0);
-                long totalStudents = classStudentMapper.selectCount(csWrapper);
+                long totalStudents = classStudentCountMap.getOrDefault(s.getClassId(), 0L);
                 Set<Long> checked = checkedStudentIdsBySchedule.getOrDefault(s.getId(), Collections.emptySet());
                 if (totalStudents > 0 && checked.size() < totalStudents) {
                     uncheckedClassCount++;
@@ -131,11 +142,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
         for (EduSchedule s : todaySchedules) {
             if (checkedScheduleIds.contains(s.getId()) && s.getEndTime() != null
                     && LocalTime.now().isAfter(s.getEndTime())) {
-                LambdaQueryWrapper<EduClassStudent> csWrapper = new LambdaQueryWrapper<>();
-                csWrapper.eq(EduClassStudent::getClassId, s.getClassId())
-                        .eq(EduClassStudent::getStatus, "ENROLLED")
-                        .eq(EduClassStudent::getDeleted, 0);
-                long count = classStudentMapper.selectCount(csWrapper);
+                long count = classStudentCountMap.getOrDefault(s.getClassId(), 0L);
                 pendingEvaluationCount += (int) count;
             }
         }

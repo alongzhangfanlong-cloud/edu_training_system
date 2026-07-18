@@ -17,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 班级 Service 实现
@@ -152,11 +154,12 @@ public class EduClassServiceImpl extends ServiceImpl<EduClassMapper, EduClass>
 
     // ========== 私有方法 ==========
 
-    /** 生成班级编号：CLS+yyyyMMdd+4位序号 */
+    /** 生成班级编号：CLS+yyyyMMdd+HHmmss+2位随机数 */
     private String generateClassCode() {
-        String datePrefix = "CLS" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int seq = classMapper.selectTodayMaxSeq(datePrefix) + 1;
-        return datePrefix + String.format("%04d", seq);
+        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String random = String.format("%02d", ThreadLocalRandom.current().nextInt(100));
+        return "CLS" + dateStr + timeStr + random;
     }
 
     /** 班级状态转换校验 */

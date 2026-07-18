@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -70,8 +71,9 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
 
         // 删除旧成绩明细
         List<EduExamScoreStudent> oldStudents = studentMapper.selectByExamScoreId(exam.getId());
-        for (EduExamScoreStudent s : oldStudents) {
-            studentMapper.deleteById(s.getId());
+        if (!oldStudents.isEmpty()) {
+            studentMapper.deleteBatchIds(oldStudents.stream()
+                    .map(EduExamScoreStudent::getId).collect(Collectors.toList()));
         }
         // 写入新成绩
         for (EduExamScoreStudent student : students) {
@@ -91,8 +93,9 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
             throw new BusinessException("404", "考试记录不存在");
         }
         List<EduExamScoreStudent> students = studentMapper.selectByExamScoreId(id);
-        for (EduExamScoreStudent s : students) {
-            studentMapper.deleteById(s.getId());
+        if (!students.isEmpty()) {
+            studentMapper.deleteBatchIds(students.stream()
+                    .map(EduExamScoreStudent::getId).collect(Collectors.toList()));
         }
         return removeById(id);
     }

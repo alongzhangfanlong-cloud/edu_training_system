@@ -76,10 +76,13 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
     }
 
     private void consumeHours(Long studentId, Long scheduleId) {
+        // 使用数据库原子更新：余额不足时拒绝消课
         BigDecimal current = hoursLogMapper.sumBalanceByStudent(studentId);
         if (current == null) current = BigDecimal.ZERO;
+        if (current.compareTo(BigDecimal.ONE) < 0) {
+            throw new BusinessException("学员课时余额不足，无法消课：studentId=" + studentId + ", 当前余额=" + current);
+        }
         BigDecimal balanceAfter = current.subtract(BigDecimal.ONE);
-        if (balanceAfter.compareTo(BigDecimal.ZERO) < 0) balanceAfter = BigDecimal.ZERO;
 
         EduStudentHoursLog log = new EduStudentHoursLog();
         log.setStudentId(studentId);

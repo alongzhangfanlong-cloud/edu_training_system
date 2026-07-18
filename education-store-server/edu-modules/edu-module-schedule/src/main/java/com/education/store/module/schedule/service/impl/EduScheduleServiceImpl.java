@@ -47,6 +47,7 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
     public int updateSchedule(EduSchedule schedule) {
         EduSchedule exist = scheduleMapper.selectById(schedule.getId());
         if (exist == null) throw new BusinessException("排课记录不存在");
+        if (!checkConflict(schedule, schedule.getId())) throw new BusinessException("排课冲突，请检查教师/教室/班级时间安排");
         return scheduleMapper.updateById(schedule);
     }
 
@@ -86,6 +87,7 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
         newSchedule.setStatus("NORMAL");
         newSchedule.setScheduleType(exist.getScheduleType());
         newSchedule.setRescheduledFromId(exist.getId());
+        if (!checkConflict(newSchedule)) throw new BusinessException("排课冲突，请检查教师/教室/班级时间安排");
         return scheduleMapper.insert(newSchedule);
     }
 
@@ -100,16 +102,36 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
 
     @Override
     public boolean checkConflict(EduSchedule schedule) {
+        return checkConflict(schedule, null);
+    }
+
+    /** 冲突检测（排除指定排课ID，用于更新场景） */
+    private boolean checkConflict(EduSchedule schedule, Long excludeId) {
         if (schedule.getTeacherId() != null) {
-            int c = scheduleMapper.countTeacherConflict(schedule.getTeacherId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime());
+            int c;
+            if (excludeId != null) {
+                c = scheduleMapper.countTeacherConflictExclude(schedule.getTeacherId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime(), excludeId);
+            } else {
+                c = scheduleMapper.countTeacherConflict(schedule.getTeacherId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime());
+            }
             if (c > 0) return false;
         }
         if (schedule.getRoomId() != null) {
-            int c = scheduleMapper.countRoomConflict(schedule.getRoomId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime());
+            int c;
+            if (excludeId != null) {
+                c = scheduleMapper.countRoomConflictExclude(schedule.getRoomId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime(), excludeId);
+            } else {
+                c = scheduleMapper.countRoomConflict(schedule.getRoomId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime());
+            }
             if (c > 0) return false;
         }
         if (schedule.getClassId() != null) {
-            int c = scheduleMapper.countClassConflict(schedule.getClassId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime());
+            int c;
+            if (excludeId != null) {
+                c = scheduleMapper.countClassConflictExclude(schedule.getClassId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime(), excludeId);
+            } else {
+                c = scheduleMapper.countClassConflict(schedule.getClassId(), schedule.getScheduleDate(), schedule.getStartTime(), schedule.getEndTime());
+            }
             if (c > 0) return false;
         }
         return true;

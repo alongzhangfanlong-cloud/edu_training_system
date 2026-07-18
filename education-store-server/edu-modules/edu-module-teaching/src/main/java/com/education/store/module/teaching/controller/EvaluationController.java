@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,7 +61,7 @@ public class EvaluationController {
             @RequestParam Long classId,
             @RequestParam Long teacherId,
             @RequestParam(required = false) String summary,
-            @RequestBody(required = false) List<EduEvaluationStudent> students) {
+            @Valid @RequestBody(required = false) List<EduEvaluationStudent> students) {
         if (students == null) students = List.of();
         EduEvaluation evaluation = evaluationService.saveDraft(scheduleId, classId, teacherId, summary, students);
         return Result.success(evaluation);
@@ -73,7 +74,7 @@ public class EvaluationController {
     public Result<EduEvaluation> submit(@PathVariable Long id,
             @RequestParam String summary,
             @RequestParam Long teacherId,
-            @RequestBody List<EduEvaluationStudent> students) {
+            @Valid @RequestBody List<EduEvaluationStudent> students) {
         EduEvaluation evaluation = evaluationService.submitEvaluation(id, summary, students, teacherId);
         return Result.success(evaluation);
     }

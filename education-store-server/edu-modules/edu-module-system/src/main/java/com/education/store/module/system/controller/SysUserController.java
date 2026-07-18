@@ -147,6 +147,7 @@ public class SysUserController {
     }
 
     @Operation(summary = "获取当前用户信息")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/getInfo")
     public Result<Map<String, Object>> getInfo() {
         Long userId = SecurityUtils.getUserId();
@@ -172,6 +173,7 @@ public class SysUserController {
     }
 
     @Operation(summary = "获取当前用户路由菜单")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/getRouters")
     public Result<List<RouterVo>> getRouters() {
         Long userId = SecurityUtils.getUserId();

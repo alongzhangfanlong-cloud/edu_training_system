@@ -1,19 +1,25 @@
 package com.education.store.module.enrollment.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.store.common.annotation.Log;
 import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
+import com.education.store.module.enrollment.dto.EnrollmentCreateDTO;
 import com.education.store.module.enrollment.entity.EduEnrollment;
 import com.education.store.module.enrollment.service.IEduEnrollmentService;
+import com.education.store.module.enrollment.vo.EnrollmentVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Tag(name = "报名管理")
 @RestController
@@ -26,7 +32,7 @@ public class EduEnrollmentController {
     @Operation(summary = "报名列表")
     @PreAuthorize("@ss.hasPermi('enrollment:enrollment:list')")
     @GetMapping("/list")
-    public Result<PageResult<EduEnrollment>> list(@RequestParam(defaultValue = "1") long page,
+    public Result<PageResult<EnrollmentVO>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize, @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Long courseId, @RequestParam(required = false) String paymentStatus) {
         Page<EduEnrollment> p = new Page<>(page, pageSize);
@@ -35,21 +41,31 @@ public class EduEnrollmentController {
         condition.setCourseId(courseId);
         condition.setPaymentStatus(paymentStatus);
         IPage<EduEnrollment> result = enrollmentService.selectEnrollmentList(p, condition);
-        return Result.success(PageResult.of(result));
+        List<EnrollmentVO> records = result.getRecords().stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+        PageResult<EnrollmentVO> pageResult = new PageResult<>();
+        pageResult.setRecords(records);
+        pageResult.setTotal(result.getTotal());
+        pageResult.setPage(result.getCurrent());
+        pageResult.setPageSize(result.getSize());
+        return Result.success(pageResult);
     }
 
     @Operation(summary = "报名详情")
     @PreAuthorize("@ss.hasPermi('enrollment:enrollment:query')")
     @GetMapping("/{id}")
-    public Result<EduEnrollment> detail(@PathVariable Long id) {
-        return Result.success(enrollmentService.selectEnrollmentById(id));
+    public Result<EnrollmentVO> detail(@PathVariable Long id) {
+        EduEnrollment enrollment = enrollmentService.selectEnrollmentById(id);
+        return Result.success(toVO(enrollment));
     }
 
     @Operation(summary = "新增报名")
     @Log(title = "报名管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('enrollment:enrollment:add')")
     @PostMapping
-    public Result<Void> create(@Valid @RequestBody EduEnrollment enrollment) {
+    public Result<Void> create(@Valid @RequestBody EnrollmentCreateDTO dto) {
+        EduEnrollment enrollment = BeanUtil.copyProperties(dto, EduEnrollment.class);
         enrollmentService.insertEnrollment(enrollment);
         return Result.success();
     }
@@ -79,5 +95,9 @@ public class EduEnrollmentController {
     public Result<Void> delete(@PathVariable Long[] ids) {
         enrollmentService.deleteEnrollmentByIds(ids);
         return Result.success();
+    }
+
+    private EnrollmentVO toVO(EduEnrollment enrollment) {
+        return BeanUtil.copyProperties(enrollment, EnrollmentVO.class);
     }
 }

@@ -16,8 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -74,10 +76,8 @@ public class EduTuitionGiftHoursServiceImpl extends ServiceImpl<EduTuitionGiftHo
 
     private String generateGiftNo() {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String prefix = "G" + dateStr;
-        LambdaQueryWrapper<EduTuitionGiftHours> wrapper = new LambdaQueryWrapper<>();
-        wrapper.likeRight(EduTuitionGiftHours::getGiftNo, prefix);
-        long count = giftMapper.selectCount(wrapper);
-        return prefix + String.format("%04d", count + 1);
+        String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String random = String.format("%02d", ThreadLocalRandom.current().nextInt(100));
+        return "G" + dateStr + timeStr + random;
     }
 }

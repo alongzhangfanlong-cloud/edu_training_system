@@ -49,4 +49,8 @@ public class SysConfig implements Serializable {
 
     /** 备注 */
     private String remark;
+
+    /** 逻辑删除 */
+    @TableLogic
+    private Integer deleted;
 }

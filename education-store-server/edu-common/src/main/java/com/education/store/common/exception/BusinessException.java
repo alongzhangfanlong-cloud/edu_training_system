@@ -22,7 +22,13 @@ public class BusinessException extends RuntimeException {
 
     public BusinessException(String code, String message) {
         super(message);
-        this.code = 400;
+        int parsedCode;
+        try {
+            parsedCode = Integer.parseInt(code);
+        } catch (NumberFormatException e) {
+            parsedCode = 400;
+        }
+        this.code = parsedCode;
     }
 
     public BusinessException(String message, Throwable cause) {

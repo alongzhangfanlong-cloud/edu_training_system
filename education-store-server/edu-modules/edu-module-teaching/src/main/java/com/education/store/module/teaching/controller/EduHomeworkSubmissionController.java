@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -37,7 +38,7 @@ public class EduHomeworkSubmissionController {
     @PutMapping("/{id}/grade")
     @Operation(summary = "批改作业")
     @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
-    public Result<?> grade(@PathVariable Long id, @RequestBody EduHomeworkSubmission submission) {
+    public Result<?> grade(@PathVariable Long id, @Valid @RequestBody EduHomeworkSubmission submission) {
         submission.setId(id);
         return Result.success(submissionService.updateById(submission));
     }

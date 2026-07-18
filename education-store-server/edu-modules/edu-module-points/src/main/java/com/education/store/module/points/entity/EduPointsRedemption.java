@@ -2,6 +2,8 @@ package com.education.store.module.points.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -16,12 +18,16 @@ import java.time.LocalDateTime;
 public class EduPointsRedemption extends BaseEntity {
 
     /** 学生ID */
+    @NotNull(message = "学生ID不能为空")
     private Long studentId;
 
     /** 礼品ID */
+    @NotNull(message = "礼品ID不能为空")
     private Long giftId;
 
     /** 消耗积分 */
+    @NotNull(message = "消耗积分不能为空")
+    @Positive(message = "消耗积分必须大于0")
     private Integer pointsSpent;
 
     /** 状态: PENDING_CLAIM/CLAIMED/CANCELLED */

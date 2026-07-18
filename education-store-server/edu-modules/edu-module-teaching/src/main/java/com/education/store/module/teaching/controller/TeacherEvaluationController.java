@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -49,7 +50,7 @@ public class TeacherEvaluationController {
     @Operation(summary = "提交学评教")
     @Log(title = "学评教", businessType = BusinessType.INSERT)
     @PostMapping
-    public Result<EduTeacherEvaluation> submit(@RequestBody EduTeacherEvaluation evaluation) {
+    public Result<EduTeacherEvaluation> submit(@Valid @RequestBody EduTeacherEvaluation evaluation) {
         teacherEvalService.submit(evaluation);
         return Result.success(evaluation);
     }

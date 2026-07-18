@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "课后作业")
@@ -48,7 +49,7 @@ public class HomeworkController {
     @Log(title = "课后作业", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('teaching:homework:add')")
     @PostMapping
-    public Result<EduHomework> add(@RequestBody EduHomework homework) {
+    public Result<EduHomework> add(@Valid @RequestBody EduHomework homework) {
         homeworkService.addHomework(homework, null);
         return Result.success(homework);
     }
@@ -57,7 +58,7 @@ public class HomeworkController {
     @Log(title = "课后作业", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody EduHomework homework) {
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody EduHomework homework) {
         homework.setId(id);
         homeworkService.updateHomework(homework);
         return Result.success();

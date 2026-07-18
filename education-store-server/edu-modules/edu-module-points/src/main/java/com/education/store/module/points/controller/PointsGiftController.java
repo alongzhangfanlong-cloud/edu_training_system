@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -52,7 +53,7 @@ public class PointsGiftController {
     @Log(title = "积分礼品管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('points:gift:add')")
     @PostMapping
-    public Result<EduPointsGift> add(@RequestBody EduPointsGift gift) {
+    public Result<EduPointsGift> add(@Valid @RequestBody EduPointsGift gift) {
         giftService.addGift(gift);
         return Result.success(gift);
     }
@@ -61,7 +62,7 @@ public class PointsGiftController {
     @Log(title = "积分礼品管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('points:gift:edit')")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody EduPointsGift gift) {
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody EduPointsGift gift) {
         gift.setId(id);
         giftService.updateGift(gift);
         return Result.success();
@@ -71,7 +72,7 @@ public class PointsGiftController {
     @Log(title = "积分礼品管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('points:gift:edit')")
     @PutMapping("/{id}/status")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestBody EduPointsGift gift) {
+    public Result<Void> updateStatus(@PathVariable Long id, @Valid @RequestBody EduPointsGift gift) {
         giftService.updateStatus(id, gift.getStatus());
         return Result.success();
     }

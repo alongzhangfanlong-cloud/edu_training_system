@@ -2,7 +2,7 @@ server:
   port: 8080
 
 edu:
-  upload-path: upload
+  upload-path: ${EDU_UPLOAD_PATH:upload}
 
 spring:
   application:
@@ -17,12 +17,18 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+  # 文件上传限制
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
+
   # Redis配置
   data:
     redis:
-      host: localhost
-      port: 6379
-      password:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 5000ms
       lettuce:
@@ -34,15 +40,19 @@ spring:
 
 # JWT配置
 jwt:
-  secret: Education-Store-2026-JWT-Secret-Key-Must-Be-At-Least-256-Bits-Long-For-HS256
+  secret: ${JWT_SECRET:Education-Store-2026-JWT-Secret-Key-Must-Be-At-Least-256-Bits-Long-For-HS256}
   access-token-ttl: 7200
   refresh-token-ttl: 604800
+
+# CORS 允许的前端域名（逗号分隔）
+edu:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
 
 # MyBatis-Plus配置
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       logic-delete-field: deleted

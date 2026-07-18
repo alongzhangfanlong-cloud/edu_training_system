@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -56,6 +57,8 @@ public class AuthController {
     }
 
     @Operation(summary = "修改密码")
+    @PreAuthorize("isAuthenticated()")
+    @com.education.store.common.annotation.Log(title = "修改密码", businessType = BusinessType.UPDATE)
     @PutMapping("/password")
     public Result<Void> updatePassword(@RequestBody Map<String, String> body) {
         Long userId = SecurityUtils.getUserId();

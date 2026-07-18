@@ -2,6 +2,7 @@ package com.education.store.module.attendance.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.io.Serializable;
@@ -16,6 +17,7 @@ public class EduAttendance implements Serializable {
     public static final int STATUS_LATE = 1;     // 迟到
     public static final int STATUS_ABSENT = 2;   // 缺勤
     public static final int STATUS_LEAVE = 3;    // 请假
+    public static final int STATUS_LEAVE_PENDING = 4; // 请假未审批
 
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -29,5 +31,6 @@ public class EduAttendance implements Serializable {
     private String remark;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    @TableLogic
     private Integer deleted;
 }

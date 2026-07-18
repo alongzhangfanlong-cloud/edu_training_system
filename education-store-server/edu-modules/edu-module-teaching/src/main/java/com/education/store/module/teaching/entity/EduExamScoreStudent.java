@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,12 +21,15 @@ public class EduExamScoreStudent implements Serializable {
     private Long id;
 
     /** 关联成绩ID */
+    @NotNull(message = "成绩ID不能为空")
     private Long examScoreId;
 
     /** 学生ID */
+    @NotNull(message = "学生ID不能为空")
     private Long studentId;
 
     /** 分数 */
+    @NotNull(message = "分数不能为空")
     private BigDecimal score;
 
     /** 是否缺考: 0=否, 1=是 */

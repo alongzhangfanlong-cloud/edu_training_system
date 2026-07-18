@@ -2,6 +2,8 @@ package com.education.store.module.teaching.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -18,9 +20,11 @@ import java.time.LocalDateTime;
 public class EduHomeworkSubmission extends BaseEntity {
 
     /** 关联作业ID → edu_homework.id */
+    @NotNull(message = "作业ID不能为空")
     private Long homeworkId;
 
     /** 学生ID → edu_student.id */
+    @NotNull(message = "学生ID不能为空")
     private Long studentId;
 
     /** 文字内容（学生提交的文本备注） */
@@ -33,6 +37,7 @@ public class EduHomeworkSubmission extends BaseEntity {
     private String status;
 
     /** 评分（1-5） */
+    @Positive(message = "评分必须大于0")
     private Integer score;
 
     /** 教师评语 */

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -66,8 +67,9 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
             evaluationMapper.updateById(existing);
             // 删除旧明细
             List<EduEvaluationStudent> oldStudents = studentMapper.selectByEvaluationId(existing.getId());
-            for (EduEvaluationStudent s : oldStudents) {
-                studentMapper.deleteById(s.getId());
+            if (!oldStudents.isEmpty()) {
+                studentMapper.deleteBatchIds(oldStudents.stream()
+                        .map(EduEvaluationStudent::getId).collect(Collectors.toList()));
             }
             // 保存新明细
             for (EduEvaluationStudent student : students) {
@@ -114,8 +116,9 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
 
         // 删除旧明细，重新写入
         List<EduEvaluationStudent> oldStudents = studentMapper.selectByEvaluationId(id);
-        for (EduEvaluationStudent s : oldStudents) {
-            studentMapper.deleteById(s.getId());
+        if (!oldStudents.isEmpty()) {
+            studentMapper.deleteBatchIds(oldStudents.stream()
+                    .map(EduEvaluationStudent::getId).collect(Collectors.toList()));
         }
         for (EduEvaluationStudent student : students) {
             student.setEvaluationId(id);
@@ -155,8 +158,9 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
         }
         // 删除明细
         List<EduEvaluationStudent> students = studentMapper.selectByEvaluationId(id);
-        for (EduEvaluationStudent s : students) {
-            studentMapper.deleteById(s.getId());
+        if (!students.isEmpty()) {
+            studentMapper.deleteBatchIds(students.stream()
+                    .map(EduEvaluationStudent::getId).collect(Collectors.toList()));
         }
         return removeById(id);
     }

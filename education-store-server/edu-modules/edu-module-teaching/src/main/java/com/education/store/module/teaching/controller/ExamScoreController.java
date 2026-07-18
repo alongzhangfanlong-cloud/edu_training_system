@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,7 +59,7 @@ public class ExamScoreController {
     @Log(title = "成绩管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('teaching:exam:add')")
     @PostMapping
-    public Result<EduExamScore> add(@RequestBody EduExamScore exam, @RequestParam(required = false) List<EduExamScoreStudent> students) {
+    public Result<EduExamScore> add(@Valid @RequestBody EduExamScore exam, @RequestParam(required = false) List<EduExamScoreStudent> students) {
         if (students == null) students = List.of();
         examService.addExam(exam, students);
         return Result.success(exam);
@@ -68,7 +69,7 @@ public class ExamScoreController {
     @Log(title = "成绩管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('teaching:exam:edit')")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody EduExamScore exam,
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody EduExamScore exam,
             @RequestParam(required = false) List<EduExamScoreStudent> students) {
         exam.setId(id);
         if (students == null) students = List.of();
