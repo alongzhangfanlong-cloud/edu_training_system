@@ -1,0 +1,182 @@
+.page-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #f9f9f9;
+  display: flex;
+
+  .image-section {
+    width: 65.65%;
+    height: 100%;
+    position: relative;
+    background: url("@assets/images/login-bg.jpg") no-repeat center / cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .logo {
+      width: 38%;
+      height: fit-content;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      filter: brightness(0) invert(1);
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: 5;
+      inset: 0;
+      background-color: rgba(0, 109, 255, 0.6);
+    }
+  }
+
+  .content-section {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    h4 {
+      font-size: 26px;
+      line-height: 26px;
+      margin-bottom: 64px;
+      margin-top: -68px;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 3px;
+        background-color: #007bff;
+        border-radius: 1.5px;
+      }
+    }
+
+    .form {
+      width: 70%;
+    }
+
+    .input-wrap {
+      margin-bottom: 14px;
+
+      &>p {
+        line-height: 38px;
+      }
+
+      :deep(.el-input__wrapper) {
+        height: 36px;
+      }
+    }
+
+    .login-btn {
+      margin-top: 32px;
+      width: 100%;
+      height: 36px;
+      // background-color: #409eff;
+      // color: #fff
+    }
+
+    .company-select {
+      width: 70%;
+
+      &__header {
+        margin-bottom: 24px;
+        text-align: center;
+      }
+
+      &__greeting {
+        font-size: 16px;
+        color: #333;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .company-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .company-card {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        border: 1px solid #e4e7ed;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: #409eff;
+          background-color: #ecf5ff;
+          box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+        }
+
+        &__avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #409eff, #337ecc);
+          color: #fff;
+          font-size: 20px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-right: 14px;
+        }
+
+        &__info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        &__name {
+          font-size: 15px;
+          color: #303133;
+          margin: 0 0 4px 0;
+          font-weight: 500;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        &__code {
+          font-size: 13px;
+          color: #909399;
+          margin: 0;
+        }
+
+        &__arrow {
+          color: #c0c4cc;
+          font-size: 16px;
+          flex-shrink: 0;
+        }
+      }
+
+      .company-back-btn {
+        width: 100%;
+        color: #909399;
+      }
+
+      .dept-tree-container {
+        max-height: 360px;
+        overflow-y: auto;
+        margin-bottom: 16px;
+        border: 1px solid #e4e7ed;
+        border-radius: 8px;
+        padding: 8px;
+      }
+    }
+  }
+}

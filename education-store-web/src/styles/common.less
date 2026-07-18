@@ -1,0 +1,55 @@
+/**
+ * ---------------------------------------------
+ * 常规页面共用样式
+ * ---------------------------------------------
+ */
+
+// 页面容器
+.page-container {
+  .table-container {
+
+    // 操作按钮栏
+    .operator-btns {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+
+      i[class^="ifont-"] {
+        margin-right: 5px;
+      }
+    }
+
+    // 表格
+    .el-table {
+      margin-bottom: 18px;
+    }
+
+    .el-table .el-table__fixed-header-wrapper th,
+    .el-table .el-table__header-wrapper th {
+      word-break: break-word;
+      background-color: #f9f8f8;
+      color: #515a6e;
+      height: 40px;
+      font-size: 13px;
+    }
+
+
+    .btn-td .cell {
+      display: flex;
+      align-items: center;
+
+      .el-button+.el-button,
+      .el-button+.el-dropdown {
+        margin-left: 10px;
+      }
+    }
+  }
+}
+
+.el-button:focus-visible {
+  outline: none !important;
+}
+
+.el-button + .el-dropdown{
+  margin-left: 12px;
+}

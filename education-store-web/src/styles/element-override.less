@@ -1,0 +1,87 @@
+/**
+ * ---------------------------------------------
+ * element-ui 样式覆盖
+ * ---------------------------------------------
+ */
+
+.el-button--small {
+  --el-button-size: 28px;
+}
+
+// 修复操作栏 el-dropdown 与其他按钮垂直不对齐
+.el-dropdown {
+  vertical-align: middle;
+}
+
+// 统一所有表单组件高度为 28px，与 small 按钮对齐
+.el-input .el-input__wrapper,
+.el-select .el-select__wrapper {
+  min-height: 28px;
+  height: 28px;
+}
+
+// 覆盖 Element Plus 内置的 size-specific 选择器（优先级更高）
+.el-range-editor--small.el-input__wrapper,
+.el-date-editor--small .el-input__wrapper,
+.el-date-editor .el-input__wrapper {
+  min-height: 28px;
+  height: 28px;
+}
+
+.el-range-editor--small,
+.el-date-editor {
+  height: 28px;
+}
+
+.el-form-item__label {
+  font-weight: bold;
+}
+
+.el-dialog__body {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  max-height: calc(75vh - 120px);
+  overflow: auto;
+  padding-right: 11px;
+  margin-right: -11px;
+}
+
+
+// ### dialog 弹窗样式覆盖
+// -------------------------
+// 头、尾、内容内边距
+// @dialog-padding: 16px;
+
+// .el-dialog {
+//   padding: 0;
+// }
+
+// .el-dialog .el-dialog__header {
+//   display: flex;
+//   padding-right: 0;
+//   padding-bottom: 0;
+//   background-color: #f1f4f9;
+// }
+
+// .el-dialog__title {
+//   flex: 1;
+//   padding: 10px 0 10px @dialog-padding;
+//   line-height: 20px;
+// }
+
+// .el-dialog__headerbtn {
+//   position: static;
+//   height: 40px;
+// }
+
+// .el-dialog__body {
+//   padding: @dialog-padding @dialog-padding calc(@dialog-padding * 2) @dialog-padding;
+// }
+
+// .el-dialog__footer {
+//   border-top: 1px solid #eff0f2;
+//   padding: 10px @dialog-padding;
+// }
+
+// ### XXX 样式覆盖
+// -------------------------

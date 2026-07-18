@@ -1,0 +1,50 @@
+.query-params-container {
+  display: flex;
+  flex-wrap: wrap;
+  user-select: none;
+
+  .query-params-row {
+    flex: 1;
+
+    &.collapse {
+      height: 50px;
+      overflow: hidden;
+    }
+  }
+
+  .query-actions {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    align-items: center;
+
+    :deep(i[class^="ifont-"]) {
+      margin-right: 5px;
+    }
+
+    .query-filter-collapse-icon {
+      margin-left: 12px;
+      display: flex;
+      align-items: center;
+      color: var(--primary-color);
+      transition: all var(--transition-time);
+      cursor: pointer;
+
+      &:hover {
+        color: var(--primary-hover-color);
+      }
+
+      span {
+        margin-right: 5px;
+      }
+
+      i {
+        transition: all var(--transition-time);
+      }
+
+      i.collapse {
+        transform: rotate(-180deg);
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+<h2>M1 · 课程类型管理 · 页面设计</h2>
+<p class="subtitle">/course/type — 最简页面，一个表格搞定</p>
+
+<div class="section">
+  <h3>页面布局</h3>
+  <div class="mockup">
+    <div class="mockup-header">课程类型管理 — 列表页</div>
+    <div class="mockup-body" style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="display:flex;gap:8px;">
+          <input class="mock-input" placeholder="类型名称" style="width:180px;"/>
+          <div class="mock-input" style="width:120px;color:#999;">状态筛选 ▼</div>
+          <button class="mock-button">搜索</button>
+          <button class="mock-button" style="background:#fff;border:1px solid #ddd;">重置</button>
+        </div>
+        <button class="mock-button" style="background:#409EFF;color:#fff;">+ 新增类型</button>
+      </div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr style="background:#f5f7fa;"><th style="padding:8px;text-align:left;">序号</th><th style="padding:8px;text-align:left;">类型名称</th><th style="padding:8px;text-align:left;">说明</th><th style="padding:8px;text-align:left;">排序</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">操作</th></tr>
+        <tr><td style="padding:8px;">1</td><td style="padding:8px;">班课</td><td style="padding:8px;">多人固定班级授课</td><td style="padding:8px;">1</td><td style="padding:8px;"><span style="color:#67C23A;">● 启用</span></td><td style="padding:8px;"><span style="color:#409EFF;">编辑</span> <span style="color:#F56C6C;margin-left:8px;">删除</span></td></tr>
+        <tr style="background:#fafafa;"><td style="padding:8px;">2</td><td style="padding:8px;">一对一</td><td style="padding:8px;">教师一对一授课</td><td style="padding:8px;">2</td><td style="padding:8px;"><span style="color:#67C23A;">● 启用</span></td><td style="padding:8px;"><span style="color:#409EFF;">编辑</span> <span style="color:#F56C6C;margin-left:8px;">删除</span></td></tr>
+        <tr><td style="padding:8px;">3</td><td style="padding:8px;">小班</td><td style="padding:8px;">2-6人小班授课</td><td style="padding:8px;">3</td><td style="padding:8px;"><span style="color:#67C23A;">● 启用</span></td><td style="padding:8px;"><span style="color:#409EFF;">编辑</span> <span style="color:#F56C6C;margin-left:8px;">删除</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>弹窗：新增 / 编辑（共用一个 Dialog）</h3>
+  <div class="mockup" style="max-width:440px;margin:0 auto;">
+    <div class="mockup-header">新增课程类型</div>
+    <div class="mockup-body" style="padding:20px;">
+      <div style="margin-bottom:14px;">
+        <div class="label" style="color:#F56C6C;">* 类型名称</div>
+        <input class="mock-input" placeholder="如：大班课" style="width:100%;margin-top:4px;"/>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div class="label">说明</div>
+        <input class="mock-input" placeholder="如：10人以上大班授课" style="width:100%;margin-top:4px;"/>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div class="label">排序</div>
+        <input class="mock-input" placeholder="数字越小越靠前" style="width:100px;margin-top:4px;"/>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:24px;">
+        <button class="mock-button" style="background:#fff;border:1px solid #ddd;">取消</button>
+        <button class="mock-button" style="background:#409EFF;color:#fff;">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>页面状态与边界条件</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="card">
+      <h4>🔄 加载态</h4>
+      <p>表格骨架屏（3行灰色条块），对应 M0 现有模式</p>
+    </div>
+    <div class="card">
+      <h4>📭 空数据态</h4>
+      <p>空状态插画 +「暂无课程类型，点击右上角新增」</p>
+    </div>
+    <div class="card">
+      <h4>❌ 错误态</h4>
+      <p>加载失败提示 + 重试按钮</p>
+    </div>
+    <div class="card">
+      <h4>🗑️ 删除保护</h4>
+      <p>有课程引用的类型不允许删除，提示「该类型下存在 N 门课程，无法删除」</p>
+    </div>
+    <div class="card">
+      <h4>⚠️ 名称唯一性</h4>
+      <p>新增/编辑时失焦校验，重复提示「类型名称已存在」</p>
+    </div>
+    <div class="card">
+      <h4>🎯 操作反馈</h4>
+      <p>新增成功→关闭弹窗+刷新列表+提示；失败→保留弹窗+错误信息</p>
+    </div>
+  </div>
+</div>

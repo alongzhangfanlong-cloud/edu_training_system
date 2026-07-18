@@ -1,0 +1,89 @@
+<h2>M1 课程管理 · 数据模型</h2>
+<p class="subtitle">5 张表，核心实体关系</p>
+
+<style>
+  .er-box { background:#fff; border-radius:8px; padding:16px; margin:12px 0; box-shadow:0 1px 4px rgba(0,0,0,0.08); border-left:4px solid #409EFF; }
+  .er-box.join { border-left-color:#67C23A; }
+  .er-box.resource { border-left-color:#E6A23C; }
+  .er-title { font-weight:700; font-size:15px; margin-bottom:6px; }
+  .er-fields { font-size:13px; color:#666; line-height:1.8; font-family:Consolas,monospace; }
+  .field-key { color:#E6A23C; }
+  .field-type { color:#909399; }
+  .arrow-row { display:flex; align-items:center; gap:8px; margin:8px 0; font-size:12px; color:#999; }
+  .arrow-row::before { content:'↑'; }
+</style>
+
+<div class="section">
+  <div class="er-box">
+    <div class="er-title">🏷️ sys_course_type · 课程类型</div>
+    <div class="er-fields">
+      <span class="field-key">id</span> <span class="field-type">BIGINT PK</span> ·
+      name <span class="field-type">VARCHAR(50)</span> ·
+      description <span class="field-type">VARCHAR(200)</span> ·
+      sort_order <span class="field-type">INT</span> ·
+      status <span class="field-type">TINYINT</span>
+    </div>
+  </div>
+
+  <div class="er-box">
+    <div class="er-title">📚 sys_subject · 科目</div>
+    <div class="er-fields">
+      <span class="field-key">id</span> <span class="field-type">BIGINT PK</span> ·
+      name <span class="field-type">VARCHAR(50)</span> ·
+      code <span class="field-type">VARCHAR(20)</span> ·
+      sort_order <span class="field-type">INT</span> ·
+      status <span class="field-type">TINYINT</span>
+    </div>
+  </div>
+
+  <div class="er-box">
+    <div class="er-title">📖 sys_course · 课程</div>
+    <div class="er-fields">
+      <span class="field-key">id</span> <span class="field-type">BIGINT PK</span> ·
+      code <span class="field-type">VARCHAR(30) UNIQUE</span> ·
+      name <span class="field-type">VARCHAR(100)</span> ·
+      <span class="field-key">type_id</span> <span class="field-type">BIGINT FK → sys_course_type</span><br/>
+      pricing_mode <span class="field-type">VARCHAR(20)</span> ← PER_SESSION / PER_TERM ·
+      price <span class="field-type">DECIMAL(10,2)</span> ·
+      total_sessions <span class="field-type">INT</span> ← 整期模式时必填<br/>
+      description <span class="field-type">VARCHAR(500)</span> ·
+      cover_image <span class="field-type">VARCHAR(255)</span> ·
+      status <span class="field-type">TINYINT</span>
+    </div>
+  </div>
+
+  <div class="er-box join">
+    <div class="er-title">🔗 sys_course_subject · 课程-科目关联</div>
+    <div class="er-fields">
+      <span class="field-key">course_id</span> <span class="field-type">BIGINT FK → sys_course</span> ·
+      <span class="field-key">subject_id</span> <span class="field-type">BIGINT FK → sys_subject</span><br/>
+      (course_id, subject_id) 联合主键
+    </div>
+  </div>
+
+  <div class="er-box resource">
+    <div class="er-title">🏫 sys_classroom · 教室</div>
+    <div class="er-fields">
+      <span class="field-key">id</span> <span class="field-type">BIGINT PK</span> ·
+      name <span class="field-type">VARCHAR(50)</span> ·
+      capacity <span class="field-type">INT</span> ·
+      facilities <span class="field-type">VARCHAR(300)</span> ·
+      location <span class="field-type">VARCHAR(100)</span> ·
+      status <span class="field-type">TINYINT</span> ← 1启用 / 0停用
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>实体关系</h3>
+  <div style="background:#f5f7fa;border-radius:8px;padding:20px;text-align:center;font-size:14px;line-height:2.5;">
+    <span style="background:#ecf5ff;padding:4px 12px;border-radius:4px;">CourseType 课程类型</span>
+    <span style="margin:0 8px;">1 : N</span>
+    <span style="background:#ecf5ff;padding:4px 12px;border-radius:4px;">Course 课程</span>
+    <span style="margin:0 8px;">N : M</span>
+    <span style="background:#f0f9eb;padding:4px 12px;border-radius:4px;">Subject 科目</span>
+    <br/><br/>
+    <span style="background:#fdf6ec;padding:4px 12px;border-radius:4px;">Classroom 教室</span>
+    <span style="margin:0 8px;font-size:12px;color:#999;">—— 独立实体，后续被 M4/M5 引用</span>
+  </div>
+</div>

@@ -1,3 +1,0 @@
-<template><div class="page"><van-nav-bar title="教师课时消耗" left-arrow @click-left="$router.back()" fixed placeholder/><div class="content"><van-cell v-for="t in list" :key="t.id" :title="t.name" :label="`科目: ${(t.subjects||[]).join(',')}`" :value="`${t.id}节`"/><van-empty v-if="!list.length" description="暂无教师"/></div></div></template>
-<script setup>import {ref,onMounted} from 'vue';import request from '../../utils/request';const list=ref([]);onMounted(async()=>{try{const d=await request.get('/teachers',{params:{pageSize:50}});list.value=d?.list||[]}catch(e){}})</script>
-<style scoped>.page{background:#f7f8fa;min-height:100vh}.content{padding:0}</style>

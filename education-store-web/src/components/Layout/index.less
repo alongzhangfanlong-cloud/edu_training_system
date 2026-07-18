@@ -1,0 +1,87 @@
+.app-wrapper {
+  height: 100vh;
+  display: flex;
+}
+
+.app-sider-menus {
+  width: 200px;
+  transition: width var(--transition-time);
+  background-color: var(--sider-background-color);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px;
+
+  &.sider-collapsed {
+    width: 56px;
+  }
+
+  .logo-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50px;
+
+    img {
+      height: 28px;
+      margin-right: 6px;
+      filter: brightness(0) invert(1);
+    }
+  }
+
+  .menu-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+
+    .menu-container-inner {
+      position: absolute;
+      overflow-x: hidden;
+      overflow-y: auto;
+      inset: 0;
+      margin-right: -6px;
+      margin-left: -5px;
+    }
+  }
+}
+
+.app-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  .layout-header {
+    position: relative;
+    z-index: 10;
+  }
+
+  .layout-container {
+    flex: 1;
+    position: relative;
+
+    .layout-container-inner {
+      position: absolute;
+      inset: 0;
+      padding: 15px 20px;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+  }
+}
+
+// 页面过渡效果
+.page-fade--move,
+.page-fade-leave-active,
+.page-fade-enter-active {
+  transition: all .5s;
+}
+
+.page-fade-enter {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}

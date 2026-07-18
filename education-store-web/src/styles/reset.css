@@ -1,0 +1,107 @@
+/**
+ * ---------------------------------------------
+ * 重置浏览器默认样式，保持一致性
+ * ---------------------------------------------
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* 平滑滚动 */
+  scroll-behavior: smooth;
+  /* 字体抗锯齿 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-size: 14px;
+  /* 字体优化 */
+  text-rendering: optimizeLegibility;
+  /* 防止文本缩放 */
+  -webkit-text-size-adjust: 100%;
+  color: #333;
+}
+
+/* 移除列表样式 */
+ul,
+ol {
+  list-style: none;
+}
+
+/* 链接样式重置 */
+a {
+  text-decoration: none;
+  color: inherit;
+  background-color: transparent;
+}
+
+/* 移除默认按钮样式 */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  outline: none;
+  appearance: none;
+}
+
+/* 图片处理 */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 表格重置 */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* 表单元素 */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+svg {
+  outline: none;
+}
+
+/* 滚动条的宽度 */
+::-webkit-scrollbar {
+  width: 6px; /* 对于垂直滚动条 */
+  height: 6px; /* 对于水平滚动条 */
+}
+
+/* 滚动条的轨道颜色 */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 滚动条滑块的颜色 */
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 3px;
+}
+
+/* 鼠标悬停在滑块上时的颜色 */
+::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}

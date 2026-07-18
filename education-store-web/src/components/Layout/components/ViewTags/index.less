@@ -1,0 +1,115 @@
+.tag-container {
+  height: 34px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .12), 0 0 3px 0 rgba(0, 0, 0, .04);
+}
+
+.tags-list {
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.tag-container {
+  width: 100%;
+  position: relative;
+
+  .tag-container-inner {
+    position: absolute;
+    inset: 2px 5px;
+  }
+
+  .tags-list {
+    display: flex;
+    white-space: nowrap;
+    padding-left: 5px;
+  }
+}
+
+.tags-list {
+  &>div {
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #d8dce5;
+    color: #495060;
+    background: #fff;
+    padding: 0 7px 0 10px;
+    font-size: 12px;
+    margin-left: 5px;
+    display: flex;
+    align-items: center;
+    height: 26px;
+
+    i {
+      font-size: 10px;
+      display: block;
+      transition: all var(--transition-time);
+    }
+
+    em {
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 5px;
+      margin-top: 2px;
+      transition: all var(--transition-time);
+      border-radius: 50%;
+
+      &:hover {
+        background-color: #b4bccc;
+        color: #f4f5f7;
+
+        i {
+          transform: scale(.6);
+        }
+      }
+    }
+
+    &.active {
+      border-color: #409eff;
+      background-color: #409eff;
+      color: #fff;
+
+      i {
+        color: #f4f5f7;
+      }
+    }
+  }
+}
+
+
+// 右键菜单
+.tag-context-menu {
+  position: fixed;
+  z-index: 999;
+  padding: 5px 0;
+  background-color: #fff;
+  border: 1px solid #d8dce5;
+  border-radius: 3px;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    height: 30px;
+    padding: 0 10px;
+    cursor: pointer;
+    transition: all var(--transition-time);
+    border-radius: 3px;
+
+    i {
+      margin-right: 3px;
+    }
+
+    &:hover {
+      background-color: #eeeeee;
+    }
+  }
+
+}

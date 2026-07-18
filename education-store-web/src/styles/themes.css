@@ -1,0 +1,18 @@
+/**
+ * ---------------------------------------------
+ * 主题色配置
+ * ---------------------------------------------
+ */
+
+:root {
+  --primary-color: #1890ff; /* 主色调 */
+  --primary-hover-color: #40a9ff; /* 悬停色 */
+  --primary-active-color: #096dd9; /* 激活色 */
+
+  --transition-time: 0.3s; /* 动画过渡时间 */
+
+  --sider-background-color: #304156; /* 侧边栏背景色 */
+  --sider-text-color: #eee; /* 侧边栏文字颜色 */
+  --sider-sub-menu-background-color: #1f2d3d; /* 侧边栏子菜单背景色 */
+  --sider-sub-menu-background-hover-color: #001528; /* 侧边栏子菜单hover背景色 */
+}

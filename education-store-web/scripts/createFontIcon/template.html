@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ _title }}</title>
+    <link rel="stylesheet" href="{{ fontname }}.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      body {
+        color: #696969;
+        font:
+          12px/1.5 tahoma,
+          arial,
+          \5b8b\4f53,
+          sans-serif;
+      }
+      a {
+        color: #333;
+        text-decoration: underline;
+      }
+      a:hover {
+        color: rgb(9, 73, 209);
+      }
+      h4 {
+        text-align: center;
+        display: block;
+        color: #000;
+        font-size: 38px;
+        line-height: 164px;
+      }
+
+      .icons {
+        max-width: 1190px;
+        margin: 0 auto;
+      }
+      .icons ul {
+        text-align: center;
+      }
+      .icons ul li {
+        vertical-align: top;
+        width: 120px;
+        display: inline-block;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.02);
+        border-radius: 3px;
+        padding: 16px 0 16px 0;
+        margin-right: 10px;
+        margin-top: 10px;
+        transition: all 0.6s ease;
+      }
+      .icons ul li:hover {
+        background-color: rgba(0, 0, 0, 0.06);
+      }
+      .icons ul li:hover span {
+        color: #3c75e4;
+        opacity: 1;
+      }
+      .icons ul li .unicode {
+        color: #8c8c8c;
+        opacity: 0.3;
+      }
+      .icons ul li svg {
+        width: 24px;
+        height: 24px;
+      }
+      .icons ul li i {
+        font-size: 24px;
+      }
+      .icons ul li:hover {
+        color: #3c75e4;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h4>{{title}}</h4>
+    <div class="icons">
+      <ul>
+        {{ _IconHtml|safe }}
+      </ul>
+    </div>
+  </body>
+
+  <script>
+    const listItems = document.querySelectorAll(".icons ul li");
+
+    listItems.forEach(li => {
+      li.style.cursor = "pointer";
+
+      li.title = "点击复制图标名称";
+
+      li.addEventListener("click", async function () {
+        // 获取 li 下的 i 元素
+        const iconElement = this.querySelector("i");
+        if (!iconElement) return;
+
+        // 获取 class 属性
+        const iconClass = iconElement.className;
+
+        if (!iconClass) return;
+
+        try {
+          // 复制到剪贴板
+          await navigator.clipboard.writeText(iconClass);
+
+          showToast("复制成功");
+        } catch (err) {
+          console.error("复制失败:", err);
+        }
+      });
+    });
+
+    function showToast(message, duration = 1500) {
+      // 创建 toast 元素
+      const toast = document.createElement("div");
+      toast.textContent = message;
+      toast.style.cssText = `
+        width: 120px;
+        text-align: center;
+        position: fixed;
+        top: 20px;
+        left: calc(50vw - 60px);
+        background: #f0f9eb;
+        color: white;
+        padding: 8px 0;
+        border-radius: 4px;
+        z-index: 9999;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: opacity 0.3s, transform 0.3s;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        color: #67c23a;
+      `;
+
+      document.body.appendChild(toast);
+
+      // 显示动画
+      setTimeout(() => {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+      }, 10);
+
+      // 自动消失
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-20px)";
+
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, duration);
+    }
+  </script>
+</html>

@@ -1,0 +1,85 @@
+package com.education.store.security.config;
+
+import com.education.store.security.filter.JwtAuthenticationFilter;
+import com.education.store.security.handler.AccessDeniedHandler;
+import com.education.store.security.handler.AuthEntryPoint;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+/**
+ * Spring Security 配置
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthEntryPoint authEntryPoint;
+    private final AccessDeniedHandler accessDeniedHandler;
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // 禁用 CSRF
+            .csrf(AbstractHttpConfigurer::disable)
+            // 基于Token，禁用Session
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // 异常处理
+            .exceptionHandling(ex -> ex
+                    .authenticationEntryPoint(authEntryPoint)
+                    .accessDeniedHandler(accessDeniedHandler)
+            )
+            // 请求权限配置
+            .authorizeHttpRequests(auth -> auth
+                    // 放行接口
+                    .requestMatchers(
+                            "/api/v1/auth/login",
+                            "/api/v1/auth/refresh",
+                            "/api/v1/captcha",
+                            "/doc.html",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/webjars/**",
+                            "/actuator/health"
+                    ).permitAll()
+                    // WebSocket
+                    .requestMatchers("/ws/**").permitAll()
+                    // 静态资源
+                    .requestMatchers(
+                            "/upload/**",
+                            "/static/**",
+                            "/favicon.ico"
+                    ).permitAll()
+                    // 其余接口全部需要认证
+                    .anyRequest().authenticated()
+            )
+            // JWT过滤器
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+}
