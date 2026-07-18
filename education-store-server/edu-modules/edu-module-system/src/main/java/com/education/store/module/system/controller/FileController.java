@@ -1,6 +1,7 @@
 package com.education.store.module.system.controller;
 
 import com.education.store.common.model.Result;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class FileController {
     @Value("${edu.upload-path:upload}")
     private String uploadPath;
 
+    @Operation(summary = "文件上传")
     @PostMapping("/upload")
     public Result<Map<String, Object>> upload(Authentication auth, @RequestParam("file") MultipartFile file) throws IOException {
         Long userId = (Long) auth.getPrincipal();
@@ -57,6 +59,7 @@ public class FileController {
         return Result.success(result);
     }
 
+    @Operation(summary = "文件下载")
     @GetMapping("/{dateDir}/{storedName}")
     public ResponseEntity<Resource> download(@PathVariable String dateDir, @PathVariable String storedName,
             @RequestParam(required = false) String name) throws IOException {

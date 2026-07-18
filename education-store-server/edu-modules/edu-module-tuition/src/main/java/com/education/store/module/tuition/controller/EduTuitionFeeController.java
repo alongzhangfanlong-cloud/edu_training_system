@@ -51,11 +51,13 @@ public class EduTuitionFeeController {
         return Result.success(pageResult);
     }
 
+    @Operation(summary = "收费记录详情")
     @GetMapping("/{id}") @PreAuthorize("@ss.hasPermi('tuition:fee:list')")
     public Result<FeeVO> detail(@PathVariable Long id) {
         return Result.success(toVO(feeService.selectFeeById(id)));
     }
 
+    @Operation(summary = "新增收费记录")
     @PostMapping @Log(title = "收费管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('tuition:fee:add')")
     public Result<Void> create(@Valid @RequestBody FeeCreateDTO dto) {
@@ -64,6 +66,7 @@ public class EduTuitionFeeController {
         return Result.success();
     }
 
+    @Operation(summary = "修改收费记录")
     @PutMapping @Log(title = "收费管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('tuition:fee:edit')")
     public Result<Void> update(@Valid @RequestBody FeeUpdateDTO dto) {
@@ -72,6 +75,7 @@ public class EduTuitionFeeController {
         return Result.success();
     }
 
+    @Operation(summary = "删除收费记录")
     @DeleteMapping("/{ids}") @Log(title = "收费管理", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('tuition:fee:delete')")
     public Result<Void> delete(@PathVariable Long[] ids) {

@@ -32,7 +32,7 @@ CREATE TABLE sys_user (
     update_by       VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark          VARCHAR(500)                             COMMENT '备注',
-    deleted         TINYINT      DEFAULT 0                   COMMENT '逻辑删除',
+    deleted         TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除',
     INDEX idx_mobile (mobile),
     INDEX idx_email (email)
 ) COMMENT '用户信息表';
@@ -59,7 +59,7 @@ CREATE TABLE sys_menu (
     create_time DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
     update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    deleted     TINYINT      DEFAULT 0                   COMMENT '逻辑删除'
+    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '菜单权限表';
 
 -- 角色表
@@ -76,7 +76,7 @@ CREATE TABLE sys_role (
     create_time         DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
     update_by           VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time         DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    deleted             TINYINT      DEFAULT 0                   COMMENT '逻辑删除'
+    deleted             TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '角色表';
 
 -- 用户角色关联表
@@ -108,7 +108,7 @@ CREATE TABLE sys_config (
     update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT      DEFAULT 0                   COMMENT '逻辑删除'
+    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '系统参数配置表';
 
 -- 字典类型表
@@ -123,7 +123,7 @@ CREATE TABLE sys_dict_type (
     update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT      DEFAULT 0                   COMMENT '逻辑删除'
+    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '字典类型表';
 
 -- 字典数据表
@@ -143,7 +143,7 @@ CREATE TABLE sys_dict_data (
     update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT      DEFAULT 0                   COMMENT '逻辑删除',
+    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除',
     INDEX idx_type_code (type_code)
 ) COMMENT '字典数据表';
 
@@ -162,7 +162,7 @@ CREATE TABLE sys_notice (
     create_time  DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
     update_by    VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
     update_time  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    deleted      TINYINT      DEFAULT 0                   COMMENT '逻辑删除'
+    deleted      TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '通知公告表';
 
 -- 操作日志表（无 deleted 列：实体不继承 BaseEntity）

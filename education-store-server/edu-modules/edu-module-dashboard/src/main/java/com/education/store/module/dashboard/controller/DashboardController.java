@@ -74,6 +74,8 @@ public class DashboardController {
     @Operation(summary = "获取周课次分布（备用）")
     @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/weekly")
+    @Deprecated
+    // TODO: 当前为占位桩方法，需接入实际业务数据后替换实现
     public Result<String> getWeekly(
             @Parameter(description = "周偏移") @RequestParam(defaultValue = "0") int weekOffset) {
         return Result.success("{}");
@@ -82,6 +84,8 @@ public class DashboardController {
     @Operation(summary = "获取月消课课时+趋势（备用）")
     @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/monthly-hours")
+    @Deprecated
+    // TODO: 当前为占位桩方法，需接入实际业务数据后替换实现
     public Result<String> getMonthlyHours() {
         return Result.success("{}");
     }

@@ -25,6 +25,7 @@ public class EduLeaveStudentController {
 
     private final IEduLeaveStudentService leaveService;
 
+    @Operation(summary = "学员请假列表")
     @GetMapping("/list") @PreAuthorize("@ss.hasPermi('attendance:leave:student:list')")
     public Result<PageResult<EduLeaveStudent>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize, @RequestParam(required = false) Long studentId,
@@ -34,18 +35,22 @@ public class EduLeaveStudentController {
         return Result.success(PageResult.of(leaveService.selectLeaveList(p, c)));
     }
 
+    @Operation(summary = "学员请假详情")
     @GetMapping("/{id}") @PreAuthorize("@ss.hasPermi('attendance:leave:student:query')")
     public Result<EduLeaveStudent> detail(@PathVariable Long id) { return Result.success(leaveService.selectLeaveById(id)); }
 
+    @Operation(summary = "新增学员请假")
     @PostMapping @Log(title = "学生请假", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('attendance:leave:student:add')")
     public Result<Void> create(@Valid @RequestBody EduLeaveStudent leave) { leaveService.insertLeave(leave); return Result.success(); }
 
+    @Operation(summary = "审批通过学员请假")
     @PutMapping("/{id}/approve") @Log(title = "学生请假", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('attendance:leave:student:approve')")
     public Result<Void> approve(@PathVariable Long id, @RequestBody Map<String, Long> b) {
         leaveService.approveLeave(id, b.get("teacherId")); return Result.success(); }
 
+    @Operation(summary = "驳回学员请假")
     @PutMapping("/{id}/reject") @Log(title = "学生请假", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('attendance:leave:student:approve')")
     public Result<Void> reject(@PathVariable Long id, @RequestBody Map<String, String> b) {

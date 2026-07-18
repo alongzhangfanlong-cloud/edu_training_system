@@ -5,6 +5,7 @@ import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.Result;
 import com.education.store.module.attendance.entity.EduLeaveConflict;
 import com.education.store.module.attendance.service.IEduLeaveConflictService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +19,11 @@ public class EduLeaveConflictController {
 
     private final IEduLeaveConflictService conflictService;
 
+    @Operation(summary = "按请假单查询冲突")
     @GetMapping("/leave/{leaveId}") @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:query')")
     public Result<?> listByLeave(@PathVariable Long leaveId) { return Result.success(conflictService.selectByLeaveId(leaveId)); }
 
+    @Operation(summary = "解决冲突")
     @PutMapping("/{id}/resolve") @Log(title = "冲突处理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:resolve')")
     public Result<Void> resolve(@PathVariable Long id, @RequestBody EduLeaveConflict resolution) {

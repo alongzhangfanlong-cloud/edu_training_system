@@ -25,6 +25,7 @@ public class EduTuitionRefundController {
 
     private final IEduTuitionRefundService refundService;
 
+    @Operation(summary = "退费记录列表")
     @GetMapping("/list") @PreAuthorize("@ss.hasPermi('tuition:refund:list')")
     public Result<PageResult<EduTuitionRefund>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize, @RequestParam(required = false) Long studentId,
@@ -34,23 +35,28 @@ public class EduTuitionRefundController {
         return Result.success(PageResult.of(refundService.selectRefundList(p, c)));
     }
 
+    @Operation(summary = "退费记录详情")
     @GetMapping("/{id}") @PreAuthorize("@ss.hasPermi('tuition:refund:list')")
     public Result<EduTuitionRefund> detail(@PathVariable Long id) { return Result.success(refundService.selectRefundById(id)); }
 
+    @Operation(summary = "新增退费记录")
     @PostMapping @Log(title = "退费管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('tuition:refund:apply')")
     public Result<Void> create(@Valid @RequestBody EduTuitionRefund refund) { refundService.insertRefund(refund); return Result.success(); }
 
+    @Operation(summary = "审批通过退费")
     @PutMapping("/{id}/approve") @Log(title = "退费管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('tuition:refund:approve')")
     public Result<Void> approve(@PathVariable Long id, @RequestBody Map<String, Long> body) {
         refundService.approveRefund(id, body.get("approverId")); return Result.success(); }
 
+    @Operation(summary = "驳回退费")
     @PutMapping("/{id}/reject") @Log(title = "退费管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('tuition:refund:approve')")
     public Result<Void> reject(@PathVariable Long id, @RequestBody Map<String, String> body) {
         refundService.rejectRefund(id, Long.valueOf(body.get("approverId")), body.getOrDefault("reason", "")); return Result.success(); }
 
+    @Operation(summary = "删除退费记录")
     @DeleteMapping("/{ids}") @Log(title = "退费管理", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('tuition:refund:delete')")
     public Result<Void> delete(@PathVariable Long[] ids) { refundService.deleteRefundByIds(ids); return Result.success(); }
