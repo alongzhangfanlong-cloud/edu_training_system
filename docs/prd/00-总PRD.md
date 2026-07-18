@@ -253,7 +253,7 @@ Phase 5: 小程序端
 ### 9.3 数据库规范
 
 - 表名：`edu_` 前缀 + 下划线分隔（如 `edu_student`）
-- 每表必有：`id`、`create_time`、`update_time`、`is_deleted`
+- 每表必有：`id`、`create_time`、`update_time`、`deleted`
 - 逻辑删除，InnoDB 引擎，utf8mb4 字符集
 
 ### 9.4 权限码格式
@@ -319,3 +319,5 @@ Phase 5: 小程序端
 > **下一步**：参见各模块文档的详细设计。
 >
 > **技术规范**：前端 → `docs/CLAUDE_front.md` | 后端 → `docs/CLAUDE_server.md`
+>
+> 📡 **API 接口** → [docs/api/README.md](../api/README.md)（全部 46 个 Controller 路由索引）

@@ -27,8 +27,8 @@
 - MySQL 8.0 + InnoDB
 - 表名小写 + 下划线分隔（`edu_course`）
 - 字段名小写 + 下划线分隔（`create_time`）
-- 每表必有的字段：`id`, `create_time`, `update_time`, `is_deleted`
-- 逻辑删除使用 `is_deleted` 字段
+- 每表必有的字段：`id`, `create_time`, `update_time`, `deleted`
+- 逻辑删除使用 `deleted` 字段（由 BaseEntity 的 `@TableLogic` 自动处理）
 
 ### 安全规范
 
