@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.education.store.module.teaching.entity.EduHomework;
 
 import java.util.List;
+import java.util.Map;
 
 public interface IEduHomeworkService extends IService<EduHomework> {
 
@@ -12,7 +13,9 @@ public interface IEduHomeworkService extends IService<EduHomework> {
 
     EduHomework addHomework(EduHomework homework, List<Long> attachmentIds);
 
-    boolean updateHomework(EduHomework homework);
+    boolean updateHomework(EduHomework homework, List<Long> attachmentIds);
 
     boolean deleteHomework(Long id, Long currentUserId);
+
+    Map<String, Object> getDetail(Long id);
 }

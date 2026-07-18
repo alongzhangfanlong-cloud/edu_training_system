@@ -49,6 +49,7 @@ public class TeacherEvaluationController {
 
     @Operation(summary = "提交学评教")
     @Log(title = "学评教", businessType = BusinessType.INSERT)
+    @PreAuthorize("isAuthenticated()")
     @PostMapping
     public Result<EduTeacherEvaluation> submit(@Valid @RequestBody EduTeacherEvaluation evaluation) {
         teacherEvalService.submit(evaluation);
@@ -73,10 +74,13 @@ public class TeacherEvaluationController {
         return Result.success();
     }
 
-    @Operation(summary = "教师评价统计")
+    @Operation(summary = "教师评价统计（teacherId=0 获取全部教师概览）")
     @PreAuthorize("@ss.hasPermi('teaching:teacher-evaluation:list')")
     @GetMapping("/stats/teacher/{teacherId}")
     public Result<Map<String, Object>> stats(@PathVariable Long teacherId) {
+        if (teacherId == 0) {
+            return Result.success(teacherEvalService.getOverviewStats());
+        }
         return Result.success(teacherEvalService.getTeacherStats(teacherId));
     }
 }

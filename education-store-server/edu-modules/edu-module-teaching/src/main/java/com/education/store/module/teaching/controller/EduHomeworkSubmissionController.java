@@ -1,5 +1,7 @@
 package com.education.store.module.teaching.controller;
 
+import com.education.store.common.annotation.Log;
+import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.Result;
 import com.education.store.module.teaching.entity.EduHomeworkSubmission;
 import com.education.store.module.teaching.service.IEduHomeworkSubmissionService;
@@ -37,6 +39,7 @@ public class EduHomeworkSubmissionController {
 
     @PutMapping("/{id}/grade")
     @Operation(summary = "批改作业")
+    @Log(title = "作业批改", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
     public Result<?> grade(@PathVariable Long id, @Valid @RequestBody EduHomeworkSubmission submission) {
         submission.setId(id);

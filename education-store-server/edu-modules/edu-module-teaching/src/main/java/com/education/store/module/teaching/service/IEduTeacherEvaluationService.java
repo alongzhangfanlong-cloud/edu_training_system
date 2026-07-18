@@ -17,4 +17,6 @@ public interface IEduTeacherEvaluationService extends IService<EduTeacherEvaluat
     boolean restoreEvaluation(Long id);
 
     Map<String, Object> getTeacherStats(Long teacherId);
+
+    Map<String, Object> getOverviewStats();
 }

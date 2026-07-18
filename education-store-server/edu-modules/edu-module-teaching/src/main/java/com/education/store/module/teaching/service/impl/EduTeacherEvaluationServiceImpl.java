@@ -4,16 +4,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.teaching.entity.EduTeacher;
 import com.education.store.module.teaching.entity.EduTeacherEvaluation;
 import com.education.store.module.teaching.mapper.EduTeacherEvaluationMapper;
+import com.education.store.module.teaching.mapper.EduTeacherMapper;
 import com.education.store.module.teaching.service.IEduTeacherEvaluationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +23,7 @@ public class EduTeacherEvaluationServiceImpl extends ServiceImpl<EduTeacherEvalu
         implements IEduTeacherEvaluationService {
 
     private final EduTeacherEvaluationMapper mapper;
+    private final EduTeacherMapper teacherMapper;
 
     @Override
     public IPage<EduTeacherEvaluation> selectList(IPage<EduTeacherEvaluation> page, Long teacherId, Long studentId, String status, String startDate, String endDate) {
@@ -79,6 +82,67 @@ public class EduTeacherEvaluationServiceImpl extends ServiceImpl<EduTeacherEvalu
         }
         eval.setStatus("ACTIVE");
         return updateById(eval);
+    }
+
+    @Override
+    public Map<String, Object> getOverviewStats() {
+        Map<String, Object> result = new HashMap<>();
+        // 全部教师列表
+        List<EduTeacher> teachers = teacherMapper.selectList(null);
+        List<Map<String, Object>> teacherList = new ArrayList<>();
+        for (EduTeacher t : teachers) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("teacherId", t.getId());
+            item.put("teacherName", t.getRealName());
+            BigDecimal avgScore = mapper.getAvgScoreByTeacherId(t.getId());
+            item.put("avgScore", avgScore != null ? avgScore.setScale(1, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO);
+            item.put("evalCount", mapper.countByTeacherId(t.getId()));
+            teacherList.add(item);
+        }
+        result.put("teacherList", teacherList);
+
+        // 评分分布（1-5星计数）
+        List<EduTeacherEvaluation> allActive = mapper.selectList(
+                new LambdaQueryWrapper<EduTeacherEvaluation>().eq(EduTeacherEvaluation::getStatus, "ACTIVE"));
+        int[] ratingCounts = new int[6]; // 0 unused
+        for (EduTeacherEvaluation e : allActive) {
+            int score = e.getRatingScore() != null ? e.getRatingScore() : 0;
+            if (score >= 1 && score <= 5) ratingCounts[score]++;
+        }
+        int total = Arrays.stream(ratingCounts).sum();
+        List<Map<String, Object>> distribution = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            Map<String, Object> d = new HashMap<>();
+            d.put("rating", i);
+            d.put("label", i + "星");
+            d.put("count", ratingCounts[i]);
+            d.put("total", total);
+            distribution.add(d);
+        }
+        result.put("distribution", distribution);
+
+        // 标签频率（简单汇总）
+        Map<String, Integer> tagCount = new HashMap<>();
+        for (EduTeacherEvaluation e : allActive) {
+            if (e.getTags() != null && !e.getTags().isEmpty()) {
+                try {
+                    String[] tags = e.getTags().replace("[", "").replace("]", "").replace("\"", "").split(",");
+                    for (String tag : tags) {
+                        String trimmed = tag.trim();
+                        if (!trimmed.isEmpty()) {
+                            tagCount.merge(trimmed, 1, Integer::sum);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        List<Map<String, Object>> tagFrequency = tagCount.entrySet().stream()
+                .map(e -> { Map<String, Object> m = new HashMap<>(); m.put("tag", e.getKey()); m.put("count", e.getValue()); return m; })
+                .sorted((a, b) -> Integer.compare((int) b.get("count"), (int) a.get("count")))
+                .collect(Collectors.toList());
+        result.put("tagFrequency", tagFrequency);
+
+        return result;
     }
 
     @Override

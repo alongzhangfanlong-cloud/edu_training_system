@@ -6,6 +6,7 @@ import com.education.store.common.annotation.Log;
 import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
+import com.education.store.module.teaching.dto.HomeworkCreateDTO;
 import com.education.store.module.teaching.entity.EduHomework;
 import com.education.store.module.teaching.service.IEduHomeworkService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @Tag(name = "课后作业")
 @RestController
@@ -41,16 +45,25 @@ public class HomeworkController {
     @Operation(summary = "作业详情")
     @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
     @GetMapping("/{id}")
-    public Result<EduHomework> detail(@PathVariable Long id) {
-        return Result.success(homeworkService.getById(id));
+    public Result<Map<String, Object>> detail(@PathVariable Long id) {
+        return Result.success(homeworkService.getDetail(id));
     }
 
     @Operation(summary = "布置作业")
     @Log(title = "课后作业", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('teaching:homework:add')")
     @PostMapping
-    public Result<EduHomework> add(@Valid @RequestBody EduHomework homework) {
-        homeworkService.addHomework(homework, null);
+    public Result<EduHomework> add(@Valid @RequestBody HomeworkCreateDTO dto) {
+        EduHomework homework = new EduHomework();
+        homework.setClassId(dto.getClassId());
+        homework.setCourseId(dto.getCourseId());
+        homework.setScheduleId(dto.getScheduleId());
+        homework.setContent(dto.getContent());
+        homework.setTeacherId(dto.getTeacherId());
+        homework.setTitle(dto.getTitle() != null ? dto.getTitle() :
+                (dto.getContent() != null && dto.getContent().length() > 30 ? dto.getContent().substring(0, 30) : dto.getContent()));
+        List<Long> attachmentIds = dto.getAttachmentIds() != null ? dto.getAttachmentIds() : List.of();
+        homeworkService.addHomework(homework, attachmentIds);
         return Result.success(homework);
     }
 
@@ -58,9 +71,18 @@ public class HomeworkController {
     @Log(title = "课后作业", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody EduHomework homework) {
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody HomeworkCreateDTO dto) {
+        EduHomework homework = new EduHomework();
         homework.setId(id);
-        homeworkService.updateHomework(homework);
+        homework.setClassId(dto.getClassId());
+        homework.setCourseId(dto.getCourseId());
+        homework.setScheduleId(dto.getScheduleId());
+        homework.setContent(dto.getContent());
+        homework.setTeacherId(dto.getTeacherId());
+        homework.setTitle(dto.getTitle() != null ? dto.getTitle() :
+                (dto.getContent() != null && dto.getContent().length() > 30 ? dto.getContent().substring(0, 30) : dto.getContent()));
+        List<Long> attachmentIds = dto.getAttachmentIds() != null ? dto.getAttachmentIds() : List.of();
+        homeworkService.updateHomework(homework, attachmentIds);
         return Result.success();
     }
 
