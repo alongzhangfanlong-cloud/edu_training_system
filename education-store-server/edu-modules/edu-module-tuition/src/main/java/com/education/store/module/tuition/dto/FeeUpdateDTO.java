@@ -1,5 +1,6 @@
 package com.education.store.module.tuition.dto;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -25,13 +26,12 @@ public class FeeUpdateDTO {
 
     private String feeType;
 
+    @DecimalMin(value = "0.01", message = "应收金额必须大于0")
     private BigDecimal amountReceivable;
 
     private BigDecimal amountPaid;
 
     private String paymentMethod;
-
-    private String status;
 
     private LocalDateTime payTime;
 

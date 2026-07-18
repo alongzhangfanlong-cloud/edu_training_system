@@ -40,6 +40,7 @@ public class EduTeacherPayRateServiceImpl extends ServiceImpl<EduTeacherPayRateM
     public int updatePayRate(EduTeacherPayRate rate) {
         EduTeacherPayRate exist = payRateMapper.selectById(rate.getId());
         if (exist == null) throw new BusinessException("课酬单价不存在");
+        if (!checkPeriodOverlap(rate)) throw new BusinessException("该教师在该课程下已有重叠的有效期配置");
         return payRateMapper.updateById(rate);
     }
 

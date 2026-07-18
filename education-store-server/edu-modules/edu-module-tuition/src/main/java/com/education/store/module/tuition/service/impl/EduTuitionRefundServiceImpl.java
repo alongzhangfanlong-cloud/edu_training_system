@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.student.entity.EduStudentHoursLog;
 import com.education.store.module.student.mapper.EduStudentHoursLogMapper;
 import com.education.store.module.student.mapper.EduStudentMapper;
@@ -46,6 +47,7 @@ public class EduTuitionRefundServiceImpl extends ServiceImpl<EduTuitionRefundMap
     public int insertRefund(EduTuitionRefund refund) {
         refund.setRefundNo(generateRefundNo());
         refund.setStatus("PENDING");
+        refund.setCreateBy(SecurityUtils.getUserIdAsString());
         int rows = refundMapper.insert(refund);
 
         // 扣回课时
@@ -82,9 +84,11 @@ public class EduTuitionRefundServiceImpl extends ServiceImpl<EduTuitionRefundMap
     public int approveRefund(Long id, Long approverId) {
         EduTuitionRefund refund = refundMapper.selectById(id);
         if (refund == null) throw new BusinessException("退费记录不存在");
+        if (!"PENDING".equals(refund.getStatus())) throw new BusinessException("仅待审批状态的退费记录可审批");
         refund.setStatus("COMPLETED");
         refund.setApproverId(approverId);
         refund.setApprovalTime(LocalDateTime.now());
+        refund.setUpdateBy(SecurityUtils.getUserIdAsString());
         return refundMapper.updateById(refund);
     }
 
@@ -92,10 +96,12 @@ public class EduTuitionRefundServiceImpl extends ServiceImpl<EduTuitionRefundMap
     public int rejectRefund(Long id, Long approverId, String reason) {
         EduTuitionRefund refund = refundMapper.selectById(id);
         if (refund == null) throw new BusinessException("退费记录不存在");
+        if (!"PENDING".equals(refund.getStatus())) throw new BusinessException("仅待审批状态的退费记录可驳回");
         refund.setStatus("REJECTED");
         refund.setApproverId(approverId);
         refund.setRejectReason(reason);
         refund.setApprovalTime(LocalDateTime.now());
+        refund.setUpdateBy(SecurityUtils.getUserIdAsString());
         return refundMapper.updateById(refund);
     }
 

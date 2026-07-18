@@ -1,11 +1,13 @@
 package com.education.store.module.tuition.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.store.common.annotation.Log;
 import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
+import com.education.store.module.tuition.dto.GiftHoursCreateDTO;
 import com.education.store.module.tuition.entity.EduTuitionGiftHours;
 import com.education.store.module.tuition.service.IEduTuitionGiftHoursService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +41,11 @@ public class EduTuitionGiftHoursController {
     @Operation(summary = "新增赠课记录")
     @PostMapping @Log(title = "赠送课时", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('tuition:gift:add')")
-    public Result<Void> create(@Valid @RequestBody EduTuitionGiftHours gift) { giftService.insertGift(gift); return Result.success(); }
+    public Result<Void> create(@Valid @RequestBody GiftHoursCreateDTO dto) {
+        EduTuitionGiftHours gift = BeanUtil.copyProperties(dto, EduTuitionGiftHours.class);
+        giftService.insertGift(gift);
+        return Result.success();
+    }
 
     @Operation(summary = "删除赠课记录")
     @DeleteMapping("/{ids}") @Log(title = "赠送课时", businessType = BusinessType.DELETE)

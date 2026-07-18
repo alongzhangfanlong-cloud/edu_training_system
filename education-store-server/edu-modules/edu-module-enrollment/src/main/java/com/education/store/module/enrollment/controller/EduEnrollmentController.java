@@ -8,6 +8,7 @@ import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
 import com.education.store.module.enrollment.dto.EnrollmentCreateDTO;
+import com.education.store.module.enrollment.dto.EnrollmentUpdateDTO;
 import com.education.store.module.enrollment.entity.EduEnrollment;
 import com.education.store.module.enrollment.service.IEduEnrollmentService;
 import com.education.store.module.enrollment.vo.EnrollmentVO;
@@ -57,6 +58,7 @@ public class EduEnrollmentController {
     @GetMapping("/{id}")
     public Result<EnrollmentVO> detail(@PathVariable Long id) {
         EduEnrollment enrollment = enrollmentService.selectEnrollmentById(id);
+        if (enrollment == null) return Result.notFound("报名记录不存在");
         return Result.success(toVO(enrollment));
     }
 
@@ -74,8 +76,8 @@ public class EduEnrollmentController {
     @Log(title = "报名管理", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('enrollment:enrollment:edit')")
     @PutMapping
-    public Result<Void> update(@Valid @RequestBody EduEnrollment enrollment) {
-        enrollmentService.updateEnrollment(enrollment);
+    public Result<Void> update(@Valid @RequestBody EnrollmentUpdateDTO dto) {
+        enrollmentService.updateEnrollment(dto);
         return Result.success();
     }
 

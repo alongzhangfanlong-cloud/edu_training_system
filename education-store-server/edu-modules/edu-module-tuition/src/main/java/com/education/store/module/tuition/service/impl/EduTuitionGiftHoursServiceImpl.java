@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.student.entity.EduStudentHoursLog;
 import com.education.store.module.student.mapper.EduStudentHoursLogMapper;
 import com.education.store.module.student.mapper.EduStudentMapper;
@@ -43,6 +44,7 @@ public class EduTuitionGiftHoursServiceImpl extends ServiceImpl<EduTuitionGiftHo
     @Override @Transactional(rollbackFor = Exception.class)
     public int insertGift(EduTuitionGiftHours gift) {
         gift.setGiftNo(generateGiftNo());
+        gift.setCreateBy(SecurityUtils.getUserIdAsString());
         int rows = giftMapper.insert(gift);
 
         // 写课时日志

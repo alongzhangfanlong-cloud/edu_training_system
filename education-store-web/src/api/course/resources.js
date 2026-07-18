@@ -29,3 +29,8 @@ export function delResource(ids) {
 export function recordDownload(id) {
   return request({ url: `${BASE}/${id}/download`, method: 'post' });
 }
+
+// 获取课件分类树
+export function getCategoryTree() {
+  return request({ url: `${BASE}/category-tree`, method: 'get' });
+}

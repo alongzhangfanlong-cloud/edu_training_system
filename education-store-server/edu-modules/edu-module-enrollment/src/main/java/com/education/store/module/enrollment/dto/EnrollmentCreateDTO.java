@@ -1,5 +1,6 @@
 package com.education.store.module.enrollment.dto;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -21,13 +22,12 @@ public class EnrollmentCreateDTO {
     private Long classId;
 
     @NotNull(message = "报名金额不能为空")
+    @DecimalMin(value = "0.01", message = "报名金额必须大于0")
     private BigDecimal amount;
 
     private Long handlerId;
 
     private LocalDate enrollmentDate;
-
-    private String paymentStatus;
 
     private String remark;
 }
