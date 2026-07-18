@@ -103,6 +103,34 @@ public class EduClassroomController {
         return Result.success();
     }
 
+    @Operation(summary = "获取全部可用教室（下拉选项）")
+    @PreAuthorize("@ss.hasPermi('course:classroom:list')")
+    @GetMapping("/all")
+    public Result<List<ClassroomVO>> all() {
+        List<EduClassroom> list = classroomService.selectAllEnabled();
+        return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
+    }
+
+    @Operation(summary = "启用/停用教室")
+    @Log(title = "教室管理", businessType = BusinessType.UPDATE)
+    @PreAuthorize("@ss.hasPermi('course:classroom:edit')")
+    @PutMapping("/{id}/status")
+    public Result<Void> toggleStatus(@PathVariable Long id, @RequestParam Integer status) {
+        classroomService.updateClassroomStatus(id, status);
+        return Result.success();
+    }
+
+    @Operation(summary = "校验教室名称唯一性")
+    @PreAuthorize("@ss.hasPermi('course:classroom:list')")
+    @GetMapping("/check-name")
+    public Result<Boolean> checkName(@RequestParam String name,
+                                      @RequestParam(required = false) Long excludeId) {
+        EduClassroom classroom = new EduClassroom();
+        classroom.setName(name);
+        if (excludeId != null) classroom.setId(excludeId);
+        return Result.success(classroomService.checkNameUnique(classroom));
+    }
+
     private ClassroomVO toVO(EduClassroom classroom) {
         return BeanUtil.copyProperties(classroom, ClassroomVO.class);
     }

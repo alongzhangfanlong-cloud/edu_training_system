@@ -1,4 +1,4 @@
-<!-- 科目管理 -->
+<!-- 科目管理（含行内编辑） -->
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryFormRef" size="small" :inline="true" v-show="showSearch">
@@ -25,28 +25,79 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
+    <!-- 行内编辑表格：新增行在顶部 -->
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange" border stripe>
       <el-table-column type="selection" width="50" align="center" />
       <el-table-column label="编号" align="center" prop="id" width="80" />
-      <el-table-column label="科目名称" align="center" prop="name" :show-overflow-tooltip="true" min-width="150" />
-      <el-table-column label="排序号" align="center" prop="sortOrder" width="80" />
-      <el-table-column label="状态" align="center" width="80">
+      <el-table-column label="科目名称" align="center" prop="name" min-width="150">
         <template #default="{ row }">
-          <dict-tag :options="dicts.sys_normal_disable" :value="String(row.status)" />
+          <template v-if="editingId === row.id">
+            <el-input v-model="editForm.name" size="small" placeholder="科目名称" @blur="saveInline(row)" @keyup.enter="saveInline(row)" />
+          </template>
+          <template v-else>
+            <span>{{ row.name }}</span>
+          </template>
         </template>
       </el-table-column>
-      <el-table-column label="描述" align="center" prop="description" :show-overflow-tooltip="true" min-width="150" />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
-      <el-table-column label="操作" align="center" width="120" fixed="right">
+      <el-table-column label="排序号" align="center" prop="sortOrder" width="100">
         <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="handleUpdate(row)" v-permission="['course:subject:edit']">修改</el-button>
-          <el-button link type="danger" size="small" @click="handleDelete(row)" v-permission="['course:subject:delete']">删除</el-button>
+          <template v-if="editingId === row.id">
+            <el-input-number v-model="editForm.sortOrder" :min="0" size="small" style="width:100%" @blur="saveInline(row)" />
+          </template>
+          <template v-else>
+            <el-input-number v-model="row.sortOrder" :min="0" size="small" controls-position="right" style="width:100%"
+              @change="(val) => quickUpdateSort(row, val)" @blur="(e) => { if (e?.target?.value !== undefined) quickUpdateSort(row, Number(e.target.value)); }" />
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" align="center" width="90">
+        <template #default="{ row }">
+          <template v-if="editingId === row.id">
+            <el-switch v-model="editForm.status" :active-value="1" :inactive-value="0" size="small" @change="saveInline(row)" />
+          </template>
+          <template v-else>
+            <dict-tag :options="dicts.sys_normal_disable" :value="String(row.status)" />
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column label="描述" align="center" prop="description" min-width="150">
+        <template #default="{ row }">
+          <template v-if="editingId === row.id">
+            <el-input v-model="editForm.description" size="small" placeholder="描述" @blur="saveInline(row)" />
+          </template>
+          <template v-else>
+            <span :title="row.description">{{ row.description || '-' }}</span>
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
+      <el-table-column label="操作" align="center" width="150" fixed="right">
+        <template #default="{ row }">
+          <template v-if="editingId === row.id">
+            <el-button link type="success" size="small" @click="saveInline(row)">保存</el-button>
+            <el-button link type="info" size="small" @click="cancelEdit">取消</el-button>
+          </template>
+          <template v-else-if="row._isNew">
+            <el-button link type="success" size="small" @click="startEdit(row)">编辑</el-button>
+            <el-button link type="danger" size="small" @click="cancelNew(row)">取消</el-button>
+          </template>
+          <template v-else>
+            <el-button link type="primary" size="small" @click="startEdit(row)" v-permission="['course:subject:edit']">编辑</el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(row)" v-permission="['course:subject:delete']">删除</el-button>
+          </template>
         </template>
       </el-table-column>
     </el-table>
 
+    <el-empty v-if="!loading && list.length === 0" description="暂无科目数据" />
+    <div v-if="error" class="error-box">
+      <el-result icon="error" title="加载失败" :sub-title="error">
+        <template #extra><el-button type="primary" @click="getList">重试</el-button></template>
+      </el-result>
+    </div>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page" v-model:limit="queryParams.size" @pagination="getList" />
 
+    <!-- 传统弹窗保留用于复杂编辑场景（可选） -->
     <el-dialog :model-value="open" :title="title" width="500px" destroy-on-close append-to-body @open="onOpen" @update:model-value="(val) => open = val">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="科目名称" prop="name">
@@ -88,10 +139,17 @@ const loading = ref(false);
 const showSearch = ref(true);
 const list = ref([]);
 const total = ref(0);
+const error = ref('');
 const selectedIds = ref([]);
 const multiple = computed(() => selectedIds.value.length === 0);
 const queryParams = ref({ page: 1, size: 10, keyword: '' });
 
+// 行内编辑
+const editingId = ref(null);
+const editForm = ref({ name: '', sortOrder: 0, status: 1, description: '' });
+const editingBefore = ref(null); // 进入编辑前的快照，用于取消
+
+// 传统弹窗（保留兼容）
 const open = ref(false);
 const title = ref('');
 const currentId = ref(null);
@@ -101,6 +159,7 @@ const form = ref({ name: '', sortOrder: 0, status: 1, description: '' });
 const rules = { name: [{ required: true, message: '请输入科目名称', trigger: 'blur' }] };
 
 let querySeq = 0;
+let _tempIdCounter = 0;
 
 function getList() {
   loading.value = true; querySeq++; const seq = querySeq;
@@ -108,14 +167,111 @@ function getList() {
   if (!params.keyword) delete params.keyword;
   listSubject(params).then(res => {
     if (seq !== querySeq) return;
-    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; }
-  }).finally(() => { if (seq === querySeq) loading.value = false; });
+    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; error.value = ''; }
+    else { error.value = res.msg || '加载失败'; }
+  }).catch(() => { if (seq === querySeq) error.value = '网络错误，请检查网络后重试'; })
+  .finally(() => { if (seq === querySeq) loading.value = false; });
 }
 
 function handleQuery() { queryParams.value.page = 1; getList(); }
 function resetQuery() { queryParams.value = { page: 1, size: 10, keyword: '' }; getList(); }
 
-function handleAdd() { title.value = '新增科目'; currentId.value = null; open.value = true; }
+// ====== 行内编辑 ======
+function startEdit(row) {
+  if (editingId.value && editingId.value !== row.id) {
+    ElMessage.warning('请先完成当前编辑');
+    return;
+  }
+  editingId.value = row.id;
+  editingBefore.value = { name: row.name, sortOrder: row.sortOrder, status: row.status, description: row.description };
+  editForm.value = { name: row.name, sortOrder: row.sortOrder, status: row.status ?? 1, description: row.description || '' };
+}
+
+function cancelEdit() {
+  if (editingBefore.value) {
+    const row = list.value.find(r => r.id === editingId.value);
+    if (row && !row._isNew) {
+      Object.assign(row, editingBefore.value);
+    }
+  }
+  editingId.value = null;
+  editingBefore.value = null;
+}
+
+async function saveInline(row) {
+  if (!editForm.value.name?.trim()) {
+    ElMessage.warning('科目名称不能为空');
+    return;
+  }
+  const data = { ...editForm.value };
+  let res;
+  if (row._isNew) {
+    res = await addSubject(data);
+    if (res.success) {
+      ElMessage.success('新增成功');
+      editingId.value = null;
+      getList();
+    } else {
+      ElMessage.error(res.msg || '新增失败');
+    }
+  } else {
+    data.id = row.id;
+    res = await updateSubject(data);
+    if (res.success) {
+      ElMessage.success('修改成功');
+      Object.assign(row, { name: data.name, sortOrder: data.sortOrder, status: data.status, description: data.description });
+      editingId.value = null;
+      editingBefore.value = null;
+    } else {
+      ElMessage.error(res.msg || '修改失败');
+    }
+  }
+}
+
+// 排序号快速更新（失焦自动保存）
+async function quickUpdateSort(row, val) {
+  if (val === undefined || val === null || val === row._prevSort) return;
+  row._prevSort = val;
+  try {
+    const res = await updateSubject({ id: row.id, sortOrder: val });
+    if (res.success) {
+      ElMessage.success('排序已更新');
+    } else {
+      ElMessage.error(res.msg || '更新失败');
+    }
+  } catch {
+    // 静默处理
+  }
+}
+
+// ====== 新增：顶部插入行 ======
+function handleAdd() {
+  if (editingId.value) {
+    ElMessage.warning('请先完成当前编辑');
+    return;
+  }
+  _tempIdCounter++;
+  const newRow = {
+    id: -_tempIdCounter, // 负数临时ID
+    _isNew: true,
+    name: '',
+    sortOrder: 0,
+    status: 1,
+    description: '',
+    createTime: '',
+  };
+  list.value.unshift(newRow); // 顶部插入
+  startEdit(newRow);
+}
+
+function cancelNew(row) {
+  const idx = list.value.findIndex(r => r.id === row.id);
+  if (idx >= 0) list.value.splice(idx, 1);
+  editingId.value = null;
+  editingBefore.value = null;
+}
+
+// ====== 传统弹窗（保留兼容） ======
 function handleUpdate(row) { title.value = '修改科目'; currentId.value = row.id; open.value = true; }
 function handleDelete(row) {
   const ids = row ? [row.id] : selectedIds.value;

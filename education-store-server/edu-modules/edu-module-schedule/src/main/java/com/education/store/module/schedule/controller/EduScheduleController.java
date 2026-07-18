@@ -25,18 +25,24 @@ public class EduScheduleController {
 
     private final IEduScheduleService scheduleService;
 
-    @Operation(summary = "排课记录列表")
+    @Operation(summary = "排课记录列表（课程表）")
     @PreAuthorize("@ss.hasPermi('schedule:calendar:list')")
     @GetMapping("/list")
     public Result<PageResult<EduSchedule>> list(@RequestParam(defaultValue = "1") long page,
-            @RequestParam(defaultValue = "20") long pageSize, @RequestParam(required = false) Long classId,
-            @RequestParam(required = false) Long teacherId, @RequestParam(required = false) String status) {
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Long teacherId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         Page<EduSchedule> p = new Page<>(page, pageSize);
         EduSchedule condition = new EduSchedule();
         condition.setClassId(classId);
         condition.setTeacherId(teacherId);
+        condition.setCourseId(courseId);
         condition.setStatus(status);
-        IPage<EduSchedule> result = scheduleService.selectScheduleList(p, condition);
+        IPage<EduSchedule> result = scheduleService.selectScheduleList(p, condition, startDate, endDate);
         return Result.success(PageResult.of(result));
     }
 
@@ -61,7 +67,7 @@ public class EduScheduleController {
     @PreAuthorize("@ss.hasPermi('schedule:cancel')")
     @PutMapping("/{id}/cancel")
     public Result<Void> cancel(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        scheduleService.cancelSchedule(id, body.getOrDefault("reason", ""));
+        scheduleService.cancelSchedule(id, body.getOrDefault("cancelReason", ""));
         return Result.success();
     }
 

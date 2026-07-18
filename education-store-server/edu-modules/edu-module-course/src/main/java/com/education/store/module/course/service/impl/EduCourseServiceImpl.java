@@ -109,4 +109,23 @@ public class EduCourseServiceImpl extends ServiceImpl<EduCourseMapper, EduCourse
                 .one();
         return exist == null || exist.getId().equals(id);
     }
+
+    @Override
+    public java.util.List<EduCourse> selectAllUpCourses() {
+        return lambdaQuery()
+                .eq(EduCourse::getStatus, 1) // 1=上架
+                .orderByAsc(EduCourse::getSortOrder)
+                .list();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateCourseStatus(Long id, Integer status) {
+        EduCourse course = courseMapper.selectById(id);
+        if (course == null) {
+            throw new BusinessException("课程不存在");
+        }
+        course.setStatus(status);
+        return courseMapper.updateById(course);
+    }
 }

@@ -24,3 +24,13 @@ export function updateSchedulePlan(data) {
 export function delSchedulePlan(ids) {
   return request({ url: `${BASE}/${ids}`, method: 'delete' });
 }
+
+/** 排课计划预览 — 三维冲突检测 */
+export function previewSchedulePlan(data) {
+  return request({ url: `${BASE}/preview`, method: 'post', data });
+}
+
+/** 重新生成排课 */
+export function regenerateSchedulePlan(id) {
+  return request({ url: `${BASE}/${id}/regenerate`, method: 'put' });
+}

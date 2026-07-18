@@ -38,8 +38,13 @@
       <el-table-column label="课程" align="center" prop="courseName" width="120" />
       <el-table-column label="教师" align="center" prop="teacherName" width="80" />
       <el-table-column label="教室" align="center" prop="classroomName" width="100" />
-      <el-table-column label="学员数" align="center" width="80">
-        <template #default="{ row }">{{ row.currentCount || 0 }} / {{ row.maxStudents || 0 }}</template>
+      <el-table-column label="学员数" align="center" width="90">
+        <template #default="{ row }">
+          <span :class="{ 'text-danger': row.maxStudents > 0 && row.currentCount >= row.maxStudents }">
+            {{ row.currentCount || 0 }} / {{ row.maxStudents || 0 }}
+          </span>
+          <el-tag v-if="row.maxStudents > 0 && row.currentCount >= row.maxStudents" type="danger" size="small" style="margin-left: 4px">满员</el-tag>
+        </template>
       </el-table-column>
       <el-table-column label="状态" align="center" width="90">
         <template #default="{ row }">
@@ -56,6 +61,9 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="students">学员管理</el-dropdown-item>
+                <el-dropdown-item v-if="row.status === 'RECRUITING'" command="finish" divided>结课</el-dropdown-item>
+                <el-dropdown-item v-if="row.status === 'RECRUITING'" command="suspend">停招</el-dropdown-item>
+                <el-dropdown-item v-if="row.status === 'SUSPENDED'" command="resume">恢复招生</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -63,6 +71,12 @@
       </el-table-column>
     </el-table>
 
+    <el-empty v-if="!loading && list.length === 0" description="暂无班级数据" />
+    <div v-if="error" class="error-box">
+      <el-result icon="error" title="加载失败" :sub-title="error">
+        <template #extra><el-button type="primary" @click="getList">重试</el-button></template>
+      </el-result>
+    </div>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page" v-model:limit="queryParams.size" @pagination="getList" />
 
     <ClassFormModal v-model:visible="open" :title="title" :class-id="currentId" @submit-success="getList" />
@@ -74,7 +88,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Delete, ArrowDown } from '@element-plus/icons-vue';
-import { listClass, delClass } from '@/api/class/classes';
+import { listClass, delClass, changeClassStatus } from '@/api/class/classes';
 import { useDictsStore } from '@/stores/dicts';
 import RightToolbar from '@/components/RightToolbar/index.vue';
 import Pagination from '@/components/Pagination/index.vue';
@@ -84,7 +98,8 @@ import ClassStudentModal from './components/ClassStudentModal.vue';
 
 const { dicts, loadDict } = useDictsStore();
 const loading = ref(false); const showSearch = ref(true);
-const list = ref([]); const total = ref(0); const selectedIds = ref([]);
+const list = ref([]); const total = ref(0); const error = ref('');
+const selectedIds = ref([]);
 const multiple = computed(() => selectedIds.value.length === 0);
 const queryParams = ref({ page: 1, size: 10, keyword: '', status: '' });
 const open = ref(false); const title = ref(''); const currentId = ref(null); const currentName = ref('');
@@ -96,8 +111,10 @@ function getList() {
   const params = { ...queryParams.value }; if (!params.keyword) delete params.keyword; if (!params.status) delete params.status;
   listClass(params).then(res => {
     if (seq !== querySeq) return;
-    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; }
-  }).finally(() => { if (seq === querySeq) loading.value = false; });
+    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; error.value = ''; }
+    else { error.value = res.msg || '加载失败'; }
+  }).catch(() => { if (seq === querySeq) error.value = '网络错误，请检查网络后重试'; })
+  .finally(() => { if (seq === querySeq) loading.value = false; });
 }
 function handleQuery() { queryParams.value.page = 1; getList(); }
 function resetQuery() { queryParams.value = { page: 1, size: 10, keyword: '', status: '' }; getList(); }
@@ -112,7 +129,26 @@ function handleDelete(row) {
       else { ElMessage.error(res.msg || '删除失败'); }
     });
 }
-function handleCommand(cmd, row) { currentId.value = row.id; currentName.value = row.name; if (cmd === 'students') studentOpen.value = true; }
+function handleCommand(cmd, row) {
+  currentId.value = row.id; currentName.value = row.name;
+  if (cmd === 'students') { studentOpen.value = true; return; }
+  if (cmd === 'finish') {
+    ElMessageBox.confirm('确认将该班级设为"已结课"？结课后无法再加入学员。', '确认', { type: 'warning' })
+      .then(() => changeClassStatus(row.id, 'FINISHED'))
+      .then(res => { if (res.success) { getList(); ElMessage.success('已结课'); } else { ElMessage.error(res.msg || '操作失败'); } });
+    return;
+  }
+  if (cmd === 'suspend') {
+    ElMessageBox.confirm('确认暂停该班级招生？', '确认', { type: 'warning' })
+      .then(() => changeClassStatus(row.id, 'SUSPENDED'))
+      .then(res => { if (res.success) { getList(); ElMessage.success('已停招'); } else { ElMessage.error(res.msg || '操作失败'); } });
+    return;
+  }
+  if (cmd === 'resume') {
+    changeClassStatus(row.id, 'RECRUITING')
+      .then(res => { if (res.success) { getList(); ElMessage.success('已恢复招生'); } else { ElMessage.error(res.msg || '操作失败'); } });
+  }
+}
 function handleSelectionChange(selection) { selectedIds.value = selection.map(i => i.id); }
 onMounted(() => { getList(); loadDict('class_status'); });
 </script>
@@ -120,4 +156,5 @@ onMounted(() => { getList(); loadDict('class_status'); });
 <style scoped lang="less">
 .app-container { padding: 16px; }
 .mb8 { margin-bottom: 8px; }
+.text-danger { color: #f56c6c; font-weight: 600; }
 </style>

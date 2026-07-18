@@ -103,6 +103,32 @@ public class EduSubjectController {
         return Result.success();
     }
 
+    @Operation(summary = "获取全部科目（下拉选项，含已停用）")
+    @PreAuthorize("@ss.hasPermi('course:subject:list')")
+    @GetMapping("/all")
+    public Result<List<SubjectVO>> all() {
+        List<EduSubject> list = subjectService.selectAllSubjects();
+        return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
+    }
+
+    @Operation(summary = "启用/停用科目")
+    @Log(title = "科目管理", businessType = BusinessType.UPDATE)
+    @PreAuthorize("@ss.hasPermi('course:subject:edit')")
+    @PutMapping("/{id}/status")
+    public Result<Void> toggleStatus(@PathVariable Long id, @RequestParam Integer status) {
+        subjectService.updateSubjectStatus(id, status);
+        return Result.success();
+    }
+
+    @Operation(summary = "批量更新排序")
+    @Log(title = "科目管理", businessType = BusinessType.UPDATE)
+    @PreAuthorize("@ss.hasPermi('course:subject:edit')")
+    @PutMapping("/sort")
+    public Result<Void> updateSort(@RequestBody List<SubjectUpdateDTO> list) {
+        subjectService.updateSortBatch(list);
+        return Result.success();
+    }
+
     private SubjectVO toVO(EduSubject subject) {
         return BeanUtil.copyProperties(subject, SubjectVO.class);
     }

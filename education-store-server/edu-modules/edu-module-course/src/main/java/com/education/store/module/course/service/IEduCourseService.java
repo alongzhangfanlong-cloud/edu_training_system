@@ -29,4 +29,10 @@ public interface IEduCourseService extends IService<EduCourse> {
 
     /** 校验同一科目下课程名称是否唯一 */
     boolean checkNameUniqueWithinSubject(EduCourse course);
+
+    /** 获取全部已上架课程（用于下拉选项） */
+    java.util.List<EduCourse> selectAllUpCourses();
+
+    /** 更新课程上架/下架状态 */
+    int updateCourseStatus(Long id, Integer status);
 }

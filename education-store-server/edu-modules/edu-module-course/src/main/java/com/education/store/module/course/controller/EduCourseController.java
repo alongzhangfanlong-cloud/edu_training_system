@@ -115,6 +115,47 @@ public class EduCourseController {
         return Result.success();
     }
 
+    @Operation(summary = "获取全部已上架课程（下拉选项）")
+    @PreAuthorize("@ss.hasPermi('course:course:list')")
+    @GetMapping("/all")
+    public Result<List<CourseVO>> all() {
+        List<EduCourse> list = courseService.selectAllUpCourses();
+        return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
+    }
+
+    @Operation(summary = "上架/下架课程")
+    @Log(title = "课程管理", businessType = BusinessType.UPDATE)
+    @PreAuthorize("@ss.hasPermi('course:course:edit')")
+    @PutMapping("/{id}/status")
+    public Result<Void> toggleStatus(@PathVariable Long id, @RequestParam Integer status) {
+        courseService.updateCourseStatus(id, status);
+        return Result.success();
+    }
+
+    @Operation(summary = "校验课程编号唯一性")
+    @PreAuthorize("@ss.hasPermi('course:course:list')")
+    @GetMapping("/check-code")
+    public Result<Boolean> checkCode(@RequestParam String code,
+                                      @RequestParam(required = false) Long excludeId) {
+        EduCourse course = new EduCourse();
+        course.setCode(code);
+        if (excludeId != null) course.setId(excludeId);
+        return Result.success(courseService.checkCodeUnique(course));
+    }
+
+    @Operation(summary = "校验同科目下课程名称唯一性")
+    @PreAuthorize("@ss.hasPermi('course:course:list')")
+    @GetMapping("/check-name")
+    public Result<Boolean> checkName(@RequestParam String name,
+                                      @RequestParam Long subjectId,
+                                      @RequestParam(required = false) Long excludeId) {
+        EduCourse course = new EduCourse();
+        course.setName(name);
+        course.setSubjectId(subjectId);
+        if (excludeId != null) course.setId(excludeId);
+        return Result.success(courseService.checkNameUniqueWithinSubject(course));
+    }
+
     private CourseVO toVO(EduCourse course) {
         CourseVO vo = BeanUtil.copyProperties(course, CourseVO.class);
         return vo;

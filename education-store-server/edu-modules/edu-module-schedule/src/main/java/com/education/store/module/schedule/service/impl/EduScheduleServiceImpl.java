@@ -23,12 +23,16 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
     private final EduScheduleMapper scheduleMapper;
 
     @Override
-    public IPage<EduSchedule> selectScheduleList(IPage<EduSchedule> page, EduSchedule schedule) {
+    public IPage<EduSchedule> selectScheduleList(IPage<EduSchedule> page, EduSchedule schedule,
+                                                   String startDate, String endDate) {
         LambdaQueryWrapper<EduSchedule> wrapper = new LambdaQueryWrapper<>();
         if (schedule.getClassId() != null) wrapper.eq(EduSchedule::getClassId, schedule.getClassId());
         if (schedule.getTeacherId() != null) wrapper.eq(EduSchedule::getTeacherId, schedule.getTeacherId());
+        if (schedule.getCourseId() != null) wrapper.eq(EduSchedule::getCourseId, schedule.getCourseId());
         if (schedule.getRoomId() != null) wrapper.eq(EduSchedule::getRoomId, schedule.getRoomId());
         if (StrUtil.isNotBlank(schedule.getStatus())) wrapper.eq(EduSchedule::getStatus, schedule.getStatus());
+        if (StrUtil.isNotBlank(startDate)) wrapper.ge(EduSchedule::getScheduleDate, startDate);
+        if (StrUtil.isNotBlank(endDate)) wrapper.le(EduSchedule::getScheduleDate, endDate);
         wrapper.orderByDesc(EduSchedule::getScheduleDate);
         return scheduleMapper.selectPage(page, wrapper);
     }
@@ -61,8 +65,9 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
         EduSchedule schedule = scheduleMapper.selectById(id);
         if (schedule == null) throw new BusinessException("排课记录不存在");
         if (!"NORMAL".equals(schedule.getStatus()) && !"MAKEUP".equals(schedule.getStatus()))
-            throw new BusinessException("仅正常/补课状态的排课可取消");
-        schedule.setStatus("CANCELLED");
+            throw new BusinessException("仅正常/补课状态的排课可停课");
+        // 停课状态为 SUSPENDED，CANCELLED 用于取消操作（见 PRD §9.8）
+        schedule.setStatus("SUSPENDED");
         schedule.setCancelReason(reason);
         schedule.setCancelTime(LocalDateTime.now());
         return scheduleMapper.updateById(schedule);
@@ -88,13 +93,24 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
         newSchedule.setScheduleType(exist.getScheduleType());
         newSchedule.setRescheduledFromId(exist.getId());
         if (!checkConflict(newSchedule)) throw new BusinessException("排课冲突，请检查教师/教室/班级时间安排");
-        return scheduleMapper.insert(newSchedule);
+        int rows = scheduleMapper.insert(newSchedule);
+
+        // 回写原记录的 rescheduledToId，修复双向关联断裂（P2 修复）
+        exist.setRescheduledToId(newSchedule.getId());
+        scheduleMapper.updateById(exist);
+
+        return rows;
     }
 
     @Override @Transactional(rollbackFor = Exception.class)
     public int consumeSchedule(Long id) {
         EduSchedule schedule = scheduleMapper.selectById(id);
         if (schedule == null) throw new BusinessException("排课记录不存在");
+        // 仅允许消课已过日期的排课（PRD §3.1.5）
+        if (schedule.getScheduleDate() != null
+                && schedule.getScheduleDate().isAfter(java.time.LocalDate.now())) {
+            throw new BusinessException("仅可对已过上课日期的排课执行消课操作");
+        }
         schedule.setConsumed(1);
         schedule.setConsumeTime(LocalDateTime.now());
         return scheduleMapper.updateById(schedule);

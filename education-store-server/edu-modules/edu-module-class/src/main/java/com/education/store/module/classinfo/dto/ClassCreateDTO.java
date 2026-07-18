@@ -18,10 +18,13 @@ public class ClassCreateDTO {
     @NotNull(message = "关联课程不能为空")
     private Long courseId;
 
+    @NotNull(message = "关联教师不能为空")
     private Long teacherId;
 
     private Long classroomId;
 
+    @jakarta.validation.constraints.Min(value = 1, message = "最大人数至少为1")
+    @jakarta.validation.constraints.Max(value = 999, message = "最大人数不能超过999")
     private Integer maxStudents;
 
     private String status;

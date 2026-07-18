@@ -42,8 +42,8 @@ public class EduClassStudentServiceImpl extends ServiceImpl<EduClassStudentMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int enrollStudent(EduClassStudent classStudent) {
-        // 1. 校验班级存在且可加入
-        EduClass clazz = classMapper.selectById(classStudent.getClassId());
+        // 1. 行锁查询班级，防止并发超员（P1 修复）
+        EduClass clazz = classMapper.selectForUpdate(classStudent.getClassId());
         if (clazz == null) {
             throw new BusinessException("班级不存在");
         }
@@ -60,7 +60,7 @@ public class EduClassStudentServiceImpl extends ServiceImpl<EduClassStudentMappe
             throw new BusinessException("非在读学员无法加入班级");
         }
 
-        // 3. 校验未满员
+        // 3. 校验未满员（行锁已保证 current_count 准确性）
         if (clazz.getMaxStudents() > 0 && clazz.getCurrentCount() >= clazz.getMaxStudents()) {
             throw new BusinessException("班级已满员（" + clazz.getCurrentCount() + "/" + clazz.getMaxStudents() + "）");
         }
@@ -92,6 +92,37 @@ public class EduClassStudentServiceImpl extends ServiceImpl<EduClassStudentMappe
         }
 
         return rows;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchEnrollStudents(Long classId, List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            throw new BusinessException("学员ID列表不能为空");
+        }
+        int success = 0;
+        for (Long studentId : studentIds) {
+            EduClassStudent cs = new EduClassStudent();
+            cs.setClassId(classId);
+            cs.setStudentId(studentId);
+            enrollStudent(cs);
+            success++;
+        }
+        return success;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchRemoveStudents(Long classId, List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException("ID列表不能为空");
+        }
+        int success = 0;
+        for (Long id : ids) {
+            removeStudent(id);
+            success++;
+        }
+        return success;
     }
 
     @Override

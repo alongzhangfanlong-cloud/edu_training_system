@@ -46,6 +46,12 @@
       </el-table-column>
     </el-table>
 
+    <el-empty v-if="!loading && list.length === 0" description="暂无教室数据" />
+    <div v-if="error" class="error-box">
+      <el-result icon="error" title="加载失败" :sub-title="error">
+        <template #extra><el-button type="primary" @click="getList">重试</el-button></template>
+      </el-result>
+    </div>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page" v-model:limit="queryParams.size" @pagination="getList" />
 
     <el-dialog :model-value="open" :title="title" width="500px" destroy-on-close append-to-body @open="onOpen" @update:model-value="(val) => open = val">
@@ -60,7 +66,11 @@
           <el-input v-model="form.location" placeholder="如：3楼301室" />
         </el-form-item>
         <el-form-item label="设施配置">
-          <el-input v-model="form.facilities" placeholder="多个设施逗号分隔，如：投影仪,白板,空调" />
+          <el-select v-model="facilityTags" multiple filterable allow-create default-first-option
+            placeholder="选择或输入设施标签" style="width:100%"
+            @change="onFacilityChange">
+            <el-option v-for="tag in facilityPool" :key="tag" :label="tag" :value="tag" />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
@@ -94,6 +104,7 @@ const loading = ref(false);
 const showSearch = ref(true);
 const list = ref([]);
 const total = ref(0);
+const error = ref('');
 const selectedIds = ref([]);
 const multiple = computed(() => selectedIds.value.length === 0);
 const queryParams = ref({ page: 1, size: 10, keyword: '' });
@@ -104,6 +115,14 @@ const formRef = ref(null);
 const submitting = ref(false);
 const form = ref({ name: '', capacity: 0, location: '', facilities: '', status: 1, description: '' });
 const rules = { name: [{ required: true, message: '请输入教室名称', trigger: 'blur' }] };
+
+// 设施标签池
+const facilityTags = ref([]);
+const facilityPool = ['投影仪', '白板', '空调', '音响', '电脑', '网络', '摄像头', '电子白板', '实验台', '钢琴', '画架', '舞蹈镜'];
+
+function onFacilityChange(tags) {
+  form.value.facilities = tags.join(',');
+}
 let querySeq = 0;
 
 function getList() {
@@ -111,8 +130,10 @@ function getList() {
   const params = { ...queryParams.value }; if (!params.keyword) delete params.keyword;
   listClassroom(params).then(res => {
     if (seq !== querySeq) return;
-    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; }
-  }).finally(() => { if (seq === querySeq) loading.value = false; });
+    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; error.value = ''; }
+    else { error.value = res.msg || '加载失败'; }
+  }).catch(() => { if (seq === querySeq) error.value = '网络错误，请检查网络后重试'; })
+  .finally(() => { if (seq === querySeq) loading.value = false; });
 }
 function handleQuery() { queryParams.value.page = 1; getList(); }
 function resetQuery() { queryParams.value = { page: 1, size: 10, keyword: '' }; getList(); }
@@ -135,10 +156,11 @@ async function onOpen() {
     if (res.success && res.data) {
       const s = res.data.data || res.data;
       form.value = { name: s.name || '', capacity: s.capacity || 0, location: s.location || '', facilities: s.facilities || '', status: s.status ?? 1, description: s.description || '' };
+      facilityTags.value = s.facilities ? s.facilities.split(',').filter(Boolean) : [];
     }
   }
 }
-function reset() { form.value = { name: '', capacity: 0, location: '', facilities: '', status: 1, description: '' }; nextTick(() => formRef.value?.clearValidate()); }
+function reset() { form.value = { name: '', capacity: 0, location: '', facilities: '', status: 1, description: '' }; facilityTags.value = []; nextTick(() => formRef.value?.clearValidate()); }
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false); if (!valid) return;
   submitting.value = true;

@@ -24,4 +24,8 @@ public interface EduClassMapper extends BaseMapper<EduClass> {
     /** 原子递减当前人数 */
     @Update("UPDATE edu_class SET current_count = current_count - 1 WHERE id = #{classId} AND current_count > 0")
     int decrementCurrentCount(@Param("classId") Long classId);
+
+    /** 行锁查询 — SELECT ... FOR UPDATE，用于 enrolStudent 并发安全 */
+    @Select("SELECT * FROM edu_class WHERE id = #{classId} AND deleted = 0 FOR UPDATE")
+    EduClass selectForUpdate(@Param("classId") Long classId);
 }

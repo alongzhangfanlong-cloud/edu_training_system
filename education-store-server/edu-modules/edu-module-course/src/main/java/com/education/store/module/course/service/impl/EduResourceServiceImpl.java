@@ -139,6 +139,60 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
         resourceMapper.incrementDownloadCount(id);
     }
 
+    @Override
+    public java.util.Map<String, Object> getCategoryTree() {
+        // 查询所有未删除的课件
+        java.util.List<EduResource> allResources = lambdaQuery().list();
+
+        // 构建三级分类树: 科目 → 年级 → 资源类型 → 数量
+        java.util.Map<Long, java.util.Map<String, java.util.Map<String, Long>>> tree = new java.util.LinkedHashMap<>();
+
+        for (EduResource r : allResources) {
+            Long subjectId = r.getSubjectId() != null ? r.getSubjectId() : 0L;
+            String grade = StrUtil.isNotBlank(r.getGrade()) ? r.getGrade() : "未分类";
+            String type = StrUtil.isNotBlank(r.getResourceType()) ? r.getResourceType() : "OTHER";
+
+            tree.computeIfAbsent(subjectId, k -> new java.util.LinkedHashMap<>())
+                .computeIfAbsent(grade, k -> new java.util.LinkedHashMap<>())
+                .merge(type, 1L, Long::sum);
+        }
+
+        // 转换为前端友好的树结构
+        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<Long, java.util.Map<String, java.util.Map<String, Long>>> subjectEntry : tree.entrySet()) {
+            java.util.Map<String, Object> subjectNode = new java.util.LinkedHashMap<>();
+            subjectNode.put("subjectId", subjectEntry.getKey());
+            long subjectCount = subjectEntry.getValue().values().stream()
+                    .flatMap(m -> m.values().stream()).mapToLong(Long::longValue).sum();
+            subjectNode.put("count", subjectCount);
+
+            java.util.List<java.util.Map<String, Object>> gradeChildren = new java.util.ArrayList<>();
+            for (java.util.Map.Entry<String, java.util.Map<String, Long>> gradeEntry : subjectEntry.getValue().entrySet()) {
+                java.util.Map<String, Object> gradeNode = new java.util.LinkedHashMap<>();
+                gradeNode.put("grade", gradeEntry.getKey());
+                long gradeCount = gradeEntry.getValue().values().stream().mapToLong(Long::longValue).sum();
+                gradeNode.put("count", gradeCount);
+
+                java.util.List<java.util.Map<String, Object>> typeChildren = new java.util.ArrayList<>();
+                for (java.util.Map.Entry<String, Long> typeEntry : gradeEntry.getValue().entrySet()) {
+                    java.util.Map<String, Object> typeNode = new java.util.LinkedHashMap<>();
+                    typeNode.put("resourceType", typeEntry.getKey());
+                    typeNode.put("count", typeEntry.getValue());
+                    typeChildren.add(typeNode);
+                }
+                gradeNode.put("children", typeChildren);
+                gradeChildren.add(gradeNode);
+            }
+            subjectNode.put("children", gradeChildren);
+            result.add(subjectNode);
+        }
+
+        java.util.Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("tree", result);
+        response.put("totalCount", allResources.size());
+        return response;
+    }
+
     // ========== 私有方法 ==========
 
     /** 校验文件类型和大小 */

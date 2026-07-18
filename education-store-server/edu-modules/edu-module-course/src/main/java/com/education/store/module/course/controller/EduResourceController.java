@@ -7,6 +7,8 @@ import com.education.store.common.annotation.Log;
 import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
+import com.education.store.module.course.dto.ResourceCreateDTO;
+import com.education.store.module.course.dto.ResourceUpdateDTO;
 import com.education.store.module.course.entity.EduResource;
 import com.education.store.module.course.service.IEduResourceService;
 import com.education.store.module.course.vo.ResourceVO;
@@ -73,8 +75,10 @@ public class EduResourceController {
     @PreAuthorize("@ss.hasPermi('course:resource:add')")
     @PostMapping
     public Result<Void> create(
-            @Valid @RequestPart("metadata") EduResource resource,
+            @Valid @RequestPart("metadata") ResourceCreateDTO dto,
             @RequestPart("file") MultipartFile file) {
+        EduResource resource = new EduResource();
+        BeanUtil.copyProperties(dto, resource);
         resourceService.insertResource(resource, file);
         return Result.success();
     }
@@ -85,8 +89,10 @@ public class EduResourceController {
     @PutMapping("/{id}")
     public Result<Void> update(
             @PathVariable Long id,
-            @Valid @RequestPart("metadata") EduResource resource,
+            @Valid @RequestPart("metadata") ResourceUpdateDTO dto,
             @RequestPart(value = "file", required = false) MultipartFile file) {
+        EduResource resource = new EduResource();
+        BeanUtil.copyProperties(dto, resource);
         resource.setId(id);
         resourceService.updateResource(resource, file);
         return Result.success();
@@ -106,6 +112,13 @@ public class EduResourceController {
     public Result<Void> download(@PathVariable Long id) {
         resourceService.incrementDownloadCount(id);
         return Result.success();
+    }
+
+    @Operation(summary = "获取课件分类树（含节点数量）")
+    @PreAuthorize("@ss.hasPermi('course:resource:list')")
+    @GetMapping("/category-tree")
+    public Result<java.util.Map<String, Object>> categoryTree() {
+        return Result.success(resourceService.getCategoryTree());
     }
 
     private ResourceVO toVO(EduResource resource) {

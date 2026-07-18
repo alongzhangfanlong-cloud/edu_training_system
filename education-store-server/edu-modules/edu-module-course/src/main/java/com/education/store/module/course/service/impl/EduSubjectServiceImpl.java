@@ -80,4 +80,38 @@ public class EduSubjectServiceImpl extends ServiceImpl<EduSubjectMapper, EduSubj
                 .one();
         return exist == null || exist.getId().equals(id);
     }
+
+    @Override
+    public java.util.List<EduSubject> selectAllSubjects() {
+        return lambdaQuery()
+                .orderByAsc(EduSubject::getSortOrder)
+                .list();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateSubjectStatus(Long id, Integer status) {
+        EduSubject subject = subjectMapper.selectById(id);
+        if (subject == null) {
+            throw new BusinessException("科目不存在");
+        }
+        subject.setStatus(status);
+        return subjectMapper.updateById(subject);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateSortBatch(java.util.List<com.education.store.module.course.dto.SubjectUpdateDTO> list) {
+        int rows = 0;
+        for (com.education.store.module.course.dto.SubjectUpdateDTO dto : list) {
+            if (dto.getId() != null && dto.getSortOrder() != null) {
+                EduSubject subject = subjectMapper.selectById(dto.getId());
+                if (subject != null) {
+                    subject.setSortOrder(dto.getSortOrder());
+                    rows += subjectMapper.updateById(subject);
+                }
+            }
+        }
+        return rows;
+    }
 }

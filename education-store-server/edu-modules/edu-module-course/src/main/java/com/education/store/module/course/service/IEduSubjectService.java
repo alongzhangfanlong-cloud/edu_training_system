@@ -26,4 +26,13 @@ public interface IEduSubjectService extends IService<EduSubject> {
 
     /** 校验科目名称是否唯一 */
     boolean checkNameUnique(EduSubject subject);
+
+    /** 获取全部科目（用于下拉选项） */
+    java.util.List<EduSubject> selectAllSubjects();
+
+    /** 更新科目启用/停用状态 */
+    int updateSubjectStatus(Long id, Integer status);
+
+    /** 批量更新排序 */
+    int updateSortBatch(java.util.List<com.education.store.module.course.dto.SubjectUpdateDTO> list);
 }

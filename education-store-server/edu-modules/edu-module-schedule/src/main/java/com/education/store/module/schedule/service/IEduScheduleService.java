@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.education.store.module.schedule.entity.EduSchedule;
 
 public interface IEduScheduleService extends IService<EduSchedule> {
-    IPage<EduSchedule> selectScheduleList(IPage<EduSchedule> page, EduSchedule schedule);
+    IPage<EduSchedule> selectScheduleList(IPage<EduSchedule> page, EduSchedule schedule, String startDate, String endDate);
     EduSchedule selectScheduleById(Long id);
     int insertSchedule(EduSchedule schedule);
     int updateSchedule(EduSchedule schedule);

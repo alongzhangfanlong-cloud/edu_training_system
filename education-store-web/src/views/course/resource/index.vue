@@ -1,6 +1,30 @@
-<!-- 课件管理 -->
+<!-- 课件管理（含左侧分类树） -->
 <template>
-  <div class="app-container">
+  <div class="app-container resource-layout">
+    <!-- 左侧分类树 -->
+    <div class="left-tree">
+      <div class="tree-header">课件分类</div>
+      <el-input v-model="treeFilter" placeholder="搜索分类" size="small" clearable class="tree-filter" />
+      <el-tree
+        ref="treeRef"
+        :data="categoryTree"
+        :props="treeProps"
+        node-key="id"
+        default-expand-all
+        highlight-current
+        :filter-node-method="filterTreeNode"
+        @node-click="onTreeNodeClick">
+        <template #default="{ data }">
+          <span class="tree-node">
+            <span>{{ data.label }}</span>
+            <span class="tree-count" v-if="data.count !== undefined">({{ data.count }})</span>
+          </span>
+        </template>
+      </el-tree>
+    </div>
+
+    <!-- 右侧主内容 -->
+    <div class="right-content">
     <el-form :model="queryParams" ref="queryFormRef" size="small" :inline="true" v-show="showSearch">
       <el-form-item label="关键字" prop="keyword">
         <el-input v-model="queryParams.keyword" placeholder="课件名称" clearable style="width:200px" @keyup.enter="handleQuery" />
@@ -65,6 +89,12 @@
       </el-table-column>
     </el-table>
 
+    <el-empty v-if="!loading && list.length === 0" description="暂无课件数据" />
+    <div v-if="error" class="error-box">
+      <el-result icon="error" title="加载失败" :sub-title="error">
+        <template #extra><el-button type="primary" @click="getList">重试</el-button></template>
+      </el-result>
+    </div>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page" v-model:limit="queryParams.size" @pagination="getList" />
 
     <!-- 上传/编辑弹窗 -->
@@ -122,14 +152,15 @@
         <el-button type="primary" @click="handleSubmit" :loading="submitting">确定</el-button>
       </template>
     </el-dialog>
+    </div><!-- end right-content -->
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue';
-import { listResource, getResource, addResource, updateResource, delResource, recordDownload } from '@/api/course/resources';
+import { listResource, getResource, addResource, updateResource, delResource, recordDownload, getCategoryTree } from '@/api/course/resources';
 import { uploadFile } from '@/api/common/file';
 import { useDictsStore } from '@/stores/dicts';
 import RightToolbar from '@/components/RightToolbar/index.vue';
@@ -142,6 +173,7 @@ const loading = ref(false);
 const showSearch = ref(true);
 const list = ref([]);
 const total = ref(0);
+const error = ref('');
 const selectedIds = ref([]);
 const multiple = computed(() => selectedIds.value.length === 0);
 const queryParams = ref({ page: 1, size: 10, keyword: '', type: '' });
@@ -161,6 +193,32 @@ const rules = {
   resourceType: [{ required: true, message: '请选择资源类型', trigger: 'change' }],
 };
 
+// 分类树
+const treeRef = ref(null);
+const treeFilter = ref('');
+const categoryTree = ref([]);
+const treeProps = { children: 'children', label: 'label' };
+
+function filterTreeNode(value, data) {
+  if (!value) return true;
+  return (data.label || '').toLowerCase().includes(value.toLowerCase());
+}
+
+function loadCategoryTree() {
+  getCategoryTree().then(res => {
+    if (res.success && res.data) {
+      categoryTree.value = res.data.tree || res.data || [];
+    }
+  });
+}
+
+function onTreeNodeClick(data) {
+  if (data.type === 'subject') { queryParams.value.subjectId = data.id; queryParams.value.type = ''; }
+  else if (data.type === 'grade') { queryParams.value.grade = data.label; }
+  else if (data.type === 'resourceType') { queryParams.value.type = data.value; queryParams.value.subjectId = ''; }
+  handleQuery();
+}
+
 let querySeq = 0;
 
 function getList() {
@@ -170,8 +228,10 @@ function getList() {
   if (!params.type) delete params.type;
   listResource(params).then(res => {
     if (seq !== querySeq) return;
-    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; }
-  }).finally(() => { if (seq === querySeq) loading.value = false; });
+    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; error.value = ''; }
+    else { error.value = res.msg || '加载失败'; }
+  }).catch(() => { if (seq === querySeq) error.value = '网络错误，请检查网络后重试'; })
+  .finally(() => { if (seq === querySeq) loading.value = false; });
 }
 
 function handleQuery() { queryParams.value.page = 1; getList(); }
@@ -264,10 +324,25 @@ async function handleSubmit() {
   } finally { submitting.value = false; }
 }
 
-onMounted(() => { getList(); loadDicts(['sys_normal_disable', 'resource_type']); });
+// watch treeFilter for filtering
+watch(treeFilter, (val) => {
+  treeRef.value?.filter(val);
+});
+
+onMounted(() => { getList(); loadDicts(['sys_normal_disable', 'resource_type']); loadCategoryTree(); });
 </script>
 
 <style scoped lang="less">
 .app-container { padding: 16px; }
 .mb8 { margin-bottom: 8px; }
+.resource-layout { display: flex; gap: 16px; }
+.left-tree {
+  width: 220px; min-width: 200px; flex-shrink: 0;
+  border-right: 1px solid #ebeef5; padding-right: 12px;
+  .tree-header { font-weight: 600; padding: 4px 0 8px; border-bottom: 1px solid #ebeef5; margin-bottom: 8px; }
+  .tree-filter { margin-bottom: 8px; }
+  .tree-node { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .tree-count { font-size: 12px; color: #909399; }
+}
+.right-content { flex: 1; min-width: 0; }
 </style>

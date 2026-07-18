@@ -21,8 +21,11 @@ public class CourseCreateDTO {
     @NotNull(message = "所属科目不能为空")
     private Long subjectId;
 
+    @NotBlank(message = "课程类型不能为空")
     private String courseType;
 
+    @NotNull(message = "单价不能为空")
+    @jakarta.validation.constraints.DecimalMin(value = "0", message = "单价不能为负数")
     private BigDecimal price;
 
     private String applicableGrade;

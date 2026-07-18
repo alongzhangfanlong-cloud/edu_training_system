@@ -26,4 +26,10 @@ public interface IEduClassroomService extends IService<EduClassroom> {
 
     /** 校验教室名称是否唯一 */
     boolean checkNameUnique(EduClassroom classroom);
+
+    /** 获取全部启用教室（用于下拉选项） */
+    java.util.List<EduClassroom> selectAllEnabled();
+
+    /** 更新教室启用/停用状态 */
+    int updateClassroomStatus(Long id, Integer status);
 }

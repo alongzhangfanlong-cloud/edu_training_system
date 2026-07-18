@@ -112,6 +112,18 @@ public class EduClassController {
         return Result.success();
     }
 
+    @Operation(summary = "获取全部班级（下拉选项）")
+    @PreAuthorize("@ss.hasPermi('class:class:list')")
+    @GetMapping("/all")
+    public Result<List<ClassVO>> all(@RequestParam(required = false) String status) {
+        EduClass condition = new EduClass();
+        condition.setStatus(status);
+        // 不分页，获取全部符合条件的班级
+        Page<EduClass> p = new Page<>(1, 9999);
+        IPage<EduClass> result = classService.selectClassList(p, condition);
+        return Result.success(result.getRecords().stream().map(this::toVO).collect(Collectors.toList()));
+    }
+
     private ClassVO toVO(EduClass clazz) {
         return BeanUtil.copyProperties(clazz, ClassVO.class);
     }

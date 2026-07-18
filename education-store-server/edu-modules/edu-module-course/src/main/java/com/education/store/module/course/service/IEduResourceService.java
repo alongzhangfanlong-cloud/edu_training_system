@@ -27,4 +27,7 @@ public interface IEduResourceService extends IService<EduResource> {
 
     /** 原子增加下载次数 */
     void incrementDownloadCount(Long id);
+
+    /** 获取课件分类树（含节点数量） */
+    java.util.Map<String, Object> getCategoryTree();
 }

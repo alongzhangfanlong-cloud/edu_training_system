@@ -2,6 +2,7 @@ package com.education.store.module.schedule.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -21,24 +22,30 @@ public class EduSchedule extends BaseEntity {
     private Long planId;
 
     /** 班级ID → edu_class.id */
+    @NotNull(message = "班级不能为空")
     private Long classId;
 
     /** 课程ID → edu_course.id（冗余） */
+    @NotNull(message = "课程不能为空")
     private Long courseId;
 
     /** 授课教师ID → sys_user.id */
+    @NotNull(message = "教师不能为空")
     private Long teacherId;
 
     /** 教室ID → edu_classroom.id */
     private Long roomId;
 
     /** 上课日期 */
+    @NotNull(message = "上课日期不能为空")
     private LocalDate scheduleDate;
 
     /** 开始时间 */
+    @NotNull(message = "开始时间不能为空")
     private LocalTime startTime;
 
     /** 结束时间 */
+    @NotNull(message = "结束时间不能为空")
     private LocalTime endTime;
 
     /** 排课类型(NORMAL/TRIAL/MAKEUP) */

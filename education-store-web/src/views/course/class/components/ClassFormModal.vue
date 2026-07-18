@@ -58,6 +58,29 @@
           </el-form-item>
         </el-col>
       </el-row>
+      <!-- 上课规则：每周上课日 + 时间 -->
+      <el-divider content-position="left">上课规则</el-divider>
+      <el-row :gutter="20">
+        <el-col :span="24">
+          <el-form-item label="每周上课日">
+            <el-checkbox-group v-model="form.weekDays">
+              <el-checkbox v-for="d in weekDayOptions" :key="d.value" :value="d.value" :label="d.label" />
+            </el-checkbox-group>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="上课时间">
+            <el-time-picker v-model="form.startTime" style="width:100%" value-format="HH:mm:ss" placeholder="开始时间" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="下课时间">
+            <el-time-picker v-model="form.endTime" style="width:100%" value-format="HH:mm:ss" placeholder="结束时间" />
+          </el-form-item>
+        </el-col>
+      </el-row>
       <el-form-item label="班级说明">
         <el-input v-model="form.description" type="textarea" :rows="3" />
       </el-form-item>
@@ -92,7 +115,11 @@ const teacherOptions = ref([]); const teacherLoading = ref(false);
 const roomOptions = ref([]);
 let searchTimer = null; let searchSeq = 0;
 
-const form = ref({ name: '', courseId: null, teacherId: null, classroomId: null, maxStudents: 20, status: 'RECRUITING', startDate: '', endDate: '', description: '' });
+const form = ref({ name: '', courseId: null, teacherId: null, classroomId: null, maxStudents: 20, status: 'RECRUITING', startDate: '', endDate: '', weekDays: [], startTime: '', endTime: '', description: '' });
+const weekDayOptions = [
+  { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
+  { value: 4, label: '周四' }, { value: 5, label: '周五' }, { value: 6, label: '周六' }, { value: 7, label: '周日' },
+];
 const rules = {
   name: [{ required: true, message: '请输入班级名称', trigger: 'blur' }],
   courseId: [{ required: true, message: '请选择课程', trigger: 'change' }],
@@ -108,7 +135,7 @@ async function onOpen() {
     const res = await getClass(props.classId);
     if (res.success && res.data) {
       const c = res.data.data || res.data;
-      form.value = { name: c.name || '', courseId: c.courseId || null, teacherId: c.teacherId || null, classroomId: c.classroomId || null, maxStudents: c.maxStudents || 20, status: c.status || 'RECRUITING', startDate: c.startDate || '', endDate: c.endDate || '', description: c.description || '' };
+      form.value = { name: c.name || '', courseId: c.courseId || null, teacherId: c.teacherId || null, classroomId: c.classroomId || null, maxStudents: c.maxStudents || 20, status: c.status || 'RECRUITING', startDate: c.startDate || '', endDate: c.endDate || '', weekDays: parseWeekDays(c.weekDays), startTime: c.startTime || '', endTime: c.endTime || '', description: c.description || '' };
       if (c.teacherId && c.teacherName) teacherOptions.value = [{ id: c.teacherId, realName: c.teacherName }];
     }
   }
@@ -130,15 +157,27 @@ function searchTeachers(keyword) {
 }
 
 function reset() {
-  form.value = { name: '', courseId: null, teacherId: null, classroomId: null, maxStudents: 20, status: 'RECRUITING', startDate: '', endDate: '', description: '' };
+  form.value = { name: '', courseId: null, teacherId: null, classroomId: null, maxStudents: 20, status: 'RECRUITING', startDate: '', endDate: '', weekDays: [], startTime: '', endTime: '', description: '' };
   teacherOptions.value = []; nextTick(() => formRef.value?.clearValidate());
+}
+
+function parseWeekDays(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch { return val.split(',').map(Number).filter(Boolean); }
+  }
+  return [];
 }
 
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false); if (!valid) return;
   submitting.value = true;
   try {
-    const data = { ...form.value }; let res;
+    const data = { ...form.value };
+    // 转换 weekDays 为逗号分隔存储
+    data.weekDays = Array.isArray(data.weekDays) ? data.weekDays.join(',') : data.weekDays;
+    let res;
     if (props.classId) { data.id = props.classId; res = await updateClass(data); }
     else { res = await addClass(data); }
     if (res.success) { ElMessage.success(props.classId ? '修改成功' : '新增成功'); emit('update:visible', false); emit('submit-success'); }

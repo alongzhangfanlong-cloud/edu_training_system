@@ -60,6 +60,26 @@ public class EduClassStudentController {
         return Result.success();
     }
 
+    @Operation(summary = "批量添加学员")
+    @Log(title = "班级学员管理", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('class:student:add')")
+    @PostMapping("/batch")
+    public Result<Void> batchEnroll(@PathVariable Long classId,
+                                     @RequestBody java.util.List<Long> studentIds) {
+        classStudentService.batchEnrollStudents(classId, studentIds);
+        return Result.success();
+    }
+
+    @Operation(summary = "批量移除学员")
+    @Log(title = "班级学员管理", businessType = BusinessType.DELETE)
+    @PreAuthorize("@ss.hasPermi('class:student:delete')")
+    @DeleteMapping("/batch")
+    public Result<Void> batchRemove(@PathVariable Long classId,
+                                     @RequestBody java.util.List<Long> ids) {
+        classStudentService.batchRemoveStudents(classId, ids);
+        return Result.success();
+    }
+
     @Operation(summary = "退班（移除学员）")
     @Log(title = "班级学员管理", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('class:student:delete')")

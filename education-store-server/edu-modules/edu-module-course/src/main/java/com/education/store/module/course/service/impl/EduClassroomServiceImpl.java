@@ -66,6 +66,15 @@ public class EduClassroomServiceImpl extends ServiceImpl<EduClassroomMapper, Edu
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deleteClassroomByIds(Long[] ids) {
+        for (Long id : ids) {
+            int refCount = classroomMapper.countReferencedBySchedules(id);
+            if (refCount > 0) {
+                EduClassroom classroom = classroomMapper.selectById(id);
+                throw new BusinessException(
+                        String.format("教室「%s」已被 %d 条排课记录引用，不可删除，仅可停用",
+                                classroom != null ? classroom.getName() : "未知", refCount));
+            }
+        }
         return classroomMapper.deleteBatchIds(Arrays.asList(ids));
     }
 
@@ -76,6 +85,25 @@ public class EduClassroomServiceImpl extends ServiceImpl<EduClassroomMapper, Edu
                 .eq(EduClassroom::getName, classroom.getName())
                 .one();
         return exist == null || exist.getId().equals(id);
+    }
+
+    @Override
+    public java.util.List<EduClassroom> selectAllEnabled() {
+        return lambdaQuery()
+                .eq(EduClassroom::getStatus, 1) // 1=启用
+                .orderByAsc(EduClassroom::getCreateTime)
+                .list();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateClassroomStatus(Long id, Integer status) {
+        EduClassroom classroom = classroomMapper.selectById(id);
+        if (classroom == null) {
+            throw new BusinessException("教室不存在");
+        }
+        classroom.setStatus(status);
+        return classroomMapper.updateById(classroom);
     }
 
     /** 容量范围校验：0=不限, 1-999=有效 */

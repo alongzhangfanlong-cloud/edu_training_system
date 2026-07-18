@@ -10,6 +10,11 @@
           <el-option v-for="s in subjectOptions" :key="s.id" :label="s.name" :value="s.id" />
         </el-select>
       </el-form-item>
+      <el-form-item label="课程类型" prop="courseType">
+        <el-select v-model="queryParams.courseType" placeholder="课程类型" clearable style="width:150px">
+          <el-option v-for="d in dicts.course_type" :key="d.value" :label="d.label" :value="d.value" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="课程状态" clearable style="width:150px">
           <el-option v-for="d in dicts.sys_normal_disable" :key="d.value" :label="d.label" :value="d.value" />
@@ -40,6 +45,18 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
+    <!-- 科目标签栏 -->
+    <div class="subject-tabs mb8">
+      <el-button :type="queryParams.subjectId ? '' : 'primary'" size="small"
+        @click="selectSubject('')">全部</el-button>
+      <el-button v-for="s in subjectOptions" :key="s.id"
+        :type="queryParams.subjectId === s.id ? 'primary' : ''" size="small"
+        @click="selectSubject(s.id)">{{ s.name }}</el-button>
+      <el-button type="info" plain size="small" @click="handleManageSubjects" v-permission="['course:subject:list']">
+        <el-icon><Setting /></el-icon>管理
+      </el-button>
+    </div>
+
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange" border stripe>
       <el-table-column type="selection" width="50" align="center" />
       <el-table-column label="编号" align="center" prop="id" width="80" />
@@ -68,6 +85,12 @@
       </el-table-column>
     </el-table>
 
+    <el-empty v-if="!loading && list.length === 0" description="暂无课程数据" />
+    <div v-if="error" class="error-box">
+      <el-result icon="error" title="加载失败" :sub-title="error">
+        <template #extra><el-button type="primary" @click="getList">重试</el-button></template>
+      </el-result>
+    </div>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.page" v-model:limit="queryParams.size" @pagination="getList" />
 
     <CourseFormModal v-model:visible="open" :title="title" :course-id="currentId" @submit-success="getList" />
@@ -77,7 +100,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue';
+import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue';
 import { listCourse, delCourse } from '@/api/course/courses';
 import { listSubject } from '@/api/course/subjects';
 import { useDictsStore } from '@/stores/dicts';
@@ -92,11 +115,12 @@ const loading = ref(false);
 const showSearch = ref(true);
 const list = ref([]);
 const total = ref(0);
+const error = ref('');
 const selectedIds = ref([]);
 const single = computed(() => selectedIds.value.length !== 1);
 const multiple = computed(() => selectedIds.value.length === 0);
 const subjectOptions = ref([]);
-const queryParams = ref({ page: 1, size: 10, keyword: '', subjectId: '', status: '' });
+const queryParams = ref({ page: 1, size: 10, keyword: '', subjectId: '', courseType: '', status: '' });
 
 const open = ref(false);
 const title = ref('');
@@ -109,11 +133,14 @@ function getList() {
   const params = { ...queryParams.value };
   if (!params.keyword) delete params.keyword;
   if (!params.subjectId) delete params.subjectId;
+  if (!params.courseType) delete params.courseType;
   if (params.status === '' || params.status === null) delete params.status;
   listCourse(params).then(res => {
     if (seq !== querySeq) return;
-    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; }
-  }).finally(() => { if (seq === querySeq) loading.value = false; });
+    if (res.success) { list.value = res.data?.records || res.rows || []; total.value = res.data?.total || res.total || 0; error.value = ''; }
+    else { error.value = res.msg || '加载失败'; }
+  }).catch(() => { if (seq === querySeq) error.value = '网络错误，请检查网络后重试'; })
+  .finally(() => { if (seq === querySeq) loading.value = false; });
 }
 
 function loadSubjects() {
@@ -124,6 +151,12 @@ function loadSubjects() {
 
 function handleQuery() { queryParams.value.page = 1; getList(); }
 function resetQuery() { queryParams.value = { page: 1, size: 10, keyword: '', subjectId: '', status: '' }; getList(); }
+
+function selectSubject(subjectId) { queryParams.value.subjectId = subjectId; handleQuery(); }
+function handleManageSubjects() {
+  // 跳转到科目管理页面
+  window.location.hash = '/course/subject';
+}
 
 function handleAdd() { title.value = '新增课程'; currentId.value = null; open.value = true; }
 function handleUpdate(row) { title.value = '修改课程'; currentId.value = row ? row.id : selectedIds.value[0]; open.value = true; }
@@ -144,4 +177,8 @@ onMounted(() => { getList(); loadDict('sys_normal_disable'); loadDict('course_ty
 <style scoped lang="less">
 .app-container { padding: 16px; }
 .mb8 { margin-bottom: 8px; }
+.subject-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 0; border-bottom: 1px solid #ebeef5; margin-bottom: 8px;
+}
 </style>

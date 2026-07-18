@@ -6,6 +6,8 @@ import com.education.store.common.annotation.Log;
 import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
+import com.education.store.module.schedule.dto.SchedulePlanCreateDTO;
+import com.education.store.module.schedule.dto.SchedulePreviewVO;
 import com.education.store.module.schedule.entity.EduSchedulePlan;
 import com.education.store.module.schedule.service.IEduSchedulePlanService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,11 +29,13 @@ public class EduSchedulePlanController {
     @PreAuthorize("@ss.hasPermi('schedule:plan:list')")
     @GetMapping("/list")
     public Result<PageResult<EduSchedulePlan>> list(@RequestParam(defaultValue = "1") long page,
-            @RequestParam(defaultValue = "10") long pageSize, @RequestParam(required = false) String status) {
+            @RequestParam(defaultValue = "10") long pageSize,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long classId) {
         Page<EduSchedulePlan> p = new Page<>(page, pageSize);
         EduSchedulePlan condition = new EduSchedulePlan();
         condition.setStatus(status);
-        IPage<EduSchedulePlan> result = planService.selectPlanList(p, condition);
+        IPage<EduSchedulePlan> result = planService.selectPlanList(p, condition, classId);
         return Result.success(PageResult.of(result));
     }
 
@@ -42,13 +46,28 @@ public class EduSchedulePlanController {
         return Result.success(planService.selectPlanById(id));
     }
 
-    @Operation(summary = "新增排课计划")
+    @Operation(summary = "排课计划预览 — 三维冲突检测，返回每个槽位的冲突信息")
+    @PreAuthorize("@ss.hasPermi('schedule:plan:add')")
+    @PostMapping("/preview")
+    public Result<SchedulePreviewVO> preview(@Valid @RequestBody SchedulePlanCreateDTO dto) {
+        return Result.success(planService.previewPlan(dto));
+    }
+
+    @Operation(summary = "新增排课计划并生成排课记录")
     @Log(title = "排课计划", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('schedule:plan:add')")
     @PostMapping
-    public Result<Void> create(@Valid @RequestBody EduSchedulePlan plan) {
+    public Result<EduSchedulePlan> create(@Valid @RequestBody SchedulePlanCreateDTO dto) {
+        // 1. 保存计划
+        EduSchedulePlan plan = new EduSchedulePlan();
+        plan.setClassIds(dto.getClassIds().toString());
+        plan.setStartDate(dto.getStartDate());
+        plan.setEndDate(dto.getEndDate());
+        plan.setRemark(dto.getRemark());
         planService.insertPlan(plan);
-        return Result.success();
+        // 2. 生成排课记录
+        planService.generateSchedules(plan.getId(), dto);
+        return Result.success(plan);
     }
 
     @Operation(summary = "更新排课计划")
@@ -57,6 +76,15 @@ public class EduSchedulePlanController {
     @PutMapping
     public Result<Void> update(@Valid @RequestBody EduSchedulePlan plan) {
         planService.updatePlan(plan);
+        return Result.success();
+    }
+
+    @Operation(summary = "重新生成排课 — 删除旧排课记录后重新生成")
+    @Log(title = "排课计划", businessType = BusinessType.UPDATE)
+    @PreAuthorize("@ss.hasPermi('schedule:plan:edit')")
+    @PutMapping("/{id}/regenerate")
+    public Result<Void> regenerate(@PathVariable Long id) {
+        planService.regeneratePlan(id);
         return Result.success();
     }
 
