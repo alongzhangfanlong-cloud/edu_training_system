@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
@@ -47,7 +48,8 @@ public class EduTuitionFeeServiceImpl extends ServiceImpl<EduTuitionFeeMapper, E
     @Override @Transactional(rollbackFor = Exception.class)
     public int insertFee(EduTuitionFee fee) {
         fee.setFeeNo(generateFeeNo("T"));
-        fee.setStatus("PAID");
+        fee.setStatus("CONFIRMED");
+        fee.setPayTime(LocalDateTime.now());
         int rows = feeMapper.insert(fee);
 
         // 回写报名记录收费状态

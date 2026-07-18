@@ -5,6 +5,7 @@ import com.education.store.common.base.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -20,6 +21,7 @@ public class EduTuitionFee extends BaseEntity {
     private BigDecimal amountPaid;
     private String paymentMethod;
     private String status;
+    private LocalDateTime payTime;
     private String remark;
     private Long operatorId;
     private String updateBy;

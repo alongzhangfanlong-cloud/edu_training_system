@@ -4,18 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.points.service.PointsInternalService;
 import com.education.store.module.teaching.entity.EduEvaluation;
 import com.education.store.module.teaching.entity.EduEvaluationStudent;
 import com.education.store.module.teaching.mapper.EduEvaluationMapper;
 import com.education.store.module.teaching.mapper.EduEvaluationStudentMapper;
 import com.education.store.module.teaching.service.IEduEvaluationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, EduEvaluation>
@@ -23,6 +26,7 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
 
     private final EduEvaluationMapper evaluationMapper;
     private final EduEvaluationStudentMapper studentMapper;
+    private final PointsInternalService pointsInternalService;
 
     @Override
     public IPage<EduEvaluation> selectEvaluationList(IPage<EduEvaluation> page, Long scheduleId, Long teacherId, Long studentId, String startDate, String endDate, Integer status) {
@@ -118,6 +122,23 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
             student.setCreateTime(LocalDateTime.now());
             student.setUpdateTime(LocalDateTime.now());
             studentMapper.insert(student);
+
+            // 积分奖励：教评学提交时自动发放积分
+            if (student.getRewardPoints() != null && student.getRewardPoints() > 0) {
+                try {
+                    pointsInternalService.earnPoints(
+                            student.getStudentId(),
+                            teacherId,
+                            "TEACHER",
+                            student.getId(),
+                            student.getRewardPoints(),
+                            student.getRewardReason() != null ? student.getRewardReason() : "课堂表现奖励"
+                    );
+                } catch (Exception e) {
+                    log.error("积分发放失败：evaluationStudentId={}, studentId={}, points={}",
+                            student.getId(), student.getStudentId(), student.getRewardPoints(), e);
+                }
+            }
         }
         return evaluation;
     }

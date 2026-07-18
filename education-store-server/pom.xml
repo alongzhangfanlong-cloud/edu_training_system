@@ -26,6 +26,8 @@
         <module>edu-modules/edu-module-attendance</module>
         <module>edu-modules/edu-module-points</module>
         <module>edu-modules/edu-module-teaching</module>
+        <module>edu-modules/edu-module-dashboard</module>
+        <module>edu-modules/edu-module-teacher-dashboard</module>
         <module>edu-server-app</module>
     </modules>
 
@@ -116,6 +118,16 @@
             <dependency>
                 <groupId>com.education.store</groupId>
                 <artifactId>edu-module-teaching</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-dashboard</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-teacher-dashboard</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -165,3 +165,52 @@ CREATE TABLE edu_exam_score_student (
     UNIQUE KEY uk_exam_student (exam_score_id, student_id),
     KEY idx_student_id (student_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='学生成绩明细';
+
+-- ============================================
+-- N03 教师档案（PRD N01 §3.2.1 教资人数统计用）
+-- ============================================
+
+CREATE TABLE edu_teacher (
+    id                  BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    user_id             BIGINT          NULL                     COMMENT '关联系统用户ID → sys_user.id',
+    real_name           VARCHAR(50)     NOT NULL                 COMMENT '教师姓名',
+    status              VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE' COMMENT '在职状态: ACTIVE=在职, INACTIVE=离职',
+    subjects            VARCHAR(500)    NULL                     COMMENT '可授科目',
+    hire_date           DATE            NULL                     COMMENT '入职日期',
+    default_pay_per_lesson DECIMAL(10,2) NULL                   COMMENT '默认课酬单价（元/节）',
+    phone               VARCHAR(20)     NULL                     COMMENT '联系电话',
+    remark              VARCHAR(500)    NULL                     COMMENT '备注',
+    create_time         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted          TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    KEY idx_status (status),
+    KEY idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='教师档案';
+
+-- ============================================
+-- N05.1 学生作业提交（PRD N05 §2.5 §2.6）
+-- ============================================
+
+CREATE TABLE edu_homework_submission (
+    id              BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    homework_id     BIGINT          NOT NULL                 COMMENT '关联作业ID → edu_homework.id',
+    student_id      BIGINT          NOT NULL                 COMMENT '学生ID → edu_student.id',
+    content         VARCHAR(1000)   NULL                     COMMENT '文字内容（学生提交的文本备注）',
+    image_urls      VARCHAR(2000)   NULL                     COMMENT '图片URL列表（JSON数组）',
+    status          VARCHAR(20)     NOT NULL DEFAULT 'SUBMITTED' COMMENT '状态: SUBMITTED=已提交, GRADED=已批改, LATE=迟交',
+    score           INT             NULL                     COMMENT '评分（1-5）',
+    comment         VARCHAR(500)    NULL                     COMMENT '教师评语',
+    submitted_at    DATETIME        NULL                     COMMENT '提交时间',
+    graded_at       DATETIME        NULL                     COMMENT '批改时间',
+    graded_by       BIGINT          NULL                     COMMENT '批改教师ID',
+    create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    PRIMARY KEY (id),
+    KEY idx_homework_id (homework_id),
+    KEY idx_student_id (student_id),
+    KEY idx_status (status),
+    KEY idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='学生作业提交';

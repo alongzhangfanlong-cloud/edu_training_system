@@ -1,0 +1,44 @@
+package com.education.store.module.teaching.controller;
+
+import com.education.store.common.model.Result;
+import com.education.store.module.teaching.entity.EduHomeworkSubmission;
+import com.education.store.module.teaching.service.IEduHomeworkSubmissionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * 作业提交 Controller
+ */
+@Tag(name = "作业提交管理")
+@RestController
+@RequestMapping("/api/v1/teaching/homework-submission")
+@RequiredArgsConstructor
+public class EduHomeworkSubmissionController {
+
+    private final IEduHomeworkSubmissionService submissionService;
+
+    @GetMapping("/list")
+    @Operation(summary = "查询作业提交列表")
+    @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
+    public Result<?> list() {
+        return Result.success(submissionService.list());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "查询提交详情")
+    @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
+    public Result<EduHomeworkSubmission> getById(@PathVariable Long id) {
+        return Result.success(submissionService.getById(id));
+    }
+
+    @PutMapping("/{id}/grade")
+    @Operation(summary = "批改作业")
+    @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
+    public Result<?> grade(@PathVariable Long id, @RequestBody EduHomeworkSubmission submission) {
+        submission.setId(id);
+        return Result.success(submissionService.updateById(submission));
+    }
+}

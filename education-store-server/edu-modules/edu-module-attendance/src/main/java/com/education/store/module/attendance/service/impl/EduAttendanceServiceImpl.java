@@ -48,10 +48,10 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
     @Override
     public Map<String, Long> getStatsBySchedule(Long scheduleId) {
         List<EduAttendance> records = selectByScheduleId(scheduleId);
-        long present = records.stream().filter(r -> r.getStatus() == 0).count();
-        long late = records.stream().filter(r -> r.getStatus() == 1).count();
-        long absent = records.stream().filter(r -> r.getStatus() == 2).count();
-        long leave = records.stream().filter(r -> r.getStatus() == 3 || r.getStatus() == 4).count();
+        long present = records.stream().filter(r -> r.getStatus() == EduAttendance.STATUS_PRESENT).count();
+        long late = records.stream().filter(r -> r.getStatus() == EduAttendance.STATUS_LATE).count();
+        long absent = records.stream().filter(r -> r.getStatus() == EduAttendance.STATUS_ABSENT).count();
+        long leave = records.stream().filter(r -> r.getStatus() == EduAttendance.STATUS_LEAVE || r.getStatus() == 4).count();
         return Map.of("present", present, "late", late, "absent", absent, "leave", leave, "total", (long) records.size());
     }
 
@@ -65,8 +65,8 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
             record.setSigninTime(LocalDateTime.now());
             record.setOperatorId(operatorId);
             record.setOperatorType(operatorType);
-            // 消课：到校(0)或迟到(1) → 扣1课时
-            if (record.getStatus() == 0 || record.getStatus() == 1) {
+            // 消课：到校或迟到 → 扣1课时
+            if (record.getStatus() == EduAttendance.STATUS_PRESENT || record.getStatus() == EduAttendance.STATUS_LATE) {
                 consumeHours(record.getStudentId(), scheduleId);
             }
             attendanceMapper.insert(record);

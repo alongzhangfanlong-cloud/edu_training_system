@@ -20,6 +20,11 @@ public class BusinessException extends RuntimeException {
         this.code = code;
     }
 
+    public BusinessException(String code, String message) {
+        super(message);
+        this.code = 400;
+    }
+
     public BusinessException(String message, Throwable cause) {
         super(message, cause);
         this.code = 400;

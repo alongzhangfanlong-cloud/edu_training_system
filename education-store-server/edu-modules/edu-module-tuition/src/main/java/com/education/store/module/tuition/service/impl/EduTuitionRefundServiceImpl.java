@@ -44,7 +44,7 @@ public class EduTuitionRefundServiceImpl extends ServiceImpl<EduTuitionRefundMap
     @Override @Transactional(rollbackFor = Exception.class)
     public int insertRefund(EduTuitionRefund refund) {
         refund.setRefundNo(generateRefundNo());
-        refund.setStatus("COMPLETED");
+        refund.setStatus("PENDING");
         int rows = refundMapper.insert(refund);
 
         // 扣回课时
@@ -81,7 +81,7 @@ public class EduTuitionRefundServiceImpl extends ServiceImpl<EduTuitionRefundMap
     public int approveRefund(Long id, Long approverId) {
         EduTuitionRefund refund = refundMapper.selectById(id);
         if (refund == null) throw new BusinessException("退费记录不存在");
-        refund.setStatus("APPROVED");
+        refund.setStatus("COMPLETED");
         refund.setApproverId(approverId);
         refund.setApprovalTime(LocalDateTime.now());
         return refundMapper.updateById(refund);
