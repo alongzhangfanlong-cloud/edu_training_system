@@ -29,4 +29,13 @@ public interface IEduStudentService extends IService<EduStudent> {
 
     /** 更新学员状态（含状态转换校验） */
     int updateStudentStatus(Long id, String newStatus);
+
+    /** 学员简列表（下拉搜索，仅返回基本字段） */
+    java.util.List<EduStudent> selectStudentSimpleList(String keyword);
+
+    /** 批量更新学员状态 */
+    int batchUpdateStatus(Long[] ids, String status);
+
+    /** 批量更改顾问 */
+    int batchUpdateConsultant(Long[] ids, Long consultantId);
 }

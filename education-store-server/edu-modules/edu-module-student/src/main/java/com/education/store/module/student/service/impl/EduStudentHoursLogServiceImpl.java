@@ -101,7 +101,7 @@ public class EduStudentHoursLogServiceImpl extends ServiceImpl<EduStudentHoursLo
         return total != null ? total : BigDecimal.ZERO;
     }
 
-    // ========== 禁止修改和删除 ==========
+    // ========== 禁止修改和删除（覆盖所有可能的入口） ==========
 
     @Override
     public boolean updateById(EduStudentHoursLog entity) {
@@ -109,7 +109,27 @@ public class EduStudentHoursLogServiceImpl extends ServiceImpl<EduStudentHoursLo
     }
 
     @Override
+    public boolean updateBatchById(java.util.Collection<EduStudentHoursLog> entityList) {
+        throw new BusinessException("课时变动日志不可修改（只追加）");
+    }
+
+    @Override
     public boolean removeById(EduStudentHoursLog entity) {
+        throw new BusinessException("课时变动日志不可删除（只追加）");
+    }
+
+    @Override
+    public boolean removeById(java.io.Serializable id) {
+        throw new BusinessException("课时变动日志不可删除（只追加）");
+    }
+
+    @Override
+    public boolean removeBatchByIds(java.util.Collection<?> list) {
+        throw new BusinessException("课时变动日志不可删除（只追加）");
+    }
+
+    @Override
+    public boolean removeByIds(java.util.Collection<?> list) {
         throw new BusinessException("课时变动日志不可删除（只追加）");
     }
 }

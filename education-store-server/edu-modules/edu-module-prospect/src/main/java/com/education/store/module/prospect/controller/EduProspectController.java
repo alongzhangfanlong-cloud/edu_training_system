@@ -34,15 +34,24 @@ public class EduProspectController {
     public Result<PageResult<EduProspect>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String mobile,
+            @RequestParam(required = false) String grade,
             @RequestParam(required = false) String followStatus,
             @RequestParam(required = false) Long counselorId,
             @RequestParam(required = false) String interestLevel) {
         Page<EduProspect> p = new Page<>(page, pageSize);
         EduProspect condition = new EduProspect();
-        condition.setName(name);
-        condition.setMobile(mobile);
+        // keyword 同时模糊匹配姓名和手机号
+        if (keyword != null && !keyword.isBlank()) {
+            condition.setName(keyword);
+            condition.setMobile(keyword);
+        } else {
+            condition.setName(name);
+            condition.setMobile(mobile);
+        }
+        condition.setGrade(grade);
         condition.setFollowStatus(followStatus);
         condition.setCounselorId(counselorId);
         condition.setInterestLevel(interestLevel);

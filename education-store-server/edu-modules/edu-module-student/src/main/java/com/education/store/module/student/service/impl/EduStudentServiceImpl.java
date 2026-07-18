@@ -29,11 +29,19 @@ public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStud
     @Override
     public IPage<EduStudent> selectStudentList(IPage<EduStudent> page, EduStudent student) {
         LambdaQueryWrapper<EduStudent> wrapper = new LambdaQueryWrapper<>();
-        if (StrUtil.isNotBlank(student.getName())) {
-            wrapper.like(EduStudent::getName, student.getName());
-        }
-        if (StrUtil.isNotBlank(student.getMobile())) {
-            wrapper.like(EduStudent::getMobile, student.getMobile());
+        // keyword 搜索：姓名和手机号 OR 匹配
+        if (StrUtil.isNotBlank(student.getName()) && StrUtil.isNotBlank(student.getMobile())
+                && student.getName().equals(student.getMobile())) {
+            // 同值 = keyword 模式：OR 模糊匹配
+            wrapper.and(w -> w.like(EduStudent::getName, student.getName())
+                    .or().like(EduStudent::getMobile, student.getName()));
+        } else {
+            if (StrUtil.isNotBlank(student.getName())) {
+                wrapper.like(EduStudent::getName, student.getName());
+            }
+            if (StrUtil.isNotBlank(student.getMobile())) {
+                wrapper.like(EduStudent::getMobile, student.getMobile());
+            }
         }
         if (StrUtil.isNotBlank(student.getGrade())) {
             wrapper.eq(EduStudent::getGrade, student.getGrade());
@@ -71,6 +79,12 @@ public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStud
         EduStudent exist = studentMapper.selectById(student.getId());
         if (exist == null) {
             throw new BusinessException("学员不存在");
+        }
+        // 状态变更必须走状态机校验，防止绕过 updateStudentStatus 的转换规则
+        if (student.getStatus() != null && !student.getStatus().equals(exist.getStatus())) {
+            updateStudentStatus(student.getId(), student.getStatus());
+            // 状态已单独处理，清空避免后面 updateById 重复写入（虽然不是问题，但语义清晰）
+            student.setStatus(null);
         }
         return studentMapper.updateById(student);
     }
@@ -130,6 +144,45 @@ public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStud
         }
 
         return studentMapper.updateById(student);
+    }
+
+    @Override
+    public java.util.List<EduStudent> selectStudentSimpleList(String keyword) {
+        LambdaQueryWrapper<EduStudent> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(EduStudent::getId, EduStudent::getName, EduStudent::getGrade,
+                EduStudent::getStatus, EduStudent::getMobile);
+        if (StrUtil.isNotBlank(keyword)) {
+            wrapper.and(w -> w.like(EduStudent::getName, keyword)
+                    .or().like(EduStudent::getMobile, keyword));
+        }
+        wrapper.orderByDesc(EduStudent::getCreateTime);
+        wrapper.last("LIMIT 50");
+        return studentMapper.selectList(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchUpdateStatus(Long[] ids, String status) {
+        int count = 0;
+        for (Long id : ids) {
+            updateStudentStatus(id, status);
+            count++;
+        }
+        return count;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchUpdateConsultant(Long[] ids, Long consultantId) {
+        int count = 0;
+        for (Long id : ids) {
+            EduStudent student = new EduStudent();
+            student.setId(id);
+            student.setCounselorId(consultantId);
+            studentMapper.updateById(student);
+            count++;
+        }
+        return count;
     }
 
     /** 状态转换校验 */

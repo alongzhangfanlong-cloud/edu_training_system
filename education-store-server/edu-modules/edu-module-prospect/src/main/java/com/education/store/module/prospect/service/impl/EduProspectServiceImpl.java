@@ -35,11 +35,21 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
     @Override
     public IPage<EduProspect> selectProspectList(IPage<EduProspect> page, EduProspect prospect) {
         LambdaQueryWrapper<EduProspect> wrapper = new LambdaQueryWrapper<>();
-        if (StrUtil.isNotBlank(prospect.getName())) {
-            wrapper.like(EduProspect::getName, prospect.getName());
+        // keyword 搜索：姓名和手机号 OR 匹配
+        if (StrUtil.isNotBlank(prospect.getName()) && StrUtil.isNotBlank(prospect.getMobile())
+                && prospect.getName().equals(prospect.getMobile())) {
+            wrapper.and(w -> w.like(EduProspect::getName, prospect.getName())
+                    .or().like(EduProspect::getMobile, prospect.getName()));
+        } else {
+            if (StrUtil.isNotBlank(prospect.getName())) {
+                wrapper.like(EduProspect::getName, prospect.getName());
+            }
+            if (StrUtil.isNotBlank(prospect.getMobile())) {
+                wrapper.like(EduProspect::getMobile, prospect.getMobile());
+            }
         }
-        if (StrUtil.isNotBlank(prospect.getMobile())) {
-            wrapper.like(EduProspect::getMobile, prospect.getMobile());
+        if (StrUtil.isNotBlank(prospect.getGrade())) {
+            wrapper.eq(EduProspect::getGrade, prospect.getGrade());
         }
         if (StrUtil.isNotBlank(prospect.getFollowStatus())) {
             wrapper.eq(EduProspect::getFollowStatus, prospect.getFollowStatus());
@@ -111,8 +121,9 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
         if (prospect == null) {
             throw new BusinessException("意向学员不存在");
         }
-        if (!"TRIAL".equals(prospect.getFollowStatus())) {
-            throw new BusinessException("只有体验课阶段的意向学员才能转化（当前: " + prospect.getFollowStatus() + "）");
+        // PRD §3.4.3: 新线索/已联系/已试听 均可转化，已转化/已流失为终态不可转化
+        if ("CONVERTED".equals(prospect.getFollowStatus()) || "LOST".equals(prospect.getFollowStatus())) {
+            throw new BusinessException("已转化/已流失的意向学员不可再次转化");
         }
 
         // 1. 创建在学学员（数据继承）
@@ -125,25 +136,41 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
         student.setMobile(prospect.getMobile());
         student.setCounselorId(prospect.getCounselorId());
         student.setSource(prospect.getSource());
+        // 复制意向备注，添加前缀标识来源（PRD §3.7.3）
+        if (StrUtil.isNotBlank(prospect.getRemark())) {
+            student.setRemark("[意向转化] " + prospect.getRemark());
+        }
         student.setStatus("ENROLLED");
         student.setTotalHours(BigDecimal.ZERO);
         student.setRemainingHours(BigDecimal.ZERO);
         studentService.insertStudent(student);
 
-        // 2. 创建家长关联（数据继承）
+        // 2. 创建家长关联（数据继承），含手机号去重校验
         EduStudentParent parent = new EduStudentParent();
         parent.setStudentId(student.getId());
         parent.setName(prospect.getParentName());
         parent.setRelation(prospect.getParentRelation());
         parent.setMobile(prospect.getParentMobile());
         parent.setSort(0);
+        // PRD §7.6: 同一学生下家长手机号不可重复
+        if (!parentService.checkMobileUnique(parent)) {
+            throw new BusinessException("该学生已存在相同手机号的家长");
+        }
         parentService.insertParent(parent);
 
-        // 3. 回填并更新意向学员状态
+        // 3. 回填并更新意向学员状态（条件更新防止并发重复转化）
+        String oldStatus = prospect.getFollowStatus();
         prospect.setFollowStatus("CONVERTED");
         prospect.setConvertedStudentId(student.getId());
         prospect.setLastFollowupDate(LocalDateTime.now());
-        prospectMapper.updateById(prospect);
+        // 仅当状态未被其他事务修改时才执行更新
+        boolean updated = lambdaUpdate()
+                .eq(EduProspect::getId, prospect.getId())
+                .eq(EduProspect::getFollowStatus, oldStatus)
+                .update(prospect);
+        if (!updated) {
+            throw new BusinessException("该意向学员状态已变更，转化失败，请刷新重试");
+        }
 
         return student.getId();
     }
