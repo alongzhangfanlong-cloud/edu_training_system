@@ -24,6 +24,8 @@
         <module>edu-modules/edu-module-payroll</module>
         <module>edu-modules/edu-module-tuition</module>
         <module>edu-modules/edu-module-attendance</module>
+        <module>edu-modules/edu-module-points</module>
+        <module>edu-modules/edu-module-teaching</module>
         <module>edu-server-app</module>
     </modules>
 
@@ -104,6 +106,16 @@
             <dependency>
                 <groupId>com.education.store</groupId>
                 <artifactId>edu-module-attendance</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-points</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-teaching</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

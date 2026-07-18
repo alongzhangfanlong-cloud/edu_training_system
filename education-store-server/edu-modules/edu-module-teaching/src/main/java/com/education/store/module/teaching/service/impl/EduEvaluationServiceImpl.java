@@ -1,0 +1,142 @@
+package com.education.store.module.teaching.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.store.common.exception.BusinessException;
+import com.education.store.module.teaching.entity.EduEvaluation;
+import com.education.store.module.teaching.entity.EduEvaluationStudent;
+import com.education.store.module.teaching.mapper.EduEvaluationMapper;
+import com.education.store.module.teaching.mapper.EduEvaluationStudentMapper;
+import com.education.store.module.teaching.service.IEduEvaluationService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, EduEvaluation>
+        implements IEduEvaluationService {
+
+    private final EduEvaluationMapper evaluationMapper;
+    private final EduEvaluationStudentMapper studentMapper;
+
+    @Override
+    public IPage<EduEvaluation> selectEvaluationList(IPage<EduEvaluation> page, Long scheduleId, Long teacherId, Long studentId, String startDate, String endDate, Integer status) {
+        LambdaQueryWrapper<EduEvaluation> wrapper = new LambdaQueryWrapper<>();
+        if (scheduleId != null) {
+            wrapper.eq(EduEvaluation::getScheduleId, scheduleId);
+        }
+        if (teacherId != null) {
+            wrapper.eq(EduEvaluation::getTeacherId, teacherId);
+        }
+        if (status != null) {
+            wrapper.eq(EduEvaluation::getStatus, status);
+        }
+        if (startDate != null && !startDate.isEmpty()) {
+            wrapper.ge(EduEvaluation::getCreateTime, startDate + " 00:00:00");
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            wrapper.le(EduEvaluation::getCreateTime, endDate + " 23:59:59");
+        }
+        wrapper.orderByDesc(EduEvaluation::getCreateTime);
+        return evaluationMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public EduEvaluation getDetail(Long id) {
+        return evaluationMapper.selectById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public EduEvaluation saveDraft(Long scheduleId, Long classId, Long teacherId, String summary, List<EduEvaluationStudent> students) {
+        // 检查是否已有评价
+        EduEvaluation existing = evaluationMapper.selectByScheduleId(scheduleId);
+        if (existing != null) {
+            // 更新草稿
+            existing.setSummary(summary);
+            evaluationMapper.updateById(existing);
+            // 删除旧明细
+            List<EduEvaluationStudent> oldStudents = studentMapper.selectByEvaluationId(existing.getId());
+            for (EduEvaluationStudent s : oldStudents) {
+                studentMapper.deleteById(s.getId());
+            }
+            // 保存新明细
+            for (EduEvaluationStudent student : students) {
+                student.setEvaluationId(existing.getId());
+                student.setCreateTime(LocalDateTime.now());
+                student.setUpdateTime(LocalDateTime.now());
+                studentMapper.insert(student);
+            }
+            return existing;
+        }
+
+        // 新建草稿
+        EduEvaluation evaluation = new EduEvaluation();
+        evaluation.setScheduleId(scheduleId);
+        evaluation.setClassId(classId);
+        evaluation.setTeacherId(teacherId);
+        evaluation.setSummary(summary);
+        evaluation.setStatus(0); // 草稿
+        evaluationMapper.insert(evaluation);
+
+        for (EduEvaluationStudent student : students) {
+            student.setEvaluationId(evaluation.getId());
+            student.setCreateTime(LocalDateTime.now());
+            student.setUpdateTime(LocalDateTime.now());
+            studentMapper.insert(student);
+        }
+        return evaluation;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public EduEvaluation submitEvaluation(Long id, String summary, List<EduEvaluationStudent> students, Long teacherId) {
+        EduEvaluation evaluation = evaluationMapper.selectById(id);
+        if (evaluation == null) {
+            throw new BusinessException("404", "评价不存在");
+        }
+        if (evaluation.getStatus() == 1) {
+            throw new BusinessException("STATUS_NOT_ALLOWED", "已提交的评价不可修改");
+        }
+        evaluation.setSummary(summary);
+        evaluation.setStatus(1); // 提交
+        evaluation.setSubmitTime(LocalDateTime.now());
+        evaluationMapper.updateById(evaluation);
+
+        // 删除旧明细，重新写入
+        List<EduEvaluationStudent> oldStudents = studentMapper.selectByEvaluationId(id);
+        for (EduEvaluationStudent s : oldStudents) {
+            studentMapper.deleteById(s.getId());
+        }
+        for (EduEvaluationStudent student : students) {
+            student.setEvaluationId(id);
+            student.setCreateTime(LocalDateTime.now());
+            student.setUpdateTime(LocalDateTime.now());
+            studentMapper.insert(student);
+        }
+        return evaluation;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteEvaluation(Long id, Long currentUserId) {
+        EduEvaluation evaluation = evaluationMapper.selectById(id);
+        if (evaluation == null) {
+            throw new BusinessException("404", "评价不存在");
+        }
+        if (evaluation.getStatus() == 1) {
+            throw new BusinessException("STATUS_NOT_ALLOWED", "已提交的评价不可删除");
+        }
+        // 删除明细
+        List<EduEvaluationStudent> students = studentMapper.selectByEvaluationId(id);
+        for (EduEvaluationStudent s : students) {
+            studentMapper.deleteById(s.getId());
+        }
+        return removeById(id);
+    }
+}
