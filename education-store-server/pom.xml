@@ -15,6 +15,15 @@
         <module>edu-common</module>
         <module>edu-security</module>
         <module>edu-modules/edu-module-system</module>
+        <module>edu-modules/edu-module-course</module>
+        <module>edu-modules/edu-module-class</module>
+        <module>edu-modules/edu-module-student</module>
+        <module>edu-modules/edu-module-prospect</module>
+        <module>edu-modules/edu-module-schedule</module>
+        <module>edu-modules/edu-module-enrollment</module>
+        <module>edu-modules/edu-module-payroll</module>
+        <module>edu-modules/edu-module-tuition</module>
+        <module>edu-modules/edu-module-attendance</module>
         <module>edu-server-app</module>
     </modules>
 
@@ -50,6 +59,51 @@
             <dependency>
                 <groupId>com.education.store</groupId>
                 <artifactId>edu-module-system</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-course</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-class</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-student</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-prospect</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-schedule</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-enrollment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-payroll</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-tuition</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.education.store</groupId>
+                <artifactId>edu-module-attendance</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -1,0 +1,166 @@
+package com.education.store.module.student.service.impl;
+
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.store.common.exception.BusinessException;
+import com.education.store.module.student.entity.EduStudent;
+import com.education.store.module.student.mapper.EduStudentMapper;
+import com.education.store.module.student.service.IEduStudentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+
+/**
+ * 在学学员 Service 实现
+ */
+@Service
+@RequiredArgsConstructor
+public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStudent>
+        implements IEduStudentService {
+
+    private final EduStudentMapper studentMapper;
+
+    @Override
+    public IPage<EduStudent> selectStudentList(IPage<EduStudent> page, EduStudent student) {
+        LambdaQueryWrapper<EduStudent> wrapper = new LambdaQueryWrapper<>();
+        if (StrUtil.isNotBlank(student.getName())) {
+            wrapper.like(EduStudent::getName, student.getName());
+        }
+        if (StrUtil.isNotBlank(student.getMobile())) {
+            wrapper.like(EduStudent::getMobile, student.getMobile());
+        }
+        if (StrUtil.isNotBlank(student.getGrade())) {
+            wrapper.eq(EduStudent::getGrade, student.getGrade());
+        }
+        if (StrUtil.isNotBlank(student.getStatus())) {
+            wrapper.eq(EduStudent::getStatus, student.getStatus());
+        }
+        if (student.getCounselorId() != null) {
+            wrapper.eq(EduStudent::getCounselorId, student.getCounselorId());
+        }
+        if (StrUtil.isNotBlank(student.getSource())) {
+            wrapper.eq(EduStudent::getSource, student.getSource());
+        }
+        wrapper.orderByDesc(EduStudent::getCreateTime);
+        return studentMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public EduStudent selectStudentById(Long id) {
+        return studentMapper.selectById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int insertStudent(EduStudent student) {
+        student.setStatus("ENROLLED");
+        student.setTotalHours(BigDecimal.ZERO);
+        student.setRemainingHours(BigDecimal.ZERO);
+        return studentMapper.insert(student);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateStudent(EduStudent student) {
+        EduStudent exist = studentMapper.selectById(student.getId());
+        if (exist == null) {
+            throw new BusinessException("学员不存在");
+        }
+        return studentMapper.updateById(student);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteStudentByIds(Long[] ids) {
+        for (Long id : ids) {
+            int activeCount = studentMapper.countActiveClassEnrollments(id);
+            if (activeCount > 0) {
+                EduStudent student = studentMapper.selectById(id);
+                throw new BusinessException(
+                        String.format("学员「%s」仍有 %d 个活跃班级关联，无法删除", student.getName(), activeCount));
+            }
+        }
+        return studentMapper.deleteBatchIds(Arrays.asList(ids));
+    }
+
+    @Override
+    public boolean checkMobileUnique(EduStudent student) {
+        Long id = student.getId() != null ? student.getId() : -1L;
+        EduStudent exist = lambdaQuery()
+                .eq(EduStudent::getMobile, student.getMobile())
+                .one();
+        return exist == null || exist.getId().equals(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateStudentStatus(Long id, String newStatus) {
+        EduStudent student = studentMapper.selectById(id);
+        if (student == null) {
+            throw new BusinessException("学员不存在");
+        }
+
+        String oldStatus = student.getStatus();
+        validateStatusTransition(oldStatus, newStatus, id);
+
+        // COMPLETED 条件检查：所有班级 EXITED + 剩余课时为 0
+        if ("COMPLETED".equals(newStatus)) {
+            int nonExited = studentMapper.countNonExitedEnrollments(id);
+            if (nonExited > 0) {
+                throw new BusinessException("学员仍有 " + nonExited + " 个班级未退出，无法标记为结业");
+            }
+            if (student.getRemainingHours() != null && student.getRemainingHours().compareTo(BigDecimal.ZERO) > 0) {
+                throw new BusinessException("学员仍有剩余课时，无法标记为结业");
+            }
+        }
+
+        student.setStatus(newStatus);
+        if ("COMPLETED".equals(newStatus)) {
+            student.setCompletedAt(LocalDateTime.now());
+        }
+        // LOST → ENROLLED：新报名自动恢复
+        if ("LOST".equals(oldStatus) && "ENROLLED".equals(newStatus)) {
+            // 通过新报名触发，此处仅做状态变更
+        }
+
+        return studentMapper.updateById(student);
+    }
+
+    /** 状态转换校验 */
+    private void validateStatusTransition(String oldStatus, String newStatus, Long studentId) {
+        if (oldStatus.equals(newStatus)) {
+            return;
+        }
+        switch (oldStatus) {
+            case "ENROLLED":
+                if (!"SUSPENDED".equals(newStatus) && !"COMPLETED".equals(newStatus)
+                        && !"LOST".equals(newStatus)) {
+                    throw new BusinessException("在读状态只能变更为停课/结业/流失");
+                }
+                break;
+            case "SUSPENDED":
+                if (!"ENROLLED".equals(newStatus)) {
+                    throw new BusinessException("停课状态只能恢复为在读");
+                }
+                break;
+            case "COMPLETED":
+                if (!"ENROLLED".equals(newStatus)) {
+                    throw new BusinessException("结业学员只能重新激活为在读");
+                }
+                break;
+            case "LOST":
+                if (!"ENROLLED".equals(newStatus)) {
+                    throw new BusinessException("流失学员只能通过新报名恢复为在读");
+                }
+                break;
+            default:
+                throw new BusinessException("未知状态: " + oldStatus);
+        }
+    }
+}

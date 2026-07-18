@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.education.store</groupId>
+        <artifactId>edu-server</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>edu-module-tuition</artifactId>
+    <name>Edu Module Tuition</name>
+    <description>收退费管理模块 - 收费、退费、赠送课时</description>
+    <dependencies>
+        <dependency><groupId>com.education.store</groupId><artifactId>edu-security</artifactId></dependency>
+        <dependency><groupId>com.education.store</groupId><artifactId>edu-module-student</artifactId></dependency>
+        <dependency><groupId>com.education.store</groupId><artifactId>edu-module-enrollment</artifactId></dependency>
+        <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
+    </dependencies>
+</project>
