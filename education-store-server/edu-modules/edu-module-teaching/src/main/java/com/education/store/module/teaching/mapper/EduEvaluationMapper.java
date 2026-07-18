@@ -9,6 +9,6 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface EduEvaluationMapper extends BaseMapper<EduEvaluation> {
 
-    @Select("SELECT * FROM edu_evaluation WHERE schedule_id = #{scheduleId} AND is_deleted = 0")
+    @Select("SELECT * FROM edu_evaluation WHERE schedule_id = #{scheduleId} AND deleted = 0")
     EduEvaluation selectByScheduleId(@Param("scheduleId") Long scheduleId);
 }

@@ -23,7 +23,7 @@ CREATE TABLE edu_homework (
     is_updated      TINYINT         NOT NULL DEFAULT 0       COMMENT '是否被编辑更新过: 0=否, 1=是',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
     PRIMARY KEY (id),
     KEY idx_class_id (class_id),
     KEY idx_teacher_id (teacher_id),
@@ -77,7 +77,7 @@ CREATE TABLE edu_evaluation (
     submit_time     DATETIME        NULL                     COMMENT '提交时间',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
     PRIMARY KEY (id),
     UNIQUE KEY uk_schedule_id (schedule_id),
     KEY idx_class_id (class_id),
@@ -119,7 +119,7 @@ CREATE TABLE edu_teacher_evaluation (
     submit_time     DATETIME        NOT NULL                 COMMENT '提交时间',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
     PRIMARY KEY (id),
     UNIQUE KEY uk_teacher_eval (teacher_id, student_id, schedule_id),
     KEY idx_teacher_submit (teacher_id, submit_time),
@@ -143,7 +143,7 @@ CREATE TABLE edu_exam_score (
     teacher_id      BIGINT          NOT NULL                 COMMENT '录入教师ID → sys_user.id',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
     PRIMARY KEY (id),
     UNIQUE KEY uk_exam (class_id, subject_id, exam_type, exam_date),
     KEY idx_class_id (class_id),
@@ -182,11 +182,11 @@ CREATE TABLE edu_teacher (
     remark              VARCHAR(500)    NULL                     COMMENT '备注',
     create_time         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted          TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    deleted          TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
     PRIMARY KEY (id),
     KEY idx_user_id (user_id),
     KEY idx_status (status),
-    KEY idx_is_deleted (is_deleted)
+    KEY idx_deleted (deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='教师档案';
 
 -- ============================================
@@ -207,10 +207,10 @@ CREATE TABLE edu_homework_submission (
     graded_by       BIGINT          NULL                     COMMENT '批改教师ID',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除',
     PRIMARY KEY (id),
     KEY idx_homework_id (homework_id),
     KEY idx_student_id (student_id),
     KEY idx_status (status),
-    KEY idx_is_deleted (is_deleted)
+    KEY idx_deleted (deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='学生作业提交';

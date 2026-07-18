@@ -50,11 +50,11 @@ CREATE TABLE edu_points_gift (
     description     VARCHAR(500)    NULL DEFAULT ''          COMMENT '礼品描述',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除: 0=未删除, 1=已删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除: 0=未删除, 1=已删除',
     PRIMARY KEY (id),
     UNIQUE KEY uk_name (name),
     KEY idx_status (status),
-    KEY idx_is_deleted (is_deleted)
+    KEY idx_deleted (deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='积分礼品';
 
 -- 4. 积分兑换记录
@@ -70,7 +70,7 @@ CREATE TABLE edu_points_redemption (
     operator_id     BIGINT          NULL                     COMMENT '操作人ID（核销/取消时的操作人员，关联 sys_user）',
     create_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除: 0=未删除, 1=已删除',
+    deleted      TINYINT         NOT NULL DEFAULT 0       COMMENT '逻辑删除: 0=未删除, 1=已删除',
     PRIMARY KEY (id),
     KEY idx_student_id (student_id),
     KEY idx_gift_id (gift_id),

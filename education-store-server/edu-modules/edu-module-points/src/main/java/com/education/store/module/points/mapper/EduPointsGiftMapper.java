@@ -15,7 +15,7 @@ public interface EduPointsGiftMapper extends BaseMapper<EduPointsGift> {
     /**
      * 原子扣减库存（条件更新，利用受影响行数防止超卖）
      */
-    @Update("UPDATE edu_points_gift SET stock_remaining = stock_remaining - 1 WHERE id = #{id} AND stock_remaining > 0 AND is_deleted = 0")
+    @Update("UPDATE edu_points_gift SET stock_remaining = stock_remaining - 1 WHERE id = #{id} AND stock_remaining > 0 AND deleted = 0")
     int deductStock(@Param("id") Long id);
 
     /**
