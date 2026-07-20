@@ -13,8 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -71,9 +74,29 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
     @Override @Transactional(rollbackFor = Exception.class)
     public int deleteLeaveByIds(Long[] ids) { return leaveMapper.deleteBatchIds(Arrays.asList(ids)); }
 
-    // 请假通过后自动向签到表写入请假记录(状态=3)
-    private void writeAttendanceRecord(Long studentId, java.time.LocalDate leaveDate) {
-        // 查该学生请假日期有排课的排课ID，暂无排课关联则跳过
-        // 此处简化：实际应由job/schedule触发
+    /**
+     * 请假通过后自动向签到表写入请假记录 (status=3)
+     * 查询该学生在请假日期有排课的班级，为每个排课写入一条签到记录
+     */
+    private void writeAttendanceRecord(Long studentId, LocalDate leaveDate) {
+        List<Map<String, Object>> schedules = attendanceMapper.findSchedulesForStudent(studentId, leaveDate);
+        for (Map<String, Object> row : schedules) {
+            Long scheduleId = ((Number) row.get("scheduleId")).longValue();
+            Long classId = ((Number) row.get("classId")).longValue();
+            // 检查是否已有签到记录（避免重复写入）
+            LambdaQueryWrapper<EduAttendance> check = new LambdaQueryWrapper<>();
+            check.eq(EduAttendance::getScheduleId, scheduleId)
+                .eq(EduAttendance::getStudentId, studentId);
+            if (attendanceMapper.selectCount(check) > 0) continue;
+            // 写入签到记录：状态=请假
+            EduAttendance att = new EduAttendance();
+            att.setScheduleId(scheduleId);
+            att.setClassId(classId);
+            att.setStudentId(studentId);
+            att.setStatus(EduAttendance.STATUS_LEAVE);
+            att.setSigninTime(LocalDateTime.now());
+            att.setOperatorType("SYSTEM");
+            attendanceMapper.insert(att);
+        }
     }
 }

@@ -19,9 +19,9 @@ public class EduLeaveConflictController {
 
     private final IEduLeaveConflictService conflictService;
 
-    @Operation(summary = "按请假单查询冲突")
+    @Operation(summary = "按请假单查询冲突（含排课详情）")
     @GetMapping("/leave/{leaveId}") @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:query')")
-    public Result<?> listByLeave(@PathVariable Long leaveId) { return Result.success(conflictService.selectByLeaveId(leaveId)); }
+    public Result<?> listByLeave(@PathVariable Long leaveId) { return Result.success(conflictService.selectDetailsByLeaveId(leaveId)); }
 
     @Operation(summary = "解决冲突")
     @PutMapping("/{id}/resolve") @Log(title = "冲突处理", businessType = BusinessType.UPDATE)

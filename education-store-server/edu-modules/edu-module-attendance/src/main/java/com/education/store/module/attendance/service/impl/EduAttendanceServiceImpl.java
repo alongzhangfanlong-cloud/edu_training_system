@@ -7,6 +7,8 @@ import com.education.store.common.exception.BusinessException;
 import com.education.store.module.attendance.entity.EduAttendance;
 import com.education.store.module.attendance.mapper.EduAttendanceMapper;
 import com.education.store.module.attendance.service.IEduAttendanceService;
+import com.education.store.module.schedule.entity.EduSchedule;
+import com.education.store.module.schedule.mapper.EduScheduleMapper;
 import com.education.store.module.student.entity.EduStudentHoursLog;
 import com.education.store.module.student.mapper.EduStudentHoursLogMapper;
 import com.education.store.module.student.mapper.EduStudentMapper;
@@ -27,6 +29,7 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
     private final EduAttendanceMapper attendanceMapper;
     private final EduStudentHoursLogMapper hoursLogMapper;
     private final EduStudentMapper studentMapper;
+    private final EduScheduleMapper scheduleMapper;
 
     @Override
     public IPage<EduAttendance> selectAttendanceList(IPage<EduAttendance> page, Long scheduleId, Long classId, Long studentId) {
@@ -58,6 +61,10 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int batchSignin(Long scheduleId, Long classId, List<EduAttendance> records, Long operatorId, String operatorType) {
+        // 检查排课类型：试听课不消课
+        EduSchedule schedule = scheduleMapper.selectById(scheduleId);
+        boolean isTrial = schedule != null && "TRIAL".equals(schedule.getScheduleType());
+
         int count = 0;
         for (EduAttendance record : records) {
             record.setScheduleId(scheduleId);
@@ -65,8 +72,8 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
             record.setSigninTime(LocalDateTime.now());
             record.setOperatorId(operatorId);
             record.setOperatorType(operatorType);
-            // 消课：到校或迟到 → 扣1课时
-            if (record.getStatus() == EduAttendance.STATUS_PRESENT || record.getStatus() == EduAttendance.STATUS_LATE) {
+            // 消课：到校或迟到 → 扣1课时（试听课除外）
+            if (!isTrial && (record.getStatus() == EduAttendance.STATUS_PRESENT || record.getStatus() == EduAttendance.STATUS_LATE)) {
                 consumeHours(record.getStudentId(), scheduleId);
             }
             attendanceMapper.insert(record);

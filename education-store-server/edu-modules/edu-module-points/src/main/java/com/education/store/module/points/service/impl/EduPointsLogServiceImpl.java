@@ -60,6 +60,7 @@ public class EduPointsLogServiceImpl extends ServiceImpl<EduPointsLogMapper, Edu
         if (existsBySource(sourceType, sourceId)) {
             return false;
         }
+        // FIXME: balanceAfter 硬编码 0，实际应传入变更后余额
         writeLog(studentId, changeType, amount, 0, sourceType, sourceId, remark);
         return true;
     }

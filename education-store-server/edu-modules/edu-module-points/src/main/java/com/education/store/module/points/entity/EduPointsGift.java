@@ -42,4 +42,8 @@ public class EduPointsGift extends BaseEntity {
 
     /** 礼品描述 */
     private String description;
+
+    /** 已兑换数量（非DB字段，查询时动态填充） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Integer redemptionCount;
 }

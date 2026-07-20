@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
 import com.education.store.module.points.entity.EduPointsGift;
 import com.education.store.module.points.mapper.EduPointsGiftMapper;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.education.store.module.points.mapper.EduPointsRedemptionMapper;
 import com.education.store.module.points.service.IEduPointsGiftService;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +37,20 @@ public class EduPointsGiftServiceImpl extends ServiceImpl<EduPointsGiftMapper, E
             wrapper.eq(EduPointsGift::getStatus, status);
         }
         wrapper.orderByDesc(EduPointsGift::getCreateTime);
-        return giftMapper.selectPage(page, wrapper);
+        IPage<EduPointsGift> result = giftMapper.selectPage(page, wrapper);
+
+        // 批量填充 redemptionCount
+        List<Long> giftIds = result.getRecords().stream()
+                .map(EduPointsGift::getId).collect(Collectors.toList());
+        if (!giftIds.isEmpty()) {
+            List<Map<String, Object>> counts = redemptionMapper.countRedemptionByGiftIds(giftIds);
+            Map<Long, Integer> countMap = counts.stream().collect(Collectors.toMap(
+                    m -> ((Number) m.get("gift_id")).longValue(),
+                    m -> ((Number) m.get("cnt")).intValue()));
+            result.getRecords().forEach(g -> g.setRedemptionCount(countMap.getOrDefault(g.getId(), 0)));
+        }
+
+        return result;
     }
 
     @Override

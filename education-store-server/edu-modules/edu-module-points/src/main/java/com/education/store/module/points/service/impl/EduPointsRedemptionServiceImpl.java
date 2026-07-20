@@ -136,9 +136,9 @@ public class EduPointsRedemptionServiceImpl extends ServiceImpl<EduPointsRedempt
         // 2. 退还积分
         accountMapper.refundPoints(redemption.getStudentId(), redemption.getPointsSpent());
 
-        // 3. 写入积分日志
+        // 3. 写入积分日志（balance 已在 refundPoints 后，重新查询）
         EduPointsAccount account = accountMapper.selectByStudentIdForUpdate(redemption.getStudentId());
-        int balanceAfter = account != null ? account.getBalance() + redemption.getPointsSpent() : redemption.getPointsSpent();
+        int balanceAfter = account != null ? account.getBalance() : redemption.getPointsSpent();
         pointsLogService.writeLog(redemption.getStudentId(), "ADJUST", redemption.getPointsSpent(), balanceAfter,
                 "CANCEL_REDEEM", redemption.getId(), "取消兑换，退还积分");
 

@@ -33,8 +33,8 @@ export function changeClassStatus(id, status) {
 
 // ===== 班级学员 =====
 
-export function listClassStudent(classId) {
-  return request({ url: `${BASE}/${classId}/students/list`, method: 'get' });
+export function listClassStudent(classId, params = {}) {
+  return request({ url: `${BASE}/${classId}/students/list`, method: 'get', params });
 }
 
 export function addClassStudent(classId, data) {
