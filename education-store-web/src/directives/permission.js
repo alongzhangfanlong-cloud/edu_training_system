@@ -40,6 +40,15 @@ export default {
     checkPermission();
 
     // 监听权限数据变化（登录后异步加载）
-    watch(() => userStore.permissions, () => checkPermission(), { deep: true });
+    const stopWatch = watch(() => userStore.permissions, () => checkPermission(), { deep: true });
+
+    // 保存 stop 函数以便 unmounted 时清理
+    el.__permissionStopWatch = stopWatch;
+  },
+  unmounted(el) {
+    if (el.__permissionStopWatch) {
+      el.__permissionStopWatch();
+      delete el.__permissionStopWatch;
+    }
   },
 };

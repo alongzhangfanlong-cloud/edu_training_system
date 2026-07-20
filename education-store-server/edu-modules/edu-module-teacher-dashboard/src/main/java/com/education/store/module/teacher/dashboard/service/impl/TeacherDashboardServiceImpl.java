@@ -20,7 +20,9 @@ import com.education.store.module.student.entity.EduStudent;
 import com.education.store.module.student.mapper.EduStudentMapper;
 import com.education.store.module.system.entity.system.SysUser;
 import com.education.store.module.system.mapper.SysUserMapper;
+import com.education.store.module.teaching.entity.EduTeacher;
 import com.education.store.module.teaching.mapper.EduHomeworkSubmissionMapper;
+import com.education.store.module.teaching.mapper.EduTeacherMapper;
 import com.education.store.module.teacher.dashboard.model.*;
 import com.education.store.module.teacher.dashboard.service.ITeacherDashboardService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,14 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +58,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
     private final EduAttendanceMapper attendanceMapper;
     private final EduLeaveStudentMapper leaveStudentMapper;
     private final EduHomeworkSubmissionMapper homeworkSubmissionMapper;
+    private final EduTeacherMapper teacherMapper;
     private final SysUserMapper sysUserMapper;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -77,7 +87,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
 
     @Override
     public TeacherStatisticsVO getStatistics() {
-        Long teacherId = SecurityUtils.getUserId();
+        Long teacherId = getTeacherId();
         LocalDate today = LocalDate.now();
 
         // 1. 今日课程数
@@ -118,18 +128,29 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
                     .eq(EduAttendance::getDeleted, 0);
             List<EduAttendance> attendances = attendanceMapper.selectList(attWrapper);
             Map<Long, Set<Long>> checkedStudentIdsBySchedule = new HashMap<>();
+            Map<Long, Set<Long>> leaveStudentIdsBySchedule = new HashMap<>();
             for (EduAttendance a : attendances) {
-                checkedStudentIdsBySchedule
-                        .computeIfAbsent(a.getScheduleId(), k -> new HashSet<>())
-                        .add(a.getStudentId());
+                int status = a.getStatus() != null ? a.getStatus() : -1;
+                if (status == EduAttendance.STATUS_PRESENT || status == EduAttendance.STATUS_LATE) {
+                    checkedStudentIdsBySchedule
+                            .computeIfAbsent(a.getScheduleId(), k -> new HashSet<>())
+                            .add(a.getStudentId());
+                } else if (status == EduAttendance.STATUS_LEAVE || status == EduAttendance.STATUS_LEAVE_PENDING) {
+                    leaveStudentIdsBySchedule
+                            .computeIfAbsent(a.getScheduleId(), k -> new HashSet<>())
+                            .add(a.getStudentId());
+                }
             }
 
             for (EduSchedule s : todaySchedules) {
                 long totalStudents = classStudentCountMap.getOrDefault(s.getClassId(), 0L);
                 Set<Long> checked = checkedStudentIdsBySchedule.getOrDefault(s.getId(), Collections.emptySet());
-                if (totalStudents > 0 && checked.size() < totalStudents) {
+                // 签到基数 = 应到 - 请假（请假学生视为已处理，不算入"待签到"）
+                Set<Long> leaveStudentIds = leaveStudentIdsBySchedule.getOrDefault(s.getId(), Collections.emptySet());
+                long effectiveTotal = totalStudents - leaveStudentIds.size();
+                if (effectiveTotal > 0 && checked.size() < effectiveTotal) {
                     uncheckedClassCount++;
-                } else if (totalStudents > 0 && checked.size() == totalStudents) {
+                } else if (effectiveTotal > 0 && checked.size() >= effectiveTotal) {
                     checkedScheduleIds.add(s.getId());
                 }
             }
@@ -156,7 +177,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
 
     @Override
     public List<TeacherScheduleVO> getSchedule() {
-        Long teacherId = SecurityUtils.getUserId();
+        Long teacherId = getTeacherId();
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
@@ -207,7 +228,9 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
             // 签到状态
             List<EduAttendance> attList = attBySchedule.getOrDefault(s.getId(), Collections.emptyList());
             int checkedCount = (int) attList.stream()
-                    .filter(a -> a.getStatus() != null && (a.getStatus() == 0 || a.getStatus() == 1)).count();
+                    .filter(a -> a.getStatus() != null
+                            && (a.getStatus() == EduAttendance.STATUS_PRESENT || a.getStatus() == EduAttendance.STATUS_LATE))
+                    .count();
 
             // 课程状态
             String courseStatus;
@@ -251,7 +274,10 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
 
     @Override
     public List<TeacherScheduleStudentVO> getScheduleStudents(Long scheduleId) {
-        Long teacherId = SecurityUtils.getUserId();
+        if (scheduleId == null) {
+            return Collections.emptyList();
+        }
+        Long teacherId = getTeacherId();
 
         // 校验排课属于当前教师
         EduSchedule schedule = scheduleMapper.selectById(scheduleId);
@@ -282,7 +308,10 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
                 .eq(EduAttendance::getDeleted, 0);
         List<EduAttendance> attendances = attendanceMapper.selectList(attWrapper);
         Map<Long, Integer> attStatusMap = attendances.stream()
-                .collect(Collectors.toMap(EduAttendance::getStudentId, EduAttendance::getStatus));
+                .collect(Collectors.toMap(
+                        EduAttendance::getStudentId,
+                        EduAttendance::getStatus,
+                        (existing, replacement) -> replacement));
 
         List<TeacherScheduleStudentVO> result = new ArrayList<>();
         for (EduClassStudent cs : classStudents) {
@@ -290,10 +319,16 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
             Integer attStatus = attStatusMap.get(cs.getStudentId());
             String attStatusStr = null;
             if (attStatus != null) {
-                switch (attStatus) {
-                    case 0: attStatusStr = "PRESENT"; break;
-                    case 1: attStatusStr = "LATE"; break;
-                    case 2: attStatusStr = "ABSENT"; break;
+                if (attStatus == EduAttendance.STATUS_PRESENT) {
+                    attStatusStr = "PRESENT";
+                } else if (attStatus == EduAttendance.STATUS_LATE) {
+                    attStatusStr = "LATE";
+                } else if (attStatus == EduAttendance.STATUS_ABSENT) {
+                    attStatusStr = "ABSENT";
+                } else if (attStatus == EduAttendance.STATUS_LEAVE) {
+                    attStatusStr = "LEAVE";
+                } else if (attStatus == EduAttendance.STATUS_LEAVE_PENDING) {
+                    attStatusStr = "LEAVE_PENDING";
                 }
             }
             result.add(TeacherScheduleStudentVO.builder()
@@ -308,12 +343,12 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
 
     @Override
     public TeacherTodosVO getTodos() {
-        Long teacherId = SecurityUtils.getUserId();
+        Long teacherId = getTeacherId();
 
         // 1. 待批改作业份数
         int pendingGradingCount = homeworkSubmissionMapper.countPendingGrading(teacherId);
 
-        // 2. 待回复请假条数
+        // 2. 待回复请假条数（PENDING=0）
         LambdaQueryWrapper<EduLeaveStudent> leaveWrapper = new LambdaQueryWrapper<>();
         leaveWrapper.eq(EduLeaveStudent::getConfirmTeacherId, teacherId)
                 .eq(EduLeaveStudent::getStatus, 0)
@@ -327,6 +362,26 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
     }
 
     // ============ 辅助方法 ============
+
+    /**
+     * 获取当前登录用户对应的教师ID
+     * edu_schedule.teacher_id 关联的是 edu_teacher.id，而非 sys_user.id
+     */
+    private Long getTeacherId() {
+        Long userId = SecurityUtils.getUserId();
+        if (userId == null) {
+            throw new RuntimeException("无法获取当前用户信息");
+        }
+        LambdaQueryWrapper<EduTeacher> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(EduTeacher::getUserId, userId)
+                .eq(EduTeacher::getDeleted, 0)
+                .last("LIMIT 1");
+        EduTeacher teacher = teacherMapper.selectOne(wrapper);
+        if (teacher == null) {
+            throw new RuntimeException("当前用户未关联教师档案");
+        }
+        return teacher.getId();
+    }
 
     private String getDayOfWeekChinese(DayOfWeek dayOfWeek) {
         switch (dayOfWeek) {

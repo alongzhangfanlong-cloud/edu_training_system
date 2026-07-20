@@ -17,6 +17,6 @@ public interface EduHomeworkSubmissionMapper extends BaseMapper<EduHomeworkSubmi
      */
     @Select("SELECT COUNT(*) FROM edu_homework_submission hs " +
             "INNER JOIN edu_homework h ON hs.homework_id = h.id AND h.deleted = 0 " +
-            "WHERE h.teacher_id = #{teacherId} AND hs.status = 'SUBMITTED' AND hs.deleted = 0")
+            "WHERE h.teacher_id = #{teacherId} AND hs.status IN ('SUBMITTED', 'LATE') AND hs.deleted = 0")
     int countPendingGrading(@Param("teacherId") Long teacherId);
 }

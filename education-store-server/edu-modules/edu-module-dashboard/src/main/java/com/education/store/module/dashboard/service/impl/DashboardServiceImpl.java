@@ -41,6 +41,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.WeekFields;
@@ -97,6 +98,7 @@ public class DashboardServiceImpl implements IDashboardService {
     public StatisticsVO getStatistics() {
         LocalDate today = LocalDate.now();
         LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
         LocalDate todayEnd = today;
 
         // 1. 在学学员数
@@ -105,9 +107,9 @@ public class DashboardServiceImpl implements IDashboardService {
                 .eq(EduStudent::getDeleted, 0);
         long studentCount = studentMapper.selectCount(studentWrapper);
 
-        // 2. 当月排课次数
+        // 2. 当月排课次数（整月范围，课程是预先排定的）
         LambdaQueryWrapper<EduSchedule> scheduleWrapper = new LambdaQueryWrapper<>();
-        scheduleWrapper.between(EduSchedule::getScheduleDate, monthStart, todayEnd)
+        scheduleWrapper.between(EduSchedule::getScheduleDate, monthStart, monthEnd)
                 .notIn(EduSchedule::getStatus, "CANCELLED", "SUSPENDED")
                 .eq(EduSchedule::getDeleted, 0);
         long scheduleCount = scheduleMapper.selectCount(scheduleWrapper);
@@ -225,7 +227,7 @@ public class DashboardServiceImpl implements IDashboardService {
                 isCurrentPeriod = !LocalDate.now().isBefore(rangeStart)
                         && !LocalDate.now().isAfter(rangeEnd);
                 hasPrev = rangeStart.isAfter(LocalDate.now().minusWeeks(12).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)));
-                hasNext = rangeEnd.isBefore(LocalDate.now());
+                hasNext = rangeEnd.isBefore(LocalDate.now().plusWeeks(12));
                 break;
             case "DAY":
                 rangeStart = date;
@@ -233,7 +235,7 @@ public class DashboardServiceImpl implements IDashboardService {
                 viewLabel = date.getYear() + "年" + date.getMonthValue() + "月" + date.getDayOfMonth() + "日";
                 isCurrentPeriod = date.equals(LocalDate.now());
                 hasPrev = date.isAfter(LocalDate.now().minusWeeks(12));
-                hasNext = date.isBefore(LocalDate.now());
+                hasNext = date.isBefore(LocalDate.now().plusWeeks(12));
                 break;
             default: // MONTH
                 rangeStart = date.withDayOfMonth(1);
@@ -241,7 +243,7 @@ public class DashboardServiceImpl implements IDashboardService {
                 viewLabel = date.getYear() + "年" + date.getMonthValue() + "月";
                 isCurrentPeriod = YearMonth.from(date).equals(YearMonth.from(LocalDate.now()));
                 hasPrev = date.isAfter(LocalDate.now().minusMonths(3).withDayOfMonth(1));
-                hasNext = date.isBefore(LocalDate.now().withDayOfMonth(1));
+                hasNext = date.isBefore(LocalDate.now().plusMonths(3).withDayOfMonth(1));
                 break;
         }
 
@@ -268,13 +270,6 @@ public class DashboardServiceImpl implements IDashboardService {
                     .collect(Collectors.toMap(EduCourse::getId, c -> c));
         }
 
-        Set<Long> roomIds = classMap.values().stream().map(EduClass::getClassroomId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, EduClassroom> roomMap = new HashMap<>();
-        if (!roomIds.isEmpty()) {
-            roomMap = classroomMapper.selectBatchIds(roomIds).stream()
-                    .collect(Collectors.toMap(EduClassroom::getId, r -> r));
-        }
-
         // 批量查询签到数据
         List<Long> scheduleIds = schedules.stream().map(EduSchedule::getId).collect(Collectors.toList());
         Map<Long, Integer> attendedCountMap = new HashMap<>();
@@ -293,15 +288,24 @@ public class DashboardServiceImpl implements IDashboardService {
             });
         }
 
-        // 批量查询教师名称
-        Set<Long> teacherIds = classMap.values().stream()
-                .map(EduClass::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+        // 批量查询教师名称（从排课记录获取，支持代课场景）
+        Set<Long> teacherIds = schedules.stream()
+                .map(EduSchedule::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, String> teacherNameMap = new HashMap<>();
         if (!teacherIds.isEmpty()) {
             List<SysUser> teachers = sysUserMapper.selectBatchIds(teacherIds);
             for (SysUser t : teachers) {
                 teacherNameMap.put(t.getId(), getDisplayName(t));
             }
+        }
+
+        // 批量查询教室名称（从排课记录获取，支持换教室场景）
+        Set<Long> roomIds = schedules.stream()
+                .map(EduSchedule::getRoomId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, EduClassroom> roomMap = new HashMap<>();
+        if (!roomIds.isEmpty()) {
+            roomMap = classroomMapper.selectBatchIds(roomIds).stream()
+                    .collect(Collectors.toMap(EduClassroom::getId, r -> r));
         }
 
         // 按日期分组排课
@@ -321,7 +325,6 @@ public class DashboardServiceImpl implements IDashboardService {
             for (EduSchedule s : daySchedules) {
                 EduClass clazz = classMap.get(s.getClassId());
                 EduCourse course = clazz != null ? courseMap.get(clazz.getCourseId()) : null;
-                EduClassroom room = clazz != null ? roomMap.get(clazz.getClassroomId()) : null;
 
                 // 计算排课状态
                 String scheduleStatus;
@@ -347,10 +350,11 @@ public class DashboardServiceImpl implements IDashboardService {
                         .endTime(s.getEndTime() != null ? s.getEndTime().format(TIME_FMT) : null)
                         .courseName(course != null ? course.getName() : "--")
                         .className(clazz != null ? clazz.getName() : "--")
-                        .teacherName(clazz != null && clazz.getTeacherId() != null
-                                ? teacherNameMap.getOrDefault(clazz.getTeacherId(), "--") : "--")
-                        .classroomName(room != null ? room.getName() : "未分配")
-                        .expectedCount(clazz != null ? clazz.getCurrentCount() : 0)
+                        .teacherName(s.getTeacherId() != null
+                                ? teacherNameMap.getOrDefault(s.getTeacherId(), "--") : "--")
+                        .classroomName(s.getRoomId() != null && roomMap.containsKey(s.getRoomId())
+                                ? roomMap.get(s.getRoomId()).getName() : "未分配")
+                        .expectedCount(clazz != null && clazz.getCurrentCount() != null ? clazz.getCurrentCount() : 0)
                         .attendedCount(attendedCountMap.getOrDefault(s.getId(), 0))
                         .status(scheduleStatus)
                         .build());
@@ -414,11 +418,14 @@ public class DashboardServiceImpl implements IDashboardService {
                 .eq(EduAttendance::getDeleted, 0);
         List<EduAttendance> attendances = attendanceMapper.selectList(attWrapper);
         Map<Long, Integer> attendanceMap = attendances.stream()
-                .collect(Collectors.toMap(EduAttendance::getStudentId, EduAttendance::getStatus));
+                .collect(Collectors.toMap(EduAttendance::getStudentId, EduAttendance::getStatus,
+                        (existing, replacement) -> existing));
 
         int totalCount = classStudents.size();
         int attendedCount = (int) attendances.stream()
-                .filter(a -> a.getStatus() != null && (a.getStatus() == 0 || a.getStatus() == 1)).count();
+                .filter(a -> a.getStatus() != null
+                        && (a.getStatus() == EduAttendance.STATUS_PRESENT || a.getStatus() == EduAttendance.STATUS_LATE))
+                .count();
 
         List<ScheduleStudentVO.StudentEntry> students = new ArrayList<>();
         for (EduClassStudent cs : classStudents) {
@@ -607,11 +614,12 @@ public class DashboardServiceImpl implements IDashboardService {
             }
         }
 
-        // 检测教师冲突
+        // 检测教师/教室冲突（统计全部冲突数，列表最多取3条）
         Set<String> reportedConflicts = new HashSet<>();
-        for (int i = 0; i < recentSchedules.size() && conflictItems.size() < 3; i++) {
+        int actualConflictCount = 0;
+        for (int i = 0; i < recentSchedules.size(); i++) {
             EduSchedule s1 = recentSchedules.get(i);
-            for (int j = i + 1; j < recentSchedules.size() && conflictItems.size() < 3; j++) {
+            for (int j = i + 1; j < recentSchedules.size(); j++) {
                 EduSchedule s2 = recentSchedules.get(j);
                 if (!s1.getScheduleDate().equals(s2.getScheduleDate())) continue;
                 if (s1.getStartTime() == null || s1.getEndTime() == null
@@ -625,31 +633,37 @@ public class DashboardServiceImpl implements IDashboardService {
                 if (s1.getTeacherId() != null && s1.getTeacherId().equals(s2.getTeacherId())) {
                     String key = "T" + s1.getTeacherId() + "_" + s1.getScheduleDate();
                     if (reportedConflicts.add(key)) {
-                        conflictItems.add(TodosVO.ScheduleConflictItem.builder()
-                                .description("教师时间冲突")
-                                .date(s1.getScheduleDate().format(DATE_FMT))
-                                .timeRange(s1.getStartTime().format(TIME_FMT) + "-" + s1.getEndTime().format(TIME_FMT))
-                                .classA(conflictClassNameMap.getOrDefault(s1.getClassId(), "--"))
-                                .classB(conflictClassNameMap.getOrDefault(s2.getClassId(), "--"))
-                                .build());
+                        actualConflictCount++;
+                        if (conflictItems.size() < 3) {
+                            conflictItems.add(TodosVO.ScheduleConflictItem.builder()
+                                    .description("教师时间冲突")
+                                    .date(s1.getScheduleDate().format(DATE_FMT))
+                                    .timeRange(s1.getStartTime().format(TIME_FMT) + "-" + s1.getEndTime().format(TIME_FMT))
+                                    .classA(conflictClassNameMap.getOrDefault(s1.getClassId(), "--"))
+                                    .classB(conflictClassNameMap.getOrDefault(s2.getClassId(), "--"))
+                                    .build());
+                        }
                     }
                 }
                 // 教室冲突
                 if (s1.getRoomId() != null && s1.getRoomId().equals(s2.getRoomId())) {
                     String key = "R" + s1.getRoomId() + "_" + s1.getScheduleDate();
                     if (reportedConflicts.add(key)) {
-                        conflictItems.add(TodosVO.ScheduleConflictItem.builder()
-                                .description("教室时间冲突")
-                                .date(s1.getScheduleDate().format(DATE_FMT))
-                                .timeRange(s1.getStartTime().format(TIME_FMT) + "-" + s1.getEndTime().format(TIME_FMT))
-                                .classA(conflictClassNameMap.getOrDefault(s1.getClassId(), "--"))
-                                .classB(conflictClassNameMap.getOrDefault(s2.getClassId(), "--"))
-                                .build());
+                        actualConflictCount++;
+                        if (conflictItems.size() < 3) {
+                            conflictItems.add(TodosVO.ScheduleConflictItem.builder()
+                                    .description("教室时间冲突")
+                                    .date(s1.getScheduleDate().format(DATE_FMT))
+                                    .timeRange(s1.getStartTime().format(TIME_FMT) + "-" + s1.getEndTime().format(TIME_FMT))
+                                    .classA(conflictClassNameMap.getOrDefault(s1.getClassId(), "--"))
+                                    .classB(conflictClassNameMap.getOrDefault(s2.getClassId(), "--"))
+                                    .build());
+                        }
                     }
                 }
             }
         }
-        conflictCount = conflictItems.size();
+        conflictCount = actualConflictCount;
 
         return TodosVO.builder()
                 .pendingLeaves(TodosVO.TodoSection.<TodosVO.PendingLeaveItem>builder()
@@ -716,24 +730,6 @@ public class DashboardServiceImpl implements IDashboardService {
         return user.getUsername() != null ? user.getUsername() : "--";
     }
 
-    private String getTeacherName(Long teacherId) {
-        if (teacherId == null) return "--";
-        SysUser user = sysUserMapper.selectById(teacherId);
-        return user != null ? getDisplayName(user) : "--";
-    }
-
-    private String getStudentName(Long studentId) {
-        if (studentId == null) return "--";
-        EduStudent student = studentMapper.selectById(studentId);
-        return student != null ? student.getName() : "--";
-    }
-
-    private String getClassName(Long classId) {
-        if (classId == null) return "--";
-        EduClass clazz = classMapper.selectById(classId);
-        return clazz != null ? clazz.getName() : "--";
-    }
-
     private String getDayOfWeekChinese(DayOfWeek dayOfWeek) {
         switch (dayOfWeek) {
             case MONDAY: return "周一";
@@ -745,20 +741,5 @@ public class DashboardServiceImpl implements IDashboardService {
             case SUNDAY: return "周日";
             default: return "";
         }
-    }
-
-    // 辅助类：年月比较
-    private static class YearMonth {
-        final int year, month;
-        YearMonth(int y, int m) { year = y; month = m; }
-        static YearMonth from(LocalDate d) { return new YearMonth(d.getYear(), d.getMonthValue()); }
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof YearMonth)) return false;
-            YearMonth ym = (YearMonth) o;
-            return year == ym.year && month == ym.month;
-        }
-        @Override
-        public int hashCode() { return year * 100 + month; }
     }
 }
