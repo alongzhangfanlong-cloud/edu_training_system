@@ -7,7 +7,11 @@
       :class="{ active: currentIndex === index }"
       @click="switchTab(tab, index)"
     >
-      <text class="tab-icon">{{ tab.icon }}</text>
+      <u-icon
+        :name="tab.icon"
+        size="22"
+        :color="currentIndex === index ? '#409eff' : '#909399'"
+      />
       <text class="tab-text">{{ tab.text }}</text>
     </view>
   </view>
@@ -20,16 +24,16 @@ import { useAuthStore } from '@/stores/auth';
 const authStore = useAuthStore();
 
 const parentTabs = [
-  { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
-  { pagePath: '/pages/messages/index', text: '消息', icon: '🔔' },
-  { pagePath: '/pages/profile/index', text: '我的', icon: '👤' },
+  { pagePath: '/pages/index/index', text: '首页', icon: 'home-fill' },
+  { pagePath: '/pages/messages/index', text: '消息', icon: 'bell-fill' },
+  { pagePath: '/pages/profile/index', text: '我的', icon: 'account-fill' },
 ];
 
 const teacherTabs = [
-  { pagePath: '/pages/teacher/schedule/index', text: '课表', icon: '📅' },
-  { pagePath: '/pages/teacher/checkin/index', text: '签到', icon: '✅' },
-  { pagePath: '/pages/teacher/teaching/index', text: '教学', icon: '📝' },
-  { pagePath: '/pages/teacher/profile/index', text: '我的', icon: '👤' },
+  { pagePath: '/pages/teacher/schedule/index', text: '课表', icon: 'calendar-fill' },
+  { pagePath: '/pages/teacher/checkin/index', text: '签到', icon: 'checkmark-circle-fill' },
+  { pagePath: '/pages/teacher/teaching/index', text: '教学', icon: 'file-text-fill' },
+  { pagePath: '/pages/teacher/profile/index', text: '我的', icon: 'account-fill' },
 ];
 
 const tabs = computed(() => {
@@ -78,9 +82,9 @@ function switchTab(tab, index) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2rpx;
   padding: 8rpx 0;
 }
-.tab-icon { font-size: 36rpx; margin-bottom: 2rpx; }
 .tab-text { font-size: 20rpx; color: #909399; }
 .tab-item.active .tab-text { color: #409eff; font-weight: 600; }
 </style>

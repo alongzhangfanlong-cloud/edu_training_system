@@ -1,9 +1,21 @@
-import { useAuthStore } from '@/stores/auth';
-
 const BASE_URL = 'http://localhost:8080';
 
+function getToken() {
+  try {
+    return uni.getStorageSync('token') || '';
+  } catch { return ''; }
+}
+
+function handleUnauthorized() {
+  try {
+    uni.removeStorageSync('token');
+    uni.removeStorageSync('role');
+  } catch { /* storage clear failure is non-fatal */ }
+  uni.reLaunch({ url: '/pages/login/index' });
+}
+
 function request(options = {}) {
-  const authStore = useAuthStore();
+  const token = getToken();
 
   return new Promise((resolve, reject) => {
     uni.request({
@@ -12,15 +24,14 @@ function request(options = {}) {
       data: options.data,
       header: {
         'Content-Type': 'application/json',
-        ...(authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       success(res) {
         const { statusCode, data } = res;
         if (statusCode === 200) {
           resolve(data);
         } else if (statusCode === 401) {
-          authStore.logout();
-          uni.reLaunch({ url: '/pages/login/index' });
+          handleUnauthorized();
           reject(new Error('登录已过期'));
         } else {
           uni.showToast({ title: data.msg || '请求失败', icon: 'none' });
