@@ -8,6 +8,7 @@
           <text class="si-desc">{{ item.desc }}</text>
         </view>
         <switch :checked="item.value" :disabled="saving" @change="(e) => onToggle(item.key, e.detail.value)" color="#409eff" />
+        <text class="subscribe-btn" @click.stop="handleSubscribe(item.key)">订阅</text>
       </view>
     </view>
   </view>
@@ -16,6 +17,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { getNotificationSettings, updateNotificationSettings } from '@/api/notification';
+import { subscribeOne } from '@/utils/subscribe';
 
 const saving = ref(false);
 
@@ -52,6 +54,15 @@ async function onToggle(key, value) {
   saving.value = false;
 }
 
+async function handleSubscribe(key) {
+  const ok = await subscribeOne(key);
+  if (ok) {
+    uni.showToast({ title: '订阅成功', icon: 'success' });
+  } else {
+    uni.showToast({ title: '已跳过', icon: 'none' });
+  }
+}
+
 onMounted(() => loadSettings());
 </script>
 
@@ -63,4 +74,8 @@ onMounted(() => loadSettings());
 .setting-item:last-child { border-bottom: none; }
 .si-label { font-size: 28rpx; color: #303133; display: block; }
 .si-desc { font-size: 24rpx; color: #909399; margin-top: 4rpx; display: block; }
+.subscribe-btn {
+  font-size: 24rpx; color: #409eff; padding: 8rpx 16rpx;
+  border: 1rpx solid #409eff; border-radius: 8rpx; margin-left: 16rpx; flex-shrink: 0;
+}
 </style>

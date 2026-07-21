@@ -3,6 +3,7 @@ package com.education.store.module.points.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.store.common.event.PointsRedemptionEvent;
 import com.education.store.common.exception.BusinessException;
 import com.education.store.module.points.entity.EduPointsAccount;
 import com.education.store.module.points.entity.EduPointsGift;
@@ -13,6 +14,7 @@ import com.education.store.module.points.mapper.EduPointsRedemptionMapper;
 import com.education.store.module.points.service.IEduPointsLogService;
 import com.education.store.module.points.service.IEduPointsRedemptionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class EduPointsRedemptionServiceImpl extends ServiceImpl<EduPointsRedempt
     private final EduPointsGiftMapper giftMapper;
     private final EduPointsAccountMapper accountMapper;
     private final IEduPointsLogService pointsLogService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<EduPointsRedemption> selectRedemptionList(IPage<EduPointsRedemption> page,
@@ -114,6 +117,13 @@ public class EduPointsRedemptionServiceImpl extends ServiceImpl<EduPointsRedempt
         redemption.setClaimTime(LocalDateTime.now());
         redemption.setOperatorId(operatorId);
         redemptionMapper.updateById(redemption);
+
+        // 发布兑换通知事件
+        EduPointsGift gift = giftMapper.selectById(redemption.getGiftId());
+        String giftName = gift != null ? gift.getName() : "礼品";
+        eventPublisher.publishEvent(new PointsRedemptionEvent(
+            this, id, redemption.getStudentId(), giftName, "CLAIMED",
+            redemption.getPointsSpent()));
     }
 
     @Override
@@ -144,5 +154,12 @@ public class EduPointsRedemptionServiceImpl extends ServiceImpl<EduPointsRedempt
 
         // 4. 恢复库存
         giftMapper.restoreStock(redemption.getGiftId());
+
+        // 发布兑换取消通知
+        EduPointsGift gift = giftMapper.selectById(redemption.getGiftId());
+        String giftName = gift != null ? gift.getName() : "礼品";
+        eventPublisher.publishEvent(new PointsRedemptionEvent(
+            this, id, redemption.getStudentId(), giftName, "CANCELLED",
+            redemption.getPointsSpent()));
     }
 }
