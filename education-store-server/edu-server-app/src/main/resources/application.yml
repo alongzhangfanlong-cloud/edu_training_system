@@ -51,6 +51,12 @@ wechat:
   mini-app:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}
+    subscribe-templates:
+      SIGN_IN: ""
+      HOMEWORK: ""
+      LEAVE: ""
+      EVALUATION: ""
+      REDEMPTION: ""
 
 # CORS 允许的前端域名（逗号分隔）
 edu:

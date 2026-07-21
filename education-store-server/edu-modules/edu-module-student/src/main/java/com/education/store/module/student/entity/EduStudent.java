@@ -37,6 +37,9 @@ public class EduStudent extends BaseEntity {
     /** 顾问ID → sys_user.id */
     private Long counselorId;
 
+    /** 家长用户ID → sys_user.id（主家长，用于微信通知等场景） */
+    private Long parentId;
+
     /** 来源渠道(DIRECT_MARKETING/REFERRAL/ONLINE/OTHER) */
     private String source;
 
