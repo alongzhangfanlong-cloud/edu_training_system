@@ -17,6 +17,7 @@ import com.google.common.cache.CacheBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -81,8 +82,8 @@ public class NotificationEventListener {
         List<EduStudent> students;
         try {
             students = studentMapper.selectByClassId(event.getClassId());
-        } catch (Exception e) {
-            log.warn("无法查询班级学生列表 (selectByClassId 可能不存在): classId={}", event.getClassId());
+        } catch (DataAccessException e) {
+            log.warn("查询班级学员失败: classId={}", event.getClassId(), e);
             return;
         }
         if (students == null || students.isEmpty()) return;
@@ -169,7 +170,7 @@ public class NotificationEventListener {
         Map<String, String> data = new LinkedHashMap<>();
         data.put("thing1", event.getItemName());
         data.put("phrase2", statusText);
-        data.put("amount3", event.getAmount() + "积分");
+        data.put("amount3", (event.getAmount() != null ? event.getAmount() : 0) + "积分");
 
         send(toMsg(templateId, parent.getWxOpenid(), data), parent.getWxOpenid(), "REDEMPTION");
     }
@@ -219,9 +220,7 @@ public class NotificationEventListener {
 
     private boolean rateLimitOk(String openid, String notifyType) {
         String key = openid + ":" + notifyType;
-        if (rateLimitCache.getIfPresent(key) != null) return false;
-        rateLimitCache.put(key, Boolean.TRUE);
-        return true;
+        return rateLimitCache.asMap().putIfAbsent(key, Boolean.TRUE) == null;
     }
 
     private String formatTime(LocalDateTime time) {

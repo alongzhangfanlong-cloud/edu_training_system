@@ -22,6 +22,6 @@ public interface EduStudentMapper extends BaseMapper<EduStudent> {
     int countNonExitedEnrollments(@Param("studentId") Long studentId);
 
     /** 根据班级ID查询学员列表（用于作业通知等场景） */
-    @Select("SELECT es.* FROM edu_student es INNER JOIN edu_class_student ecs ON es.id = ecs.student_id WHERE ecs.class_id = #{classId} AND es.deleted = 0 AND ecs.deleted = 0")
+    @Select("SELECT es.* FROM edu_student es INNER JOIN edu_class_student ecs ON es.id = ecs.student_id WHERE ecs.class_id = #{classId} AND ecs.status = 'ENROLLED' AND es.deleted = 0 AND ecs.deleted = 0")
     List<EduStudent> selectByClassId(@Param("classId") Long classId);
 }
