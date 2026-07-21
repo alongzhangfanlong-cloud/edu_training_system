@@ -23,10 +23,10 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 微信订阅消息事件监听器
@@ -88,9 +88,19 @@ public class NotificationEventListener {
         }
         if (students == null || students.isEmpty()) return;
 
+        // 批量查询家长，避免 N+1
+        List<Long> parentIds = students.stream()
+            .map(EduStudent::getParentId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+        if (parentIds.isEmpty()) return;
+        Map<Long, SysUser> parentMap = userMapper.selectBatchIds(parentIds).stream()
+            .collect(Collectors.toMap(SysUser::getId, Function.identity()));
+
         for (EduStudent s : students) {
             if (s.getParentId() == null) continue;
-            SysUser parent = userMapper.selectById(s.getParentId());
+            SysUser parent = parentMap.get(s.getParentId());
             if (parent == null || isBlank(parent.getWxOpenid())) continue;
             if (!isNotifyEnabled(parent.getId(), "HOMEWORK")) continue;
             if (!rateLimitOk(parent.getWxOpenid(), "HOMEWORK")) continue;

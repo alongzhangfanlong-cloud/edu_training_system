@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.education.store.common.event.EvaluationSubmittedEvent;
+import com.education.store.module.schedule.mapper.EduScheduleMapper;
 
 @Slf4j
 @Service
@@ -32,6 +33,7 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
     private final EduEvaluationStudentMapper studentMapper;
     private final PointsInternalService pointsInternalService;
     private final ApplicationEventPublisher eventPublisher;
+    private final EduScheduleMapper scheduleMapper;
 
     @Override
     public IPage<EduEvaluation> selectEvaluationList(IPage<EduEvaluation> page, Long scheduleId, Long teacherId, Long studentId, String startDate, String endDate, Integer status) {
@@ -155,9 +157,18 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
                         ? evaluation.getSummary().substring(0, 20) + "..."
                         : evaluation.getSummary())
                     : "";
-                String score = s.getRating() != null ? String.valueOf(s.getRating()) : "";
+                String score = s.getStarRating() != null ? s.getStarRating().toString() : "";
+                // 从排课获取课程名称
+                String courseName = "";
+                if (evaluation.getScheduleId() != null) {
+                    try {
+                        com.education.store.module.schedule.entity.EduSchedule schedule =
+                            scheduleMapper.selectById(evaluation.getScheduleId());
+                        if (schedule != null) courseName = schedule.getCourseName() != null ? schedule.getCourseName() : "";
+                    } catch (Exception ignored) { /* 降级：留空不影响通知发送 */ }
+                }
                 eventPublisher.publishEvent(new EvaluationSubmittedEvent(
-                    this, evaluation.getId(), s.getStudentId(), "", content, score));
+                    this, evaluation.getId(), s.getStudentId(), courseName, content, score));
             }
         }
         return evaluation;

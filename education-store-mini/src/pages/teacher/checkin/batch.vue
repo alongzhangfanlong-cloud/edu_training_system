@@ -93,9 +93,11 @@ async function handleSubmit() {
     const res = await batchSignin(data);
     if (res.code === 200) {
       uni.showToast({ title: '签到成功', icon: 'success' });
-      // 引导教师订阅签到通知
-      subscribeOne('SIGN_IN');
-      setTimeout(() => uni.navigateBack(), 1500);
+      setTimeout(async () => {
+        // 引导订阅签到通知（等 toast 显示后再弹出，避免竞态）
+        await subscribeOne('SIGN_IN');
+        uni.navigateBack();
+      }, 1500);
     } else {
       uni.showToast({ title: res.msg || '签到失败', icon: 'none' });
     }

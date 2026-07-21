@@ -3,13 +3,21 @@
  * 封装 wx.requestSubscribeMessage，统一处理授权结果
  */
 
-// 模板 ID 常量（注册时替换为微信后台的真实模板 ID）
+// 模板 ID 常量（在微信后台申请后填入真实模板 ID）
 export const TMPL_IDS = {
+  // 家长端
   SIGN_IN: '',
   HOMEWORK: '',
   LEAVE: '',
   EVALUATION: '',
+  EXAM: '',
   REDEMPTION: '',
+  // 教师端（第二批）
+  SCHEDULE_REMINDER: '',
+  CHECKIN_REMINDER: '',
+  LEAVE_RESULT: '',
+  EVALUATION_REMINDER: '',
+  SYSTEM_NOTICE: '',
 };
 
 /**
@@ -30,6 +38,7 @@ export function requestSubscribe(tmplIds) {
         const accepted = [];
         const rejected = [];
         for (const [id, status] of Object.entries(res)) {
+          if (id === 'errMsg') continue;
           if (status === 'accept') accepted.push(id);
           else rejected.push(id);
         }
@@ -49,8 +58,12 @@ export function requestSubscribe(tmplIds) {
  * @returns {Promise<boolean>} 是否授权成功
  */
 export async function subscribeOne(type) {
+  if (!(type in TMPL_IDS)) {
+    console.warn(`[subscribe] 未知的订阅类型: ${type}`);
+    return false;
+  }
   const tmplId = TMPL_IDS[type];
-  if (!tmplId) return false;
+  if (!tmplId) return false; // 模板 ID 未配置，静默跳过
   const { accepted } = await requestSubscribe([tmplId]);
   return accepted.includes(tmplId);
 }
