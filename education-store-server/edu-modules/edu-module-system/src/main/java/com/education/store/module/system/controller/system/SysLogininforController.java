@@ -48,6 +48,7 @@ public class SysLogininforController {
     }
 
     @Operation(summary = "登录日志详情")
+    @PreAuthorize("@ss.hasPermi('system:log:list')")
     @GetMapping("/{infoId}")
     public Result<SysLogininfor> detail(@PathVariable Long infoId) {
         return Result.success(logininforService.getById(infoId));

@@ -58,6 +58,7 @@ public class SysConfigController {
     }
 
     @Operation(summary = "根据键名查询配置")
+    @PreAuthorize("@ss.hasPermi('system:config:query')")
     @GetMapping("/configKey/{configKey}")
     public Result<String> getByKey(@PathVariable String configKey) {
         return Result.success(configService.selectConfigByKey(configKey));

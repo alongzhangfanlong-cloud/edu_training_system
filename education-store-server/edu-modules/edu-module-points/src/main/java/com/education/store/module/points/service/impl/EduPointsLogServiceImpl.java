@@ -55,13 +55,12 @@ public class EduPointsLogServiceImpl extends ServiceImpl<EduPointsLogMapper, Edu
     }
 
     @Override
-    public boolean tryWriteLog(Long studentId, String changeType, Integer amount,
+    public boolean tryWriteLog(Long studentId, String changeType, Integer amount, Integer balanceAfter,
                                 String sourceType, Long sourceId, String remark) {
         if (existsBySource(sourceType, sourceId)) {
             return false;
         }
-        // FIXME: balanceAfter 硬编码 0，实际应传入变更后余额
-        writeLog(studentId, changeType, amount, 0, sourceType, sourceId, remark);
+        writeLog(studentId, changeType, amount, balanceAfter, sourceType, sourceId, remark);
         return true;
     }
 }

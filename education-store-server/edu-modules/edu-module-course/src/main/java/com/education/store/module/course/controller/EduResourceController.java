@@ -108,6 +108,7 @@ public class EduResourceController {
     }
 
     @Operation(summary = "记录下载（原子累加计数）")
+    @PreAuthorize("@ss.hasPermi('course:resource:list')")
     @PostMapping("/{id}/download")
     public Result<Void> download(@PathVariable Long id) {
         resourceService.incrementDownloadCount(id);

@@ -48,6 +48,7 @@ public class SysOperLogController {
     }
 
     @Operation(summary = "操作日志详情")
+    @PreAuthorize("@ss.hasPermi('system:log:list')")
     @GetMapping("/{operId}")
     public Result<SysOperLog> detail(@PathVariable Long operId) {
         return Result.success(operLogService.getById(operId));

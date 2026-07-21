@@ -18,11 +18,7 @@ export default {
       ...this.component,
       name: this.component.name || this.componentName || "AnonymousComponent"
     };
-    const a = h(componentOptions, this.$attrs);
-
-    console.debug("a", a);
-
-    return a;
+    return h(componentOptions, this.$attrs);
   },
 
   props: {

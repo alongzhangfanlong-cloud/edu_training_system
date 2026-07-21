@@ -56,6 +56,7 @@ public class SysDictDataController {
     }
 
     @Operation(summary = "全部字典数据(分组)")
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @GetMapping("/all")
     public Result<Map<String, List<SysDictData>>> all() {
         List<SysDictData> allData = dictDataService.list();

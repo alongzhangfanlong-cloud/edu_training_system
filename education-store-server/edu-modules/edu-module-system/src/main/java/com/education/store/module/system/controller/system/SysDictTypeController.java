@@ -45,12 +45,14 @@ public class SysDictTypeController {
     }
 
     @Operation(summary = "所有字典类型(下拉)")
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @GetMapping("/all")
     public Result<List<SysDictType>> all() {
         return Result.success(dictTypeService.selectDictTypeAll());
     }
 
     @Operation(summary = "字典类型选项(下拉)")
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @GetMapping("/optionselect")
     public Result<List<SysDictType>> optionselect() {
         return Result.success(dictTypeService.selectDictTypeAll());

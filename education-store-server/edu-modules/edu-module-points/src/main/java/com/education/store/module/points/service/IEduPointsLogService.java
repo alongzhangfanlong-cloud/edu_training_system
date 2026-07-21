@@ -29,6 +29,6 @@ public interface IEduPointsLogService extends IService<EduPointsLog> {
      * 尝试写入积分日志（防重：同一 sourceType + sourceId 只写入一次）
      * @return true 写入成功，false 已存在（防重跳过）
      */
-    boolean tryWriteLog(Long studentId, String changeType, Integer amount,
+    boolean tryWriteLog(Long studentId, String changeType, Integer amount, Integer balanceAfter,
                         String sourceType, Long sourceId, String remark);
 }

@@ -20,7 +20,6 @@ const getUserInfo = () => {
     const info = sessionStorage.getItem(STORAGE_USERINFO_KEY);
     userInfo = JSON.parse(info) || userInfo;
   } catch (error) {
-    console.log("getUserInfo - error", error);
   }
 
   return userInfo;
