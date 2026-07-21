@@ -3,6 +3,7 @@ package com.education.store.module.attendance.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.store.common.event.LeaveApprovedEvent;
 import com.education.store.common.exception.BusinessException;
 import com.education.store.module.attendance.entity.EduAttendance;
 import com.education.store.module.attendance.entity.EduLeaveStudent;
@@ -10,6 +11,7 @@ import com.education.store.module.attendance.mapper.EduAttendanceMapper;
 import com.education.store.module.attendance.mapper.EduLeaveStudentMapper;
 import com.education.store.module.attendance.service.IEduLeaveStudentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
 
     private final EduLeaveStudentMapper leaveMapper;
     private final EduAttendanceMapper attendanceMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<EduLeaveStudent> selectLeaveList(IPage<EduLeaveStudent> page, EduLeaveStudent leave) {
@@ -57,6 +60,10 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
         leave.setConfirmTeacherId(teacherId);
         leave.setConfirmTime(LocalDateTime.now());
         writeAttendanceRecord(leave.getStudentId(), leave.getLeaveDate());
+        // 发布请假审批通过事件
+        eventPublisher.publishEvent(new LeaveApprovedEvent(
+            this, id, "STUDENT", leave.getStudentId(),
+            leave.getStudentId().toString(), "通过", leave.getReason()));
         return leaveMapper.updateById(leave);
     }
 
@@ -68,6 +75,10 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
         leave.setConfirmTeacherId(teacherId);
         leave.setConfirmTime(LocalDateTime.now());
         leave.setRejectReason(reason);
+        // 发布请假审批驳回事件
+        eventPublisher.publishEvent(new LeaveApprovedEvent(
+            this, id, "STUDENT", leave.getStudentId(),
+            leave.getStudentId().toString(), "驳回", reason));
         return leaveMapper.updateById(leave);
     }
 
