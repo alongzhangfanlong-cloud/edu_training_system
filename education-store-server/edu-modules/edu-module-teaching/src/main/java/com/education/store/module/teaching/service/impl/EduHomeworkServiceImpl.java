@@ -13,7 +13,10 @@ import com.education.store.module.teaching.mapper.EduHomeworkSubmissionMapper;
 import com.education.store.module.teaching.service.IEduHomeworkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.education.store.common.event.HomeworkPublishedEvent;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,6 +29,7 @@ public class EduHomeworkServiceImpl extends ServiceImpl<EduHomeworkMapper, EduHo
     private final EduHomeworkMapper homeworkMapper;
     private final EduHomeworkAttachmentMapper attachmentMapper;
     private final EduHomeworkSubmissionMapper submissionMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<EduHomework> selectHomeworkList(IPage<EduHomework> page, String keyword, Long classId, Long teacherId, String startDate, String endDate) {
@@ -56,6 +60,11 @@ public class EduHomeworkServiceImpl extends ServiceImpl<EduHomeworkMapper, EduHo
         if (attachmentIds != null && !attachmentIds.isEmpty()) {
             linkAttachments(homework.getId(), attachmentIds);
         }
+        // 发布作业通知事件
+        eventPublisher.publishEvent(new HomeworkPublishedEvent(
+            this, homework.getId(), homework.getClassId(),
+            "",  // className — 从班级表查询，无法获取则留空
+            homework.getTitle(), homework.getDeadline()));
         return homework;
     }
 
