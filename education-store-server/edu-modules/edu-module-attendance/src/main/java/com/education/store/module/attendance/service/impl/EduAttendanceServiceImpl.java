@@ -3,6 +3,7 @@ package com.education.store.module.attendance.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.store.common.event.SignInEvent;
 import com.education.store.common.exception.BusinessException;
 import com.education.store.module.attendance.entity.EduAttendance;
 import com.education.store.module.attendance.mapper.EduAttendanceMapper;
@@ -13,6 +14,7 @@ import com.education.store.module.student.entity.EduStudentHoursLog;
 import com.education.store.module.student.mapper.EduStudentHoursLogMapper;
 import com.education.store.module.student.mapper.EduStudentMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
     private final EduStudentHoursLogMapper hoursLogMapper;
     private final EduStudentMapper studentMapper;
     private final EduScheduleMapper scheduleMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<EduAttendance> selectAttendanceList(IPage<EduAttendance> page, Long scheduleId, Long classId, Long studentId) {
@@ -78,6 +81,12 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
             }
             attendanceMapper.insert(record);
             count++;
+        }
+        // 发布签到事件，异步通知家长
+        for (EduAttendance record : records) {
+            String courseName = schedule != null ? schedule.getCourseName() : "";
+            eventPublisher.publishEvent(new SignInEvent(
+                this, record.getStudentId(), scheduleId, courseName, LocalDateTime.now()));
         }
         return count;
     }
