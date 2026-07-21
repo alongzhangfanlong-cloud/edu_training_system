@@ -1,0 +1,36 @@
+/* 全局 SCSS 变量 */
+$primary-color: #409eff;
+$success-color: #67c23a;
+$warning-color: #e6a23c;
+$danger-color: #f56c6c;
+$info-color: #909399;
+
+$text-primary: #303133;
+$text-regular: #606266;
+$text-secondary: #909399;
+$text-placeholder: #c0c4cc;
+
+$border-color: #ebeef5;
+$bg-color: #f5f7fa;
+$bg-white: #ffffff;
+
+$font-size-xs: 22rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-base: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+
+$border-radius: 12rpx;
+
+/* uView Plus 主题定制 */
+$u-primary: $primary-color;
+$u-success: $success-color;
+$u-warning: $warning-color;
+$u-error: $danger-color;
+$u-info: $info-color;
