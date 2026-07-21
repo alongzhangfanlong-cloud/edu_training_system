@@ -6,8 +6,13 @@ import { useChildrenStore } from '@/stores/children';
 onLaunch(async () => {
   const authStore = useAuthStore();
   if (authStore.checkAuth()) {
-    const childrenStore = useChildrenStore();
-    await childrenStore.fetchChildren();
+    if (authStore.role === 'TEACHER' || authStore.role === 'teacher') {
+      // 教师端：默认进入课表 Tab，数据在各页面 onShow 时按需加载
+    } else {
+      // 家长端：加载孩子列表
+      const childrenStore = useChildrenStore();
+      await childrenStore.fetchChildren();
+    }
   }
 });
 </script>
