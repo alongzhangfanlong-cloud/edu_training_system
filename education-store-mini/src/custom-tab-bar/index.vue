@@ -2,7 +2,7 @@
   <view class="custom-tab-bar">
     <view
       v-for="(tab, index) in tabs"
-      :key="index"
+      :key="tab.pagePath"
       class="tab-item"
       :class="{ active: currentIndex === index }"
       @click="switchTab(tab, index)"
@@ -82,7 +82,8 @@ function switchTab(tab, index) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2rpx;
+  // gap 替代方案，兼容低版本小程序基础库
+  .tab-item > * + * { margin-top: 2rpx; }
   padding: 8rpx 0;
 }
 .tab-text { font-size: 20rpx; color: #909399; }

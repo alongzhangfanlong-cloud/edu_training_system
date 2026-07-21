@@ -9,7 +9,10 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        silenceDeprecations: ['import', 'legacy-js-api'],
+        silenceDeprecations: [
+          'import',          // uView Plus 使用 @import，等待其升级到 @use/@forward
+          'legacy-js-api',   // Vite 内置 sass 插件的旧 API，等待 Vite 升级
+        ],
       },
     },
   },
