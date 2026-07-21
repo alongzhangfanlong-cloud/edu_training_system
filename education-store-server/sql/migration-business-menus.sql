@@ -307,13 +307,14 @@ INSERT IGNORE INTO sys_role (id, name, code, sort, menu_check_strictly, status, 
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 3, id FROM sys_menu
 WHERE id IN (8, 9, 260, 261, 262, 263)
-UNION ALL
+UNION
 SELECT 3, id FROM sys_menu WHERE parent_id IN (8, 9, 260, 261, 262, 263);
 
 -- 还要给教师通用按钮权限（教学模块中教师会用到的）
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 3, id FROM sys_menu
-WHERE permission IN (
+WHERE type = 'F'
+  AND permission IN (
     'teaching:homework:query', 'teaching:homework:add', 'teaching:homework:edit', 'teaching:homework:remove',
     'course:resource:query', 'course:resource:add', 'course:resource:edit', 'course:resource:delete',
     'schedule:calendar:query', 'schedule:calendar:list',

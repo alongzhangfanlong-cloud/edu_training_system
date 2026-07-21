@@ -280,12 +280,12 @@ INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 3, id FROM sys_menu
 WHERE id IN (8, 9, 260, 261, 262, 263)
    OR parent_id IN (8, 9, 260, 261, 262, 263)
-   OR permission IN (
+   OR (permission IN (
        'teaching:homework:query', 'teaching:homework:add', 'teaching:homework:edit', 'teaching:homework:remove',
        'course:resource:query', 'course:resource:add', 'course:resource:edit', 'course:resource:delete',
        'schedule:calendar:query', 'schedule:calendar:list',
        'dashboard:dashboard:view', 'teacher:dashboard:view'
-   );
+   ) AND type = 'F');
 
 -- ---------- 字典类型 ----------
 INSERT INTO sys_dict_type (id, name, code, status, remark) VALUES
