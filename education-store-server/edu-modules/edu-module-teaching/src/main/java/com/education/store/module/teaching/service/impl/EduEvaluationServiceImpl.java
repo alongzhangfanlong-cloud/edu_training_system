@@ -13,13 +13,14 @@ import com.education.store.module.teaching.service.IEduEvaluationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.education.store.module.teaching.mapper.EduEvaluationStudentMapper;
+import com.education.store.common.event.EvaluationSubmittedEvent;
 
 @Slf4j
 @Service
@@ -30,6 +31,7 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
     private final EduEvaluationMapper evaluationMapper;
     private final EduEvaluationStudentMapper studentMapper;
     private final PointsInternalService pointsInternalService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<EduEvaluation> selectEvaluationList(IPage<EduEvaluation> page, Long scheduleId, Long teacherId, Long studentId, String startDate, String endDate, Integer status) {
@@ -143,6 +145,19 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
                     log.error("积分发放失败：evaluationStudentId={}, studentId={}, points={}",
                             student.getId(), student.getStudentId(), student.getRewardPoints(), e);
                 }
+            }
+        }
+        // 发布评价通知事件
+        if (students != null) {
+            for (EduEvaluationStudent s : students) {
+                String content = evaluation.getSummary() != null
+                    ? (evaluation.getSummary().length() > 20
+                        ? evaluation.getSummary().substring(0, 20) + "..."
+                        : evaluation.getSummary())
+                    : "";
+                String score = s.getRating() != null ? String.valueOf(s.getRating()) : "";
+                eventPublisher.publishEvent(new EvaluationSubmittedEvent(
+                    this, evaluation.getId(), s.getStudentId(), "", content, score));
             }
         }
         return evaluation;
