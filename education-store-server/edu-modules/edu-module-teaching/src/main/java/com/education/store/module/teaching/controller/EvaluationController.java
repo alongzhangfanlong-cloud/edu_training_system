@@ -84,8 +84,8 @@ public class EvaluationController {
     @Log(title = "教评学", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('teaching:evaluation:remove')")
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id, @RequestParam(required = false) Long currentUserId) {
-        evaluationService.deleteEvaluation(id, currentUserId);
+    public Result<Void> delete(@PathVariable Long id) {
+        evaluationService.deleteEvaluation(id, com.education.store.common.utils.SecurityUtils.getUserId());
         return Result.success();
     }
 }

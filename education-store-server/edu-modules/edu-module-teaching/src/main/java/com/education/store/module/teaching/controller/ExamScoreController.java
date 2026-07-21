@@ -101,8 +101,8 @@ public class ExamScoreController {
     @Log(title = "成绩管理", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('teaching:exam:remove')")
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id, @RequestParam(required = false) Long currentUserId) {
-        examService.deleteExam(id, currentUserId);
+    public Result<Void> delete(@PathVariable Long id) {
+        examService.deleteExam(id, com.education.store.common.utils.SecurityUtils.getUserId());
         return Result.success();
     }
 }

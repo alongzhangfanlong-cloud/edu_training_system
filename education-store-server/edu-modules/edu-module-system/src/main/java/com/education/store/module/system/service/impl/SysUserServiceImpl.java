@@ -1,5 +1,6 @@
 package com.education.store.module.system.service.impl;
 
+import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -44,6 +45,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate stringRedisTemplate;
     private final WechatAuthService wechatAuthService;
+
+    @org.springframework.beans.factory.annotation.Value("${edu.user.default-password:123456}")
+    private String defaultPassword;
 
     @Override
     public LoginVO login(LoginDTO loginDTO) {
@@ -155,8 +159,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LoginVO wechatBind(String code, String encryptedPhone, String iv) {
-        // code → session_key → 解密手机号
-        String phone = wechatAuthService.decryptPhone(code, encryptedPhone, iv);
+        // code 只能使用一次：一次性获取 session 信息（openid + sessionKey）
+        WxMaJscode2SessionResult session = wechatAuthService.getSessionInfo(code);
+
+        // sessionKey → 解密手机号
+        String phone = wechatAuthService.decryptPhone(session.getSessionKey(), encryptedPhone, iv);
 
         // 按手机号查用户
         SysUser user = getByMobile(phone);
@@ -167,8 +174,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
             throw new BusinessException("账号已被禁用，请联系管理员");
         }
 
-        // 绑定 openid（先获取 openid，再回写）
-        String openid = wechatAuthService.getOpenid(code);
+        // 绑定 openid（使用同一次 code2session 返回的 openid，不再重复请求）
+        String openid = session.getOpenid();
+
+        // 检查该 openid 是否已被其他用户绑定
+        SysUser existingOpenidUser = getByOpenid(openid);
+        if (existingOpenidUser != null && !existingOpenidUser.getId().equals(user.getId())) {
+            throw new BusinessException("该微信已绑定其他账号");
+        }
+
         user.setWxOpenid(openid);
         userMapper.updateById(user);
 
@@ -269,9 +283,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
         if (StrUtil.isNotBlank(user.getPassword())) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
-        } else {
-            user.setPassword(null);
         }
+        // 注意：不传密码时不更新 password 字段。MyBatis-Plus updateById 默认
+        // 忽略 null 值字段（update-strategy: NOT_NULL），因此 password 为 null 时不会写入 DB。
+        // 如果全局配置变更（如改为 IGNORED），需改用 LambdaUpdateWrapper 显式选择更新列。
 
         int rows = userMapper.updateById(user);
 
@@ -353,7 +368,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
                     }
                 } else {
                     if (StrUtil.isBlank(user.getPassword())) {
-                        user.setPassword("123456");
+                        user.setPassword(defaultPassword);
                     }
                     user.setCreateBy(operName);
                     insertUser(user);

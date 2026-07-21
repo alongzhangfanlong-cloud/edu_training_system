@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +49,9 @@ public class SysUserController {
     private final SysUserService userService;
     private final SysRoleService roleService;
     private final SysMenuService menuService;
+
+    @Value("${edu.user.default-password:123456}")
+    private String defaultPassword;
 
     @Operation(summary = "分页查询用户列表")
     @PreAuthorize("@ss.hasPermi('system:user:list')")
@@ -315,7 +319,7 @@ public class SysUserController {
                 SysUser user = new SysUser();
                 user.setUsername(username.trim());
                 String password = getCellString(row, 1);
-                user.setPassword(password != null && !password.isBlank() ? password.trim() : "123456");
+                user.setPassword(password != null && !password.isBlank() ? password.trim() : defaultPassword);
                 user.setRealName(getCellString(row, 2));
                 user.setNickName(getCellString(row, 3));
                 user.setEmail(getCellString(row, 4));

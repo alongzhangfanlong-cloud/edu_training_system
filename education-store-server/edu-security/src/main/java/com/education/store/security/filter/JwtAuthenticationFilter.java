@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * JWT 认证过滤器
@@ -53,9 +54,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 构建认证令牌
+            // 构建认证令牌（authorities 传空集合避免 NPE，权限由 PermissionService 动态查询）
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, token, null);
+                    new UsernamePasswordAuthenticationToken(userId, token, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {

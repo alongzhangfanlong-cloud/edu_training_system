@@ -35,8 +35,7 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
             wrapper.eq(EduExamScore::getSubjectId, subjectId);
         }
         if (studentId != null) {
-            wrapper.inSql(EduExamScore::getId,
-                "SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = " + studentId + " AND deleted = 0");
+            wrapper.apply("id IN (SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = {0} AND deleted = 0)", studentId);
         }
         if (examType != null && !examType.isEmpty()) {
             wrapper.eq(EduExamScore::getExamType, examType);

@@ -16,9 +16,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 家长端 Controller — 家长登录后查询关联孩子的信息
+ * 家长端基础 Controller — 孩子列表和详情
+ *
+ * <p>扩展的跨模块家长端 API（考勤/作业/课表/积分等）见
+ * edu-module-dashboard 中的 {@code ParentApiController}
  */
-@Tag(name = "家长端")
+@Tag(name = "家长端-基础")
 @RestController
 @RequestMapping("/api/v1/parent")
 @RequiredArgsConstructor
@@ -28,12 +31,11 @@ public class ParentController {
     private final EduStudentMapper studentMapper;
 
     @Operation(summary = "获取当前家长关联的所有孩子（含摘要信息）")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children")
     public Result<List<Map<String, Object>>> getChildren() {
         Long userId = SecurityUtils.getUserId();
 
-        // 查询家长关联的所有学生
         List<EduStudentParent> relations = parentMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EduStudentParent>()
                         .eq(EduStudentParent::getUserId, userId));
@@ -42,18 +44,13 @@ public class ParentController {
             return Result.success(Collections.emptyList());
         }
 
-        // 收集所有 studentId
         List<Long> studentIds = relations.stream()
                 .map(EduStudentParent::getStudentId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // 批量查询学生
         List<EduStudent> students = studentMapper.selectBatchIds(studentIds);
-        Map<Long, EduStudent> studentMap = students.stream()
-                .collect(Collectors.toMap(EduStudent::getId, s -> s));
 
-        // 组装返回
         List<Map<String, Object>> result = new ArrayList<>();
         for (EduStudent student : students) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -72,11 +69,10 @@ public class ParentController {
     }
 
     @Operation(summary = "查看孩子详情")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}")
     public Result<Map<String, Object>> getChildDetail(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
-        // 校验该孩子是否属于当前家长
         if (!isParentOf(userId, studentId)) {
             return Result.error("无权查看该学员信息");
         }

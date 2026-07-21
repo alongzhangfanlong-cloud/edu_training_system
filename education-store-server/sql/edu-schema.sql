@@ -21,7 +21,7 @@ CREATE TABLE sys_user (
     nick_name       VARCHAR(64)  DEFAULT ''                  COMMENT '昵称',
     email           VARCHAR(128) DEFAULT ''                  COMMENT '邮箱',
     mobile          VARCHAR(20)  DEFAULT ''                  COMMENT '手机号',
-    wx_openid       VARCHAR(64)  DEFAULT NULL                COMMENT '微信OpenID(唯一标识)',
+    wx_openid       VARCHAR(64)  DEFAULT NULL  UNIQUE           COMMENT '微信OpenID(唯一标识)',
     gender          TINYINT      DEFAULT 0                   COMMENT '性别(0未知 1男 2女)',
     avatar          VARCHAR(256) DEFAULT ''                  COMMENT '头像URL',
     status          TINYINT      DEFAULT 1                   COMMENT '状态(1正常 0停用)',
@@ -203,5 +203,17 @@ CREATE TABLE sys_login_log (
     INDEX idx_login_time (login_time),
     INDEX idx_username (username)
 ) COMMENT '登录日志表';
+
+-- 用户通知偏好设置表（微信订阅消息开关）
+DROP TABLE IF EXISTS user_notification_setting;
+CREATE TABLE user_notification_setting (
+    id              BIGINT       PRIMARY KEY AUTO_INCREMENT  COMMENT '主键ID',
+    user_id         BIGINT       NOT NULL                    COMMENT '用户ID',
+    notify_type     VARCHAR(32)  NOT NULL                    COMMENT '通知类型: SIGN_IN/EVALUATION/HOMEWORK/EXAM/LEAVE/REDEMPTION',
+    enabled         TINYINT      DEFAULT 1                   COMMENT '是否开启(1开启 0关闭)',
+    create_time     DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
+    update_time     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_user_type (user_id, notify_type)
+) COMMENT '用户通知偏好设置表';
 
 SET FOREIGN_KEY_CHECKS = 1;

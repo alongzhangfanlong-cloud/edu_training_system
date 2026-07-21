@@ -3,6 +3,8 @@ server:
 
 edu:
   upload-path: ${EDU_UPLOAD_PATH:upload}
+  user:
+    default-password: ${EDU_USER_DEFAULT_PASSWORD:123456}
 
 spring:
   application:

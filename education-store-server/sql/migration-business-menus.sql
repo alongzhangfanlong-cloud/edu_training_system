@@ -344,12 +344,19 @@ INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 4, id FROM sys_menu
 WHERE type = 'F'
   AND permission IN (
+    -- 家长端核心权限
+    'student:parent:query',
+    -- 考勤
     'attendance:signin:list',
     'attendance:leave:student:list', 'attendance:leave:student:add', 'attendance:leave:student:query',
+    -- 作业+评价+成绩
     'teaching:homework:list', 'teaching:homework:query',
     'teaching:evaluation:list',
     'teaching:exam:list',
+    -- 积分
     'points:account:query', 'points:redemption:list',
+    -- 课表+工作台
+    'schedule:calendar:list',
     'dashboard:dashboard:view'
   )
   AND id NOT IN (SELECT menu_id FROM sys_role_menu WHERE role_id = 4);
