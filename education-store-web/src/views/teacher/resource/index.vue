@@ -72,7 +72,7 @@
               </el-tag>
               <div class="card-actions">
                 <el-button size="small" text @click="handleDownload(item)">下载</el-button>
-                <el-button v-if="item.canEdit" v-permission="['course:resource:remove']" size="small" text type="danger" @click="handleDeleteRes(item)">删除</el-button>
+                <el-button v-if="item.canEdit" v-permission="['course:resource:delete']" size="small" text type="danger" @click="handleDeleteRes(item)">删除</el-button>
               </div>
             </div>
           </div>
@@ -100,7 +100,7 @@
             <el-table-column label="操作" width="140" align="center" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" @click="handleDownload(row)">下载</el-button>
-                <el-button v-if="row.canEdit" v-permission="['course:resource:remove']" link type="danger" @click="handleDeleteRes(row)">删除</el-button>
+                <el-button v-if="row.canEdit" v-permission="['course:resource:delete']" link type="danger" @click="handleDeleteRes(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>

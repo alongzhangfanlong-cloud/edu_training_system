@@ -40,7 +40,7 @@
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="danger" plain size="small" @click="handleOperlogClean" v-permission="['system:log:clean']">
+            <el-button type="danger" plain size="small" @click="handleOperlogClean" v-permission="['system:log:delete']">
               <el-icon><Delete /></el-icon>清空
             </el-button>
           </el-col>
@@ -112,7 +112,7 @@
             </el-button>
           </el-col>
           <el-col :span="1.5">
-            <el-button type="danger" plain size="small" @click="handleLogininforClean" v-permission="['system:log:clean']">
+            <el-button type="danger" plain size="small" @click="handleLogininforClean" v-permission="['system:log:delete']">
               <el-icon><Delete /></el-icon>清空
             </el-button>
           </el-col>
