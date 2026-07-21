@@ -37,6 +37,9 @@ public class SysUser extends BaseEntity {
     /** 手机号 */
     private String mobile;
 
+    /** 微信OpenID(唯一标识，可空) */
+    private String wxOpenid;
+
     /** 性别(0未知 1男 2女) */
     private Integer gender;
 

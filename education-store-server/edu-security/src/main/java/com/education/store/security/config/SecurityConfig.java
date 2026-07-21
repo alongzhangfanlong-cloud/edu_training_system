@@ -50,6 +50,8 @@ public class SecurityConfig {
                     .requestMatchers(
                             "/api/v1/auth/login",
                             "/api/v1/auth/refresh",
+                            "/api/v1/auth/wechat-login",
+                            "/api/v1/auth/wechat-bind",
                             "/api/v1/captcha",
                             "/doc.html",
                             "/swagger-ui/**",

@@ -13,6 +13,7 @@ import com.education.store.module.system.entity.system.SysUser;
 import com.education.store.module.system.mapper.SysUserMapper;
 import com.education.store.module.system.service.ISysUserRoleService;
 import com.education.store.module.system.service.SysUserService;
+import com.education.store.module.system.service.WechatAuthService;
 import com.education.store.security.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -42,6 +43,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate stringRedisTemplate;
+    private final WechatAuthService wechatAuthService;
 
     @Override
     public LoginVO login(LoginDTO loginDTO) {
@@ -131,6 +133,69 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
                 .or()
                 .eq(SysUser::getEmail, username));
         return userMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public LoginVO wechatLogin(String code) {
+        // code → openid
+        String openid = wechatAuthService.getOpenid(code);
+
+        // 查用户
+        SysUser user = getByOpenid(openid);
+        if (user == null) {
+            throw new BusinessException("请先绑定手机号");
+        }
+        if (Constants.STATUS_DISABLE.equals(user.getStatus())) {
+            throw new BusinessException("账号已被禁用，请联系管理员");
+        }
+
+        return buildLoginResponse(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public LoginVO wechatBind(String code, String encryptedPhone, String iv) {
+        // code → session_key → 解密手机号
+        String phone = wechatAuthService.decryptPhone(code, encryptedPhone, iv);
+
+        // 按手机号查用户
+        SysUser user = getByMobile(phone);
+        if (user == null) {
+            throw new BusinessException("手机号未关联账户，请联系机构");
+        }
+        if (Constants.STATUS_DISABLE.equals(user.getStatus())) {
+            throw new BusinessException("账号已被禁用，请联系管理员");
+        }
+
+        // 绑定 openid（先获取 openid，再回写）
+        String openid = wechatAuthService.getOpenid(code);
+        user.setWxOpenid(openid);
+        userMapper.updateById(user);
+
+        return buildLoginResponse(user);
+    }
+
+    @Override
+    public SysUser getByOpenid(String openid) {
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getWxOpenid, openid);
+        return userMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public SysUser getByMobile(String mobile) {
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getMobile, mobile);
+        return userMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public void bindOpenid(Long userId, String openid) {
+        SysUser user = userMapper.selectById(userId);
+        if (user != null) {
+            user.setWxOpenid(openid);
+            userMapper.updateById(user);
+        }
     }
 
     @Override

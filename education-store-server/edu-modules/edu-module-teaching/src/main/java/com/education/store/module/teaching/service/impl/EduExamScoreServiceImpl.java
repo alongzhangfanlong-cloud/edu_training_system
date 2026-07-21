@@ -26,13 +26,17 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
     private final EduExamScoreStudentMapper studentMapper;
 
     @Override
-    public IPage<EduExamScore> selectExamList(IPage<EduExamScore> page, Long classId, Long subjectId, String examType, String startDate, String endDate) {
+    public IPage<EduExamScore> selectExamList(IPage<EduExamScore> page, Long classId, Long subjectId, Long studentId, String examType, String startDate, String endDate) {
         LambdaQueryWrapper<EduExamScore> wrapper = new LambdaQueryWrapper<>();
         if (classId != null) {
             wrapper.eq(EduExamScore::getClassId, classId);
         }
         if (subjectId != null) {
             wrapper.eq(EduExamScore::getSubjectId, subjectId);
+        }
+        if (studentId != null) {
+            wrapper.inSql(EduExamScore::getId,
+                "SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = " + studentId + " AND deleted = 0");
         }
         if (examType != null && !examType.isEmpty()) {
             wrapper.eq(EduExamScore::getExamType, examType);

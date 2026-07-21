@@ -18,7 +18,8 @@ VALUES (1, 'admin', '$2b$10$5sQPytQwvHx9yqB1Ye/gwOV33rrcfLpo5HrXPGN4rPDTNZYydhPs
 INSERT INTO sys_role (id, name, code, sort, menu_check_strictly, status, remark) VALUES
 (1, '超级管理员', 'admin',   1, 1, 1, '拥有全部权限'),
 (2, '普通用户',   'user',    2, 1, 1, '基础权限'),
-(3, '教师',      'teacher', 3, 1, 1, '教师角色，拥有教师端权限');
+(3, '教师',      'teacher', 3, 1, 1, '教师角色，拥有教师端权限'),
+(4, '家长',      'parent',  4, 1, 1, '家长角色，仅查看关联学员信息');
 
 -- ---------- 用户-角色 ----------
 INSERT INTO sys_user_role (user_id, role_id) VALUES (1, 1);

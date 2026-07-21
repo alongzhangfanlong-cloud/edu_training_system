@@ -36,11 +36,12 @@ public class EvaluationController {
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) Long scheduleId,
             @RequestParam(required = false) Long teacherId,
+            @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
         Page<EduEvaluation> p = new Page<>(page, pageSize);
-        IPage<EduEvaluation> result = evaluationService.selectEvaluationList(p, scheduleId, teacherId, null, startDate, endDate, status);
+        IPage<EduEvaluation> result = evaluationService.selectEvaluationList(p, scheduleId, teacherId, studentId, startDate, endDate, status);
         return Result.success(PageResult.of(result));
     }
 

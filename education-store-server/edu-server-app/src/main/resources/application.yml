@@ -44,6 +44,12 @@ jwt:
   access-token-ttl: 7200
   refresh-token-ttl: 604800
 
+# 微信小程序配置
+wechat:
+  mini-app:
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+
 # CORS 允许的前端域名（逗号分隔）
 edu:
   cors:

@@ -35,11 +35,12 @@ public class ExamScoreController {
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) String examType,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
         Page<EduExamScore> p = new Page<>(page, pageSize);
-        IPage<EduExamScore> result = examService.selectExamList(p, classId, subjectId, examType, startDate, endDate);
+        IPage<EduExamScore> result = examService.selectExamList(p, classId, subjectId, studentId, examType, startDate, endDate);
         return Result.success(PageResult.of(result));
     }
 

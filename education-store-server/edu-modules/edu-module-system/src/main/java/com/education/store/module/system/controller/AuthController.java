@@ -6,6 +6,8 @@ import com.education.store.common.model.Result;
 import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.system.dto.LoginDTO;
 import com.education.store.module.system.dto.LoginVO;
+import com.education.store.module.system.dto.WechatBindDTO;
+import com.education.store.module.system.dto.WechatLoginDTO;
 import com.education.store.module.system.service.SysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +44,21 @@ public class AuthController {
     public Result<LoginVO> refresh(@RequestBody Map<String, String> body) {
         String refreshToken = body.get("refreshToken");
         LoginVO vo = userService.refreshToken(refreshToken);
+        return Result.success(vo);
+    }
+
+    @Operation(summary = "微信小程序静默登录")
+    @PostMapping("/wechat-login")
+    public Result<LoginVO> wechatLogin(@Valid @RequestBody WechatLoginDTO dto) {
+        LoginVO vo = userService.wechatLogin(dto.getCode());
+        return Result.success(vo);
+    }
+
+    @Operation(summary = "微信小程序手机号绑定登录")
+    @com.education.store.common.annotation.Log(title = "微信绑定", businessType = BusinessType.OTHER)
+    @PostMapping("/wechat-bind")
+    public Result<LoginVO> wechatBind(@Valid @RequestBody WechatBindDTO dto) {
+        LoginVO vo = userService.wechatBind(dto.getCode(), dto.getEncryptedPhone(), dto.getIv());
         return Result.success(vo);
     }
 

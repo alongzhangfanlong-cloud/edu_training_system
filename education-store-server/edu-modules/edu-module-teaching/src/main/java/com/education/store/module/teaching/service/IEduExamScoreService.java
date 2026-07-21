@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface IEduExamScoreService extends IService<EduExamScore> {
 
-    IPage<EduExamScore> selectExamList(IPage<EduExamScore> page, Long classId, Long subjectId, String examType, String startDate, String endDate);
+    IPage<EduExamScore> selectExamList(IPage<EduExamScore> page, Long classId, Long subjectId, Long studentId, String examType, String startDate, String endDate);
 
     EduExamScore addExam(EduExamScore exam, List<EduExamScoreStudent> students);
 

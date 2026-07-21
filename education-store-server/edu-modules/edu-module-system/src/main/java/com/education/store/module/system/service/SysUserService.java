@@ -18,11 +18,26 @@ public interface SysUserService extends IService<SysUser> {
     /** 用户名密码登录（认证通过后生成Token） */
     LoginVO login(LoginDTO loginDTO);
 
+    /** 微信小程序静默登录（code → openid → JWT） */
+    LoginVO wechatLogin(String code);
+
+    /** 微信小程序手机号绑定登录（code + 加密手机号 → 解密 → 绑定 → JWT） */
+    LoginVO wechatBind(String code, String encryptedPhone, String iv);
+
     /** 刷新Token（用RefreshToken换取新的AccessToken+RefreshToken） */
     LoginVO refreshToken(String refreshToken);
 
     /** 根据用户名查询用户 */
     SysUser getByUsername(String username);
+
+    /** 根据微信OpenID查询用户 */
+    SysUser getByOpenid(String openid);
+
+    /** 根据手机号查询用户 */
+    SysUser getByMobile(String mobile);
+
+    /** 绑定微信OpenID到用户 */
+    void bindOpenid(Long userId, String openid);
 
     /** 分页查询用户列表 */
     Page<SysUser> getUserPage(long page, long size, String keyword, Integer status);

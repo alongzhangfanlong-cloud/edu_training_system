@@ -333,5 +333,27 @@ WHERE NOT EXISTS (
 );
 
 -- ============================================================
+-- 第七部分：家长角色（小程序家长端）
+-- ============================================================
+
+INSERT IGNORE INTO sys_role (id, name, code, sort, menu_check_strictly, status, remark) VALUES
+(4, '家长', 'parent', 4, 1, 1, '家长角色，拥有小程序家长端权限（仅查看关联学员）');
+
+-- 家长角色菜单分配：仅分配查询类按钮权限
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 4, id FROM sys_menu
+WHERE type = 'F'
+  AND permission IN (
+    'attendance:signin:list',
+    'attendance:leave:student:list', 'attendance:leave:student:add', 'attendance:leave:student:query',
+    'teaching:homework:list', 'teaching:homework:query',
+    'teaching:evaluation:list',
+    'teaching:exam:list',
+    'points:account:query', 'points:redemption:list',
+    'dashboard:dashboard:view'
+  )
+  AND id NOT IN (SELECT menu_id FROM sys_role_menu WHERE role_id = 4);
+
+-- ============================================================
 -- END
 -- ============================================================

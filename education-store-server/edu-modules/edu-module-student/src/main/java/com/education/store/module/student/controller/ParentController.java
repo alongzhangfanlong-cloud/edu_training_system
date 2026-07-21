@@ -1,0 +1,112 @@
+package com.education.store.module.student.controller;
+
+import com.education.store.common.model.Result;
+import com.education.store.common.utils.SecurityUtils;
+import com.education.store.module.student.entity.EduStudent;
+import com.education.store.module.student.entity.EduStudentParent;
+import com.education.store.module.student.mapper.EduStudentMapper;
+import com.education.store.module.student.mapper.EduStudentParentMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 家长端 Controller — 家长登录后查询关联孩子的信息
+ */
+@Tag(name = "家长端")
+@RestController
+@RequestMapping("/api/v1/parent")
+@RequiredArgsConstructor
+public class ParentController {
+
+    private final EduStudentParentMapper parentMapper;
+    private final EduStudentMapper studentMapper;
+
+    @Operation(summary = "获取当前家长关联的所有孩子（含摘要信息）")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/children")
+    public Result<List<Map<String, Object>>> getChildren() {
+        Long userId = SecurityUtils.getUserId();
+
+        // 查询家长关联的所有学生
+        List<EduStudentParent> relations = parentMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EduStudentParent>()
+                        .eq(EduStudentParent::getUserId, userId));
+
+        if (relations.isEmpty()) {
+            return Result.success(Collections.emptyList());
+        }
+
+        // 收集所有 studentId
+        List<Long> studentIds = relations.stream()
+                .map(EduStudentParent::getStudentId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 批量查询学生
+        List<EduStudent> students = studentMapper.selectBatchIds(studentIds);
+        Map<Long, EduStudent> studentMap = students.stream()
+                .collect(Collectors.toMap(EduStudent::getId, s -> s));
+
+        // 组装返回
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (EduStudent student : students) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("studentId", student.getId());
+            item.put("name", student.getName());
+            item.put("grade", student.getGrade());
+            item.put("gender", student.getGender());
+            item.put("school", student.getSchool());
+            item.put("totalHours", student.getTotalHours());
+            item.put("remainingHours", student.getRemainingHours());
+            item.put("status", student.getStatus());
+            result.add(item);
+        }
+
+        return Result.success(result);
+    }
+
+    @Operation(summary = "查看孩子详情")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/children/{studentId}")
+    public Result<Map<String, Object>> getChildDetail(@PathVariable Long studentId) {
+        Long userId = SecurityUtils.getUserId();
+        // 校验该孩子是否属于当前家长
+        if (!isParentOf(userId, studentId)) {
+            return Result.error("无权查看该学员信息");
+        }
+
+        EduStudent student = studentMapper.selectById(studentId);
+        if (student == null) {
+            return Result.error("学员不存在");
+        }
+
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("studentId", student.getId());
+        detail.put("name", student.getName());
+        detail.put("grade", student.getGrade());
+        detail.put("gender", student.getGender());
+        detail.put("school", student.getSchool());
+        detail.put("mobile", student.getMobile());
+        detail.put("totalHours", student.getTotalHours());
+        detail.put("remainingHours", student.getRemainingHours());
+        detail.put("status", student.getStatus());
+        detail.put("remark", student.getRemark());
+
+        return Result.success(detail);
+    }
+
+    /** 判断某个学生是否属于当前家长的关联孩子 */
+    private boolean isParentOf(Long userId, Long studentId) {
+        Long count = parentMapper.selectCount(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EduStudentParent>()
+                        .eq(EduStudentParent::getUserId, userId)
+                        .eq(EduStudentParent::getStudentId, studentId));
+        return count != null && count > 0;
+    }
+}

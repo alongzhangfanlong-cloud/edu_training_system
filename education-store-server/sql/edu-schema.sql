@@ -21,6 +21,7 @@ CREATE TABLE sys_user (
     nick_name       VARCHAR(64)  DEFAULT ''                  COMMENT '昵称',
     email           VARCHAR(128) DEFAULT ''                  COMMENT '邮箱',
     mobile          VARCHAR(20)  DEFAULT ''                  COMMENT '手机号',
+    wx_openid       VARCHAR(64)  DEFAULT NULL                COMMENT '微信OpenID(唯一标识)',
     gender          TINYINT      DEFAULT 0                   COMMENT '性别(0未知 1男 2女)',
     avatar          VARCHAR(256) DEFAULT ''                  COMMENT '头像URL',
     status          TINYINT      DEFAULT 1                   COMMENT '状态(1正常 0停用)',
