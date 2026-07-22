@@ -169,7 +169,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
                 RouterVo children = new RouterVo();
                 children.setPath(menu.getPath());
                 children.setComponent(menu.getComponent());
-                children.setName(getRouteName(menu));
+                children.setName(getRouteName(menu) + "Index");
                 children.setMeta(new MetaVo(menu.getName(), menu.getIcon(),
                         isCached(menu), menu.getPath()));
                 children.setQuery(menu.getQuery());

@@ -1,11 +1,14 @@
 package com.education.store.module.teaching.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.time.LocalDate;
 
 /**
  * 课后作业实体
@@ -36,6 +39,10 @@ public class EduHomework extends BaseEntity {
     /** 布置教师ID */
     @NotNull(message = "教师ID不能为空")
     private Long teacherId;
+
+    /** 截止时间（非数据库字段，从排课关联） */
+    @TableField(exist = false)
+    private LocalDate deadline;
 
     /** 是否被编辑更新过: 0=否, 1=是 */
     private Integer isUpdated;

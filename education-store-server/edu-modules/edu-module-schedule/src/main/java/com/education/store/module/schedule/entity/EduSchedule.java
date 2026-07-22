@@ -1,5 +1,6 @@
 package com.education.store.module.schedule.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import jakarta.validation.constraints.NotNull;
@@ -83,6 +84,10 @@ public class EduSchedule extends BaseEntity {
 
     /** 消课人 */
     private String consumeBy;
+
+    /** 课程名称（非数据库字段，查询时关联填充） */
+    @TableField(exist = false)
+    private String courseName;
 
     /** 备注 */
     private String remark;
