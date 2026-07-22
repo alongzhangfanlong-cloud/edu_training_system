@@ -1,8 +1,7 @@
 -- =====================================================
 -- 新艺智源管理平台 — 完整安装脚本
--- 生成时间: 2026-07-21 18:34:43
--- 用途: 首次全新安装，一键创建所有表结构和初始数据
--- 用法: mysql -uroot -proot < edu-system-setup.sql
+-- 生成时间: 2026-07-22 10:27:14
+-- 字典已移除，使用前端硬编码常量
 -- =====================================================
 
 -- =====================================================
@@ -119,42 +118,6 @@ CREATE TABLE sys_config (
     deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '系统参数配置表';
 
--- 字典类型表
-DROP TABLE IF EXISTS sys_dict_type;
-CREATE TABLE sys_dict_type (
-    id          BIGINT       PRIMARY KEY AUTO_INCREMENT  COMMENT '字典ID',
-    name        VARCHAR(128) DEFAULT ''                  COMMENT '字典名称',
-    code        VARCHAR(64)  DEFAULT '' UNIQUE           COMMENT '字典编码',
-    status      TINYINT      DEFAULT 1                   COMMENT '状态(1正常 0停用)',
-    create_by   VARCHAR(64)  DEFAULT ''                  COMMENT '创建者',
-    create_time DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
-    update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
-    update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
-) COMMENT '字典类型表';
-
--- 字典数据表
-DROP TABLE IF EXISTS sys_dict_data;
-CREATE TABLE sys_dict_data (
-    id          BIGINT       PRIMARY KEY AUTO_INCREMENT  COMMENT '字典数据ID',
-    type_code   VARCHAR(64)  DEFAULT ''                  COMMENT '字典编码',
-    label       VARCHAR(128) DEFAULT ''                  COMMENT '字典标签',
-    value       VARCHAR(128) DEFAULT ''                  COMMENT '字典键值',
-    sort        INT          DEFAULT 0                   COMMENT '显示顺序',
-    css_class   VARCHAR(128)                             COMMENT '样式属性',
-    list_class  VARCHAR(128)                             COMMENT '表格回显样式',
-    is_default  TINYINT      DEFAULT 0                   COMMENT '是否默认(1是 0否)',
-    status      TINYINT      DEFAULT 1                   COMMENT '状态(1正常 0停用)',
-    create_by   VARCHAR(64)  DEFAULT ''                  COMMENT '创建者',
-    create_time DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
-    update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
-    update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除',
-    INDEX idx_type_code (type_code)
-) COMMENT '字典数据表';
-
 -- 通知公告表
 DROP TABLE IF EXISTS sys_notice;
 CREATE TABLE sys_notice (
@@ -226,7 +189,6 @@ CREATE TABLE user_notification_setting (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ========== edu-batch1-schema.sql ==========
-
 -- =====================================================
 -- 新艺智源管理平台 — Batch 1 数据模型
 -- 数据库: edu_system
@@ -590,7 +552,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =====================================================
 
 -- ========== edu-batch2-schema.sql ==========
-
 -- =====================================================
 -- 新艺智源管理平台 — Batch 2 数据模型
 -- 数据库: edu_system
@@ -961,7 +922,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =====================================================
 
 -- ========== edu-batch3a-schema.sql ==========
-
 -- ============================================
 -- Batch 3a: N04 积分商城 — 数据表定义
 -- 数据库：MySQL 8.0 + InnoDB
@@ -1043,7 +1003,6 @@ CREATE TABLE edu_points_redemption (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='积分兑换记录';
 
 -- ========== edu-batch3b-schema.sql ==========
-
 -- ============================================
 -- Batch 3b: N05 家校沟通 — 数据表定义
 -- 数据库：MySQL 8.0 + InnoDB
@@ -1262,7 +1221,6 @@ CREATE TABLE edu_homework_submission (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='学生作业提交';
 
 -- ========== 初始化数据 ==========
-
 -- =====================================================
 -- 新艺智源管理平台 — 系统管理模块 + 业务模块 初始化数据
 -- 已去除 多公司 / 部门 / 岗位 / 数据权限 相关种子
@@ -1299,10 +1257,9 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (100, 1, '用户管理', 'C', 'user',   'system/user/index',   'SysUser',   'user',   'system:user:list',   1, 1, 1),
 (101, 1, '角色管理', 'C', 'role',   'system/role/index',   'SysRole',   'peoples', 'system:role:list',   2, 1, 1),
 (102, 1, '菜单管理', 'C', 'menu',   'system/menu/index',   'SysMenu',   'tree-table', 'system:menu:list', 3, 1, 1),
-(103, 1, '字典管理', 'C', 'dict',   'system/dict/index',   'SysDict',   'dict',   'system:dict:list',   4, 1, 1),
-(104, 1, '参数设置', 'C', 'config', 'system/config/index', 'SysConfig', 'edit',   'system:config:list', 5, 1, 1),
-(105, 1, '通知公告', 'C', 'notice', 'system/notice/index', 'SysNotice', 'message', 'system:notice:list', 6, 1, 1),
-(106, 1, '日志管理', 'C', 'log',    'system/log/index',    'SysLog',    'log',    'system:log:list',    7, 1, 1);
+(104, 1, '参数设置', 'C', 'config', 'system/config/index', 'SysConfig', 'edit',   'system:config:list', 4, 1, 1),
+(105, 1, '通知公告', 'C', 'notice', 'system/notice/index', 'SysNotice', 'message', 'system:notice:list', 5, 1, 1),
+(106, 1, '日志管理', 'C', 'log',    'system/log/index',    'SysLog',    'log',    'system:log:list',    6, 1, 1);
 
 -- 按钮（F）
 INSERT INTO sys_menu (parent_id, name, type, permission, sort, visible, status) VALUES
@@ -1324,11 +1281,6 @@ INSERT INTO sys_menu (parent_id, name, type, permission, sort, visible, status) 
 (102, '菜单新增', 'F', 'system:menu:add',    2, 1, 1),
 (102, '菜单修改', 'F', 'system:menu:edit',   3, 1, 1),
 (102, '菜单删除', 'F', 'system:menu:delete', 4, 1, 1),
--- 字典
-(103, '字典查询', 'F', 'system:dict:query',  1, 1, 1),
-(103, '字典新增', 'F', 'system:dict:add',    2, 1, 1),
-(103, '字典修改', 'F', 'system:dict:edit',   3, 1, 1),
-(103, '字典删除', 'F', 'system:dict:delete', 4, 1, 1),
 -- 参数
 (104, '参数查询', 'F', 'system:config:query',  1, 1, 1),
 (104, '参数新增', 'F', 'system:config:add',    2, 1, 1),
@@ -1552,32 +1504,6 @@ WHERE id IN (8, 9, 260, 261, 262, 263)
        'schedule:calendar:query', 'schedule:calendar:list',
        'dashboard:dashboard:view', 'teacher:dashboard:view'
    ) AND type = 'F');
-
--- ---------- 字典类型 ----------
-INSERT INTO sys_dict_type (id, name, code, status, remark) VALUES
-(1, '用户性别', 'sys_user_sex',     1, '用户性别列表'),
-(2, '系统开关', 'sys_normal_disable', 1, '系统开关列表'),
-(3, '系统是否', 'sys_yes_no',       1, '系统是否列表'),
-(4, '通知类型', 'sys_notice_type',  1, '通知类型列表'),
-(5, '菜单类型', 'sys_menu_type',    1, '菜单类型列表'),
-(6, '显示状态', 'sys_show_hide',    1, '显示状态列表');
-
--- ---------- 字典数据 ----------
-INSERT INTO sys_dict_data (type_code, label, value, sort, is_default, status) VALUES
-('sys_user_sex', '男',   '1', 1, 0, 1),
-('sys_user_sex', '女',   '2', 2, 0, 1),
-('sys_user_sex', '未知', '0', 3, 1, 1),
-('sys_normal_disable', '正常', '1', 1, 1, 1),
-('sys_normal_disable', '停用', '0', 2, 0, 1),
-('sys_yes_no', '是', 'Y', 1, 1, 1),
-('sys_yes_no', '否', 'N', 2, 0, 1),
-('sys_notice_type', '通知', '1', 1, 1, 1),
-('sys_notice_type', '公告', '2', 2, 0, 1),
-('sys_menu_type', '目录', 'M', 1, 0, 1),
-('sys_menu_type', '菜单', 'C', 2, 0, 1),
-('sys_menu_type', '按钮', 'F', 3, 0, 1),
-('sys_show_hide', '显示', '1', 1, 1, 1),
-('sys_show_hide', '隐藏', '0', 2, 0, 1);
 
 -- ---------- 系统参数 ----------
 INSERT INTO sys_config (name, `key`, `value`, type, remark) VALUES

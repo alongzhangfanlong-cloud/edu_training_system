@@ -112,42 +112,6 @@ CREATE TABLE sys_config (
     deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
 ) COMMENT '系统参数配置表';
 
--- 字典类型表
-DROP TABLE IF EXISTS sys_dict_type;
-CREATE TABLE sys_dict_type (
-    id          BIGINT       PRIMARY KEY AUTO_INCREMENT  COMMENT '字典ID',
-    name        VARCHAR(128) DEFAULT ''                  COMMENT '字典名称',
-    code        VARCHAR(64)  DEFAULT '' UNIQUE           COMMENT '字典编码',
-    status      TINYINT      DEFAULT 1                   COMMENT '状态(1正常 0停用)',
-    create_by   VARCHAR(64)  DEFAULT ''                  COMMENT '创建者',
-    create_time DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
-    update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
-    update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除'
-) COMMENT '字典类型表';
-
--- 字典数据表
-DROP TABLE IF EXISTS sys_dict_data;
-CREATE TABLE sys_dict_data (
-    id          BIGINT       PRIMARY KEY AUTO_INCREMENT  COMMENT '字典数据ID',
-    type_code   VARCHAR(64)  DEFAULT ''                  COMMENT '字典编码',
-    label       VARCHAR(128) DEFAULT ''                  COMMENT '字典标签',
-    value       VARCHAR(128) DEFAULT ''                  COMMENT '字典键值',
-    sort        INT          DEFAULT 0                   COMMENT '显示顺序',
-    css_class   VARCHAR(128)                             COMMENT '样式属性',
-    list_class  VARCHAR(128)                             COMMENT '表格回显样式',
-    is_default  TINYINT      DEFAULT 0                   COMMENT '是否默认(1是 0否)',
-    status      TINYINT      DEFAULT 1                   COMMENT '状态(1正常 0停用)',
-    create_by   VARCHAR(64)  DEFAULT ''                  COMMENT '创建者',
-    create_time DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '创建时间',
-    update_by   VARCHAR(64)  DEFAULT ''                  COMMENT '更新者',
-    update_time DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark      VARCHAR(256)                             COMMENT '备注',
-    deleted     TINYINT       NOT NULL DEFAULT 0                   COMMENT '逻辑删除',
-    INDEX idx_type_code (type_code)
-) COMMENT '字典数据表';
-
 -- 通知公告表
 DROP TABLE IF EXISTS sys_notice;
 CREATE TABLE sys_notice (

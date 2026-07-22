@@ -50,57 +50,6 @@ CREATE TABLE `sys_config` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sys_dict_data`
---
-
-DROP TABLE IF EXISTS `sys_dict_data`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sys_dict_data` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典数据ID',
-  `type_code` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '字典编码',
-  `label` varchar(128) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '字典标签',
-  `value` varchar(128) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '字典键值',
-  `sort` int DEFAULT '0' COMMENT '显示顺序',
-  `css_class` varchar(128) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '样式属性',
-  `list_class` varchar(128) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '表格回显样式',
-  `is_default` tinyint DEFAULT '0' COMMENT '是否默认(1是 0否)',
-  `status` tinyint DEFAULT '1' COMMENT '状态(1正常 0停用)',
-  `create_by` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '创建者',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '更新者',
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `remark` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '备注',
-  `deleted` tinyint DEFAULT '0' COMMENT '逻辑删除',
-  PRIMARY KEY (`id`),
-  KEY `idx_type_code` (`type_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='字典数据表';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sys_dict_type`
---
-
-DROP TABLE IF EXISTS `sys_dict_type`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sys_dict_type` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典ID',
-  `name` varchar(128) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '字典名称',
-  `code` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '字典编码',
-  `status` tinyint DEFAULT '1' COMMENT '状态(1正常 0停用)',
-  `create_by` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '创建者',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_by` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '更新者',
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `remark` varchar(256) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '备注',
-  `deleted` tinyint DEFAULT '0' COMMENT '逻辑删除',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='字典类型表';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `sys_login_log`
 --
 
@@ -207,7 +156,7 @@ CREATE TABLE `sys_oper_log` (
   PRIMARY KEY (`id`),
   KEY `idx_oper_time` (`oper_time`),
   KEY `idx_oper_name` (`oper_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='操作日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='操作日志表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -264,6 +213,7 @@ CREATE TABLE `sys_user` (
   `nick_name` varchar(64) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '昵称',
   `email` varchar(128) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '邮箱',
   `mobile` varchar(20) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '手机号',
+  `wx_openid` varchar(64) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '微信OpenID(唯一标识)',
   `gender` tinyint DEFAULT '0' COMMENT '性别(0未知 1男 2女)',
   `avatar` varchar(256) COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '头像URL',
   `status` tinyint DEFAULT '1' COMMENT '状态(1正常 0停用)',
@@ -278,6 +228,7 @@ CREATE TABLE `sys_user` (
   `deleted` tinyint DEFAULT '0' COMMENT '逻辑删除',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `wx_openid` (`wx_openid`),
   KEY `idx_mobile` (`mobile`),
   KEY `idx_email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户信息表';
@@ -310,4 +261,4 @@ CREATE TABLE `sys_user_role` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-21 18:33:57
+-- Dump completed on 2026-07-22 10:27:21
