@@ -15,7 +15,7 @@
       <h4>{{ systemTitle }}</h4>
 
       <!-- 登录表单 -->
-      <div class="form">
+      <form class="form" @submit.prevent="doLogin">
         <div class="input-wrap">
           <p>用户名</p>
           <el-input v-model="userName" placeholder="用户名" :prefix-icon="User" />
@@ -33,7 +33,7 @@
         </div>
 
         <el-button type="primary" class="login-btn" @click="doLogin" :loading="loging">登录</el-button>
-      </div>
+      </form>
     </div>
   </div>
 </template>
