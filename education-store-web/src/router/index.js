@@ -17,10 +17,6 @@ export const routes = [
     component: () => import("@/components/Layout/index.vue"),
     children: [
       {
-        path: "/",
-        redirect: "/dashboard"
-      },
-      {
         // 用来刷新页面的过程页面
         path: "/freshing",
         name: "freshing",
