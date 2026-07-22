@@ -18,7 +18,7 @@ export const routes = [
     children: [
       {
         path: "/",
-        redirect: "/home"
+        redirect: "/dashboard"
       },
       {
         // 用来刷新页面的过程页面
