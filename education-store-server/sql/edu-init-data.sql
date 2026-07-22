@@ -34,9 +34,10 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (100, 1, '用户管理', 'C', 'user',   'system/user/index',   'SysUser',   'user',   'system:user:list',   1, 1, 1),
 (101, 1, '角色管理', 'C', 'role',   'system/role/index',   'SysRole',   'peoples', 'system:role:list',   2, 1, 1),
 (102, 1, '菜单管理', 'C', 'menu',   'system/menu/index',   'SysMenu',   'tree-table', 'system:menu:list', 3, 1, 1),
-(104, 1, '参数设置', 'C', 'config', 'system/config/index', 'SysConfig', 'edit',   'system:config:list', 4, 1, 1),
-(105, 1, '通知公告', 'C', 'notice', 'system/notice/index', 'SysNotice', 'message', 'system:notice:list', 5, 1, 1),
-(106, 1, '日志管理', 'C', 'log',    'system/log/index',    'SysLog',    'log',    'system:log:list',    6, 1, 1);
+(103, 1, '字典管理', 'C', 'dict',   'system/dict/index',   'SysDict',   'dict',   'system:dict:list',   4, 1, 1),
+(104, 1, '参数设置', 'C', 'config', 'system/config/index', 'SysConfig', 'edit',   'system:config:list', 5, 1, 1),
+(105, 1, '通知公告', 'C', 'notice', 'system/notice/index', 'SysNotice', 'message', 'system:notice:list', 6, 1, 1),
+(106, 1, '日志管理', 'C', 'log',    'system/log/index',    'SysLog',    'log',    'system:log:list',    7, 1, 1);
 
 -- 按钮（F）
 INSERT INTO sys_menu (parent_id, name, type, permission, sort, visible, status) VALUES
@@ -58,6 +59,11 @@ INSERT INTO sys_menu (parent_id, name, type, permission, sort, visible, status) 
 (102, '菜单新增', 'F', 'system:menu:add',    2, 1, 1),
 (102, '菜单修改', 'F', 'system:menu:edit',   3, 1, 1),
 (102, '菜单删除', 'F', 'system:menu:delete', 4, 1, 1),
+-- 字典
+(103, '字典查询', 'F', 'system:dict:query',  1, 1, 1),
+(103, '字典新增', 'F', 'system:dict:add',    2, 1, 1),
+(103, '字典修改', 'F', 'system:dict:edit',   3, 1, 1),
+(103, '字典删除', 'F', 'system:dict:delete', 4, 1, 1),
 -- 参数
 (104, '参数查询', 'F', 'system:config:query',  1, 1, 1),
 (104, '参数新增', 'F', 'system:config:add',    2, 1, 1),
@@ -281,6 +287,32 @@ WHERE id IN (8, 9, 260, 261, 262, 263)
        'schedule:calendar:query', 'schedule:calendar:list',
        'dashboard:dashboard:view', 'teacher:dashboard:view'
    ) AND type = 'F');
+
+-- ---------- 字典类型 ----------
+INSERT INTO sys_dict_type (id, name, code, status, remark) VALUES
+(1, '用户性别', 'sys_user_sex',     1, '用户性别列表'),
+(2, '系统开关', 'sys_normal_disable', 1, '系统开关列表'),
+(3, '系统是否', 'sys_yes_no',       1, '系统是否列表'),
+(4, '通知类型', 'sys_notice_type',  1, '通知类型列表'),
+(5, '菜单类型', 'sys_menu_type',    1, '菜单类型列表'),
+(6, '显示状态', 'sys_show_hide',    1, '显示状态列表');
+
+-- ---------- 字典数据 ----------
+INSERT INTO sys_dict_data (type_code, label, value, sort, is_default, status) VALUES
+('sys_user_sex', '男',   '1', 1, 0, 1),
+('sys_user_sex', '女',   '2', 2, 0, 1),
+('sys_user_sex', '未知', '0', 3, 1, 1),
+('sys_normal_disable', '正常', '1', 1, 1, 1),
+('sys_normal_disable', '停用', '0', 2, 0, 1),
+('sys_yes_no', '是', 'Y', 1, 1, 1),
+('sys_yes_no', '否', 'N', 2, 0, 1),
+('sys_notice_type', '通知', '1', 1, 1, 1),
+('sys_notice_type', '公告', '2', 2, 0, 1),
+('sys_menu_type', '目录', 'M', 1, 0, 1),
+('sys_menu_type', '菜单', 'C', 2, 0, 1),
+('sys_menu_type', '按钮', 'F', 3, 0, 1),
+('sys_show_hide', '显示', '1', 1, 1, 1),
+('sys_show_hide', '隐藏', '0', 2, 0, 1);
 
 -- ---------- 系统参数 ----------
 INSERT INTO sys_config (name, `key`, `value`, type, remark) VALUES
