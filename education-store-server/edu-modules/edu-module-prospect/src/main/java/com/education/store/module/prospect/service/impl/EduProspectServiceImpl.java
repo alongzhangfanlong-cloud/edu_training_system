@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.course.mapper.EduCourseMapper;
+import com.education.store.module.course.entity.EduCourse;
 import com.education.store.module.prospect.entity.EduProspect;
 import com.education.store.module.prospect.mapper.EduProspectMapper;
 import com.education.store.module.prospect.service.IEduProspectService;
@@ -12,6 +14,8 @@ import com.education.store.module.student.entity.EduStudent;
 import com.education.store.module.student.entity.EduStudentParent;
 import com.education.store.module.student.service.IEduStudentParentService;
 import com.education.store.module.student.service.IEduStudentService;
+import com.education.store.module.system.mapper.SysUserMapper;
+import com.education.store.module.system.entity.system.SysUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +35,8 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
     private final EduProspectMapper prospectMapper;
     private final IEduStudentService studentService;
     private final IEduStudentParentService parentService;
+    private final SysUserMapper sysUserMapper;
+    private final EduCourseMapper eduCourseMapper;
 
     @Override
     public IPage<EduProspect> selectProspectList(IPage<EduProspect> page, EduProspect prospect) {
@@ -61,12 +67,34 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
             wrapper.eq(EduProspect::getInterestLevel, prospect.getInterestLevel());
         }
         wrapper.orderByDesc(EduProspect::getCreateTime);
-        return prospectMapper.selectPage(page, wrapper);
+        IPage<EduProspect> result = prospectMapper.selectPage(page, wrapper);
+        result.getRecords().forEach(this::fillNames);
+        return result;
     }
 
     @Override
     public EduProspect selectProspectById(Long id) {
-        return prospectMapper.selectById(id);
+        EduProspect prospect = prospectMapper.selectById(id);
+        if (prospect != null) {
+            fillNames(prospect);
+        }
+        return prospect;
+    }
+
+    /** 填充顾问姓名和意向课程名称 */
+    private void fillNames(EduProspect p) {
+        if (p.getCounselorId() != null) {
+            SysUser user = sysUserMapper.selectById(p.getCounselorId());
+            if (user != null) {
+                p.setCounselorName(user.getRealName());
+            }
+        }
+        if (p.getIntendedCourseId() != null) {
+            EduCourse course = eduCourseMapper.selectById(p.getIntendedCourseId());
+            if (course != null) {
+                p.setIntendedCourseName(course.getName());
+            }
+        }
     }
 
     @Override
@@ -74,6 +102,7 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
     public int insertProspect(EduProspect prospect) {
         prospect.setFollowStatus("NEW");
         prospect.setTrialLessonCount(0);
+        prospect.setLastFollowupDate(LocalDateTime.now());
         return prospectMapper.insert(prospect);
     }
 
@@ -90,10 +119,11 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
             throw new BusinessException("已转化的意向学员不可修改");
         }
 
-        // 状态变更校验
+        // 状态变更校验 + 自动更新最近跟进日期
         if (prospect.getFollowStatus() != null
                 && !prospect.getFollowStatus().equals(exist.getFollowStatus())) {
             validateStatusTransition(exist.getFollowStatus(), prospect.getFollowStatus());
+            prospect.setLastFollowupDate(LocalDateTime.now());
         }
 
         return prospectMapper.updateById(prospect);
@@ -107,6 +137,9 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
 
     @Override
     public boolean checkMobileUnique(EduProspect prospect) {
+        if (StrUtil.isBlank(prospect.getMobile())) {
+            return true;
+        }
         Long id = prospect.getId() != null ? prospect.getId() : -1L;
         EduProspect exist = lambdaQuery()
                 .eq(EduProspect::getMobile, prospect.getMobile())
@@ -136,6 +169,11 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
         student.setMobile(prospect.getMobile());
         student.setCounselorId(prospect.getCounselorId());
         student.setSource(prospect.getSource());
+        student.setParentName(prospect.getParentName());
+        student.setParentRelation(prospect.getParentRelation());
+        student.setParentMobile(prospect.getParentMobile());
+        student.setWechatNickname(prospect.getWechatNickname());
+        student.setIntendedCourseId(prospect.getIntendedCourseId());
         // 复制意向备注，添加前缀标识来源（PRD §3.7.3）
         if (StrUtil.isNotBlank(prospect.getRemark())) {
             student.setRemark("[意向转化] " + prospect.getRemark());

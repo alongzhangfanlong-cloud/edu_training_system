@@ -9,17 +9,31 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="手机号" prop="mobile">
-            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" />
+          <el-form-item label="性别" prop="gender">
+            <el-select v-model="form.gender" placeholder="请选择性别" style="width:100%">
+              <el-option v-for="d in dicts.sys_user_sex" :key="d.value" :label="d.label" :value="d.value" />
+            </el-select>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="性别" prop="gender">
-            <el-select v-model="form.gender" placeholder="请选择性别" style="width:100%">
-              <el-option v-for="d in dicts.sys_user_sex" :key="d.value" :label="d.label" :value="d.value" />
+          <el-form-item label="手机号" prop="mobile">
+            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="亲属关系">
+            <el-select v-model="form.parentRelation" placeholder="请选择亲属关系" style="width:100%" clearable>
+              <el-option v-for="d in dicts.parent_relation" :key="d.value" :label="d.label" :value="d.value" />
             </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="家长姓名">
+            <el-input v-model="form.parentName" placeholder="请输入家长姓名" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -49,24 +63,38 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="来源渠道" prop="source">
-            <el-select v-model="form.source" placeholder="请选择来源渠道" style="width:100%" clearable>
-              <el-option v-for="d in dicts.student_source" :key="d.value" :label="d.label" :value="d.value" />
+          <el-form-item label="报名科目">
+            <el-select v-model="form.intendedCourseId" placeholder="请选择科目" filterable style="width:100%" clearable>
+              <el-option v-for="c in courseOptions" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="状态" prop="status">
-            <el-select v-model="form.status" placeholder="请选择状态" style="width:100%">
-              <el-option v-for="d in dicts.student_status" :key="d.value" :label="d.label" :value="d.value" />
+          <el-form-item label="来源渠道" prop="source">
+            <el-select v-model="form.source" placeholder="请选择来源渠道" style="width:100%" clearable>
+              <el-option v-for="d in dicts.student_source" :key="d.value" :label="d.label" :value="d.value" />
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
+          <el-form-item label="状态" prop="status">
+            <el-select v-model="form.status" placeholder="请选择状态" style="width:100%" :disabled="!props.studentId">
+              <el-option v-for="d in dicts.student_status" :key="d.value" :label="d.label" :value="d.value" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="12">
           <el-form-item label="标签">
             <el-input v-model="form.tags" placeholder="多个标签用逗号分隔" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="微信昵称">
+            <el-input v-model="form.wechatNickname" placeholder="请输入微信昵称" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -86,6 +114,7 @@ import { ref, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getStudent, addStudent, updateStudent } from '@/api/student/students';
 import { listUser } from '@/api/system/user';
+import { listSubject } from '@/api/course/subjects';
 import { useDictsStore } from '@/stores/dicts';
 
 const props = defineProps({
@@ -104,10 +133,16 @@ const counselorLoading = ref(false);
 let searchTimer = null;
 let searchSeq = 0;
 
+const courseOptions = ref([]);
+const courseLoading = ref(false);
+let courseTimer = null;
+let courseSeq = 0;
+
 const form = ref({
   name: '', mobile: '', gender: '', birthDate: '',
-  grade: '', school: '', counselorId: null, source: '',
-  status: 'ENROLLED', tags: '', remark: '',
+  grade: '', school: '', parentName: '', parentRelation: '',
+  counselorId: null, intendedCourseId: null, intendedCourseName: '', source: '',
+  status: 'ENROLLED', tags: '', wechatNickname: '', remark: '',
 });
 
 const rules = {
@@ -119,7 +154,18 @@ const rules = {
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
 };
 
-// 远程搜索顾问（防抖 + 竞态）
+// 加载顾问列表（不传 keyword 则加载全部）
+async function loadCounselors(keyword) {
+  counselorLoading.value = true;
+  try {
+    const res = await listUser({ page: 1, size: 100, keyword: keyword || '' });
+    if (res.success) counselorOptions.value = res.data?.records || res.rows || [];
+  } finally {
+    counselorLoading.value = false;
+  }
+}
+
+// 远程搜索顾问（防抖 + 竞态，用户输入时使用）
 function searchCounselors(keyword) {
   clearTimeout(searchTimer);
   if (!keyword) { counselorOptions.value = []; return; }
@@ -136,11 +182,20 @@ function searchCounselors(keyword) {
   }, 300);
 }
 
+// 加载科目列表
+async function loadSubjects() {
+  try {
+    const res = await listSubject({ page: 1, size: 200 });
+    if (res.success) courseOptions.value = res.data?.records || res.rows || [];
+  } catch { /* ignore */ }
+}
+
 async function onOpen() {
   reset();
-  await loadDicts(['sys_user_sex', 'student_status', 'student_source']);
-  // 预设顾问选项（首次加载一批）
-  searchCounselors('');
+  await loadDicts(['sys_user_sex', 'student_status', 'student_source', 'parent_relation']);
+  await loadSubjects();
+  // 预加载顾问列表，确保编辑时下拉能匹配到名称
+  await loadCounselors('');
   if (props.studentId) {
     const res = await getStudent(props.studentId);
     if (res.success && res.data) {
@@ -152,15 +207,20 @@ async function onOpen() {
         birthDate: s.birthDate || '',
         grade: s.grade || '',
         school: s.school || '',
+        parentName: s.parentName || '',
+        parentRelation: s.parentRelation || '',
         counselorId: s.counselorId || null,
+        intendedCourseId: s.intendedCourseId || null,
+        intendedCourseName: s.intendedCourseName || '',
         source: s.source || '',
         status: s.status || 'ENROLLED',
         tags: s.tags || '',
+        wechatNickname: s.wechatNickname || '',
         remark: s.remark || '',
       };
-      // 如果已有顾问，回填选项
-      if (s.counselorId && s.counselorName) {
-        counselorOptions.value = [{ id: s.counselorId, realName: s.counselorName }];
+      // 回填课程选项
+      if (s.intendedCourseId && s.intendedCourseName) {
+        courseOptions.value = [{ id: s.intendedCourseId, name: s.intendedCourseName }];
       }
     }
   }
@@ -169,10 +229,12 @@ async function onOpen() {
 function reset() {
   form.value = {
     name: '', mobile: '', gender: '', birthDate: '',
-    grade: '', school: '', counselorId: null, source: '',
-    status: 'ENROLLED', tags: '', remark: '',
+    grade: '', school: '', parentName: '', parentRelation: '',
+    counselorId: null, intendedCourseId: null, intendedCourseName: '', source: '',
+    status: 'ENROLLED', tags: '', wechatNickname: '', remark: '',
   };
   counselorOptions.value = [];
+  courseOptions.value = [];
   nextTick(() => formRef.value?.clearValidate());
 }
 
@@ -182,6 +244,11 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     const data = { ...form.value };
+    // 带上课程名称（用于持久化存储）
+    if (data.intendedCourseId) {
+      const selected = courseOptions.value.find(c => c.id === data.intendedCourseId);
+      if (selected) data.intendedCourseName = selected.name;
+    }
     let res;
     if (props.studentId) {
       data.id = props.studentId;

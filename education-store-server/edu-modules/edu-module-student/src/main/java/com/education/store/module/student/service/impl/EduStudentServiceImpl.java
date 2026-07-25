@@ -56,12 +56,18 @@ public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStud
             wrapper.eq(EduStudent::getSource, student.getSource());
         }
         wrapper.orderByDesc(EduStudent::getCreateTime);
-        return studentMapper.selectPage(page, wrapper);
+        IPage<EduStudent> result = studentMapper.selectPage(page, wrapper);
+        result.getRecords().forEach(this::fillNames);
+        return result;
     }
 
     @Override
     public EduStudent selectStudentById(Long id) {
-        return studentMapper.selectById(id);
+        EduStudent student = studentMapper.selectById(id);
+        if (student != null) {
+            fillNames(student);
+        }
+        return student;
     }
 
     @Override
@@ -185,6 +191,16 @@ public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStud
         return count;
     }
 
+    /** 填充顾问姓名和报名课程名称（跨表查询，避免模块循环依赖） */
+    private void fillNames(EduStudent s) {
+        if (s.getCounselorId() != null) {
+            s.setCounselorName(studentMapper.selectCounselorName(s.getCounselorId()));
+        }
+        if (s.getIntendedCourseId() != null) {
+            s.setIntendedCourseName(studentMapper.selectCourseName(s.getIntendedCourseId()));
+        }
+    }
+
     /** 状态转换校验 */
     private void validateStatusTransition(String oldStatus, String newStatus, Long studentId) {
         if (oldStatus.equals(newStatus)) {
@@ -215,5 +231,4 @@ public class EduStudentServiceImpl extends ServiceImpl<EduStudentMapper, EduStud
             default:
                 throw new BusinessException("未知状态: " + oldStatus);
         }
-    }
-}
+    }}

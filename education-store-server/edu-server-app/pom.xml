@@ -111,6 +111,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.education.store.EduApplication</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>

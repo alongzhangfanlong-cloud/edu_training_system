@@ -51,19 +51,34 @@ export const useDictsStore = defineStore('dictsState', () => {
   // 刷新某个字典
   const freshDict = (dictName) => getDictValue(dictName);
 
-  // Proxy 懒加载访问
+  // 非字典编码的内部属性名，Proxy 遇到这些 key 时不触发懒加载
+  const INTERNAL_KEYS = new Set([
+    // Object.prototype 标准属性
+    'constructor', 'toString', 'toLocaleString', 'valueOf',
+    'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable',
+    // JSON
+    'toJSON',
+  ]);
+
+  const isValidDictKey = (key) => {
+    if (typeof key !== 'string') return false;       // Symbol 一律不过
+    if (key.startsWith('__v_')) return false;         // Vue 3 内部 (__v_isRef, __v_raw 等)
+    if (key.startsWith('__')) return false;           // 其他双下划线内部属性
+    if (INTERNAL_KEYS.has(key)) return false;         // JS 标准属性
+    return true;
+  };
+
+  // Proxy 懒加载：访问即加载，但过滤 Vue/JS 内部属性
   const dicts = computed({
     get() {
       return new Proxy(_dicts.value, {
         get(target, key) {
-          // 始终先读取 target[key]，确保 Vue 的响应式系统追踪这个依赖
-          // 即使数据还没加载，当异步数据写入时也能触发重新渲染
           const val = target[key];
-          if (val === undefined && !(key in target)) {
+          if (val === undefined && !(key in target) && isValidDictKey(key)) {
             getDictValue(key);
             return [];
           }
-          return val;
+          return val ?? [];
         },
       });
     },

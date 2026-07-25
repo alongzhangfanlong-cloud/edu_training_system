@@ -10,6 +10,8 @@ import com.education.store.common.model.Result;
 import com.education.store.module.course.dto.CourseCreateDTO;
 import com.education.store.module.course.dto.CourseUpdateDTO;
 import com.education.store.module.course.entity.EduCourse;
+import com.education.store.module.course.entity.EduSubject;
+import com.education.store.module.course.mapper.EduSubjectMapper;
 import com.education.store.module.course.service.IEduCourseService;
 import com.education.store.module.course.vo.CourseVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +36,7 @@ import java.util.stream.Collectors;
 public class EduCourseController {
 
     private final IEduCourseService courseService;
+    private final EduSubjectMapper subjectMapper;
 
     @Operation(summary = "课程列表(分页)")
     @PreAuthorize("@ss.hasPermi('course:course:list')")
@@ -52,8 +57,16 @@ public class EduCourseController {
         condition.setCourseType(courseType);
         condition.setStatus(status);
         IPage<EduCourse> result = courseService.selectCourseList(p, condition);
+
+        // 批量加载科目名称
+        Set<Long> subjectIds = result.getRecords().stream()
+                .map(EduCourse::getSubjectId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, String> subjectNameMap = loadSubjectNameMap(subjectIds);
+
         List<CourseVO> records = result.getRecords().stream()
-                .map(this::toVO)
+                .map(course -> toVO(course, subjectNameMap))
                 .collect(Collectors.toList());
         PageResult<CourseVO> pageResult = new PageResult<>();
         pageResult.setRecords(records);
@@ -68,7 +81,8 @@ public class EduCourseController {
     @GetMapping("/{id}")
     public Result<CourseVO> detail(@PathVariable Long id) {
         EduCourse course = courseService.selectCourseById(id);
-        return Result.success(toVO(course));
+        Map<Long, String> subjectNameMap = loadSubjectNameMap(Set.of(course.getSubjectId()));
+        return Result.success(toVO(course, subjectNameMap));
     }
 
     @Operation(summary = "新增课程")
@@ -120,7 +134,12 @@ public class EduCourseController {
     @GetMapping("/all")
     public Result<List<CourseVO>> all() {
         List<EduCourse> list = courseService.selectAllUpCourses();
-        return Result.success(list.stream().map(this::toVO).collect(Collectors.toList()));
+        Set<Long> subjectIds = list.stream()
+                .map(EduCourse::getSubjectId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, String> subjectNameMap = loadSubjectNameMap(subjectIds);
+        return Result.success(list.stream().map(c -> toVO(c, subjectNameMap)).collect(Collectors.toList()));
     }
 
     @Operation(summary = "上架/下架课程")
@@ -156,8 +175,24 @@ public class EduCourseController {
         return Result.success(courseService.checkNameUniqueWithinSubject(course));
     }
 
-    private CourseVO toVO(EduCourse course) {
+    private CourseVO toVO(EduCourse course, Map<Long, String> subjectNameMap) {
         CourseVO vo = BeanUtil.copyProperties(course, CourseVO.class);
+        if (course.getSubjectId() != null) {
+            vo.setSubjectName(subjectNameMap.getOrDefault(course.getSubjectId(), null));
+        }
         return vo;
+    }
+
+    private CourseVO toVO(EduCourse course) {
+        return toVO(course, Map.of());
+    }
+
+    /** 批量加载科目ID→科目名称映射 */
+    private Map<Long, String> loadSubjectNameMap(Set<Long> subjectIds) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            return Map.of();
+        }
+        return subjectMapper.selectBatchIds(subjectIds).stream()
+                .collect(Collectors.toMap(EduSubject::getId, EduSubject::getName));
     }
 }

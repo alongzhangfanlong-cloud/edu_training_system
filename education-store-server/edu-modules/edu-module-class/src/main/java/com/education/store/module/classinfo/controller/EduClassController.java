@@ -71,14 +71,14 @@ public class EduClassController {
         return Result.success(toVO(clazz));
     }
 
-    @Operation(summary = "新增班级（自动生成编号 + 同步创建排课规则）")
+    @Operation(summary = "新增班级（自动生成编号）")
     @Log(title = "班级管理", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('class:class:add')")
     @PostMapping
-    public Result<Void> create(@Valid @RequestBody ClassCreateDTO dto) {
+    public Result<Long> create(@Valid @RequestBody ClassCreateDTO dto) {
         EduClass clazz = BeanUtil.copyProperties(dto, EduClass.class);
         classService.insertClass(clazz);
-        return Result.success();
+        return Result.success(clazz.getId());
     }
 
     @Operation(summary = "更新班级信息")

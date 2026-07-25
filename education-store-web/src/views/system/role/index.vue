@@ -152,13 +152,13 @@
               size="small"
               clearable
               @keyup.enter="searchCandidates"
-              @clear="candidates = []"
+              @clear="candidateKeyword = ''; candidatePage = 1; loadCandidates()"
             >
               <template #append>
-                <el-button @click="searchCandidates">搜索</el-button>
+                <el-button @click="searchCandidates" size="small">搜索</el-button>
               </template>
             </el-input>
-            <div class="auth-user-list" style="margin-top: 10px;">
+            <div class="auth-user-list" style="margin-top: 10px;" v-loading="candidateLoading">
               <el-checkbox-group v-model="selectedCandidateIds">
                 <div
                   v-for="user in candidates"
@@ -170,8 +170,18 @@
                   </el-checkbox>
                 </div>
               </el-checkbox-group>
-              <el-empty v-if="candidates.length === 0 && candidateSearched" :image-size="40" description="无匹配用户" />
-              <span v-if="!candidateSearched" style="color: #999; font-size: 13px;">请输入关键字搜索用户</span>
+              <el-empty v-if="!candidateLoading && candidates.length === 0" :image-size="40" description="无匹配用户" />
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 6px;">
+              <el-pagination
+                v-show="candidateTotal > candidatePageSize"
+                size="small"
+                layout="prev, pager, next"
+                :total="candidateTotal"
+                :page-size="candidatePageSize"
+                :current-page="candidatePage"
+                @current-change="(p) => { candidatePage = p; loadCandidates(); }"
+              />
             </div>
             <el-button
               type="primary"
@@ -248,6 +258,10 @@ const candidates = ref([]);
 const candidateKeyword = ref('');
 const candidateSearched = ref(false);
 const selectedCandidateIds = ref([]);
+const candidateLoading = ref(false);
+const candidatePage = ref(1);
+const candidatePageSize = ref(10);
+const candidateTotal = ref(0);
 
 function getList() {
   loading.value = true;
@@ -417,6 +431,8 @@ function handleAuthUser(row) {
   candidateKeyword.value = '';
   candidateSearched.value = false;
   selectedCandidateIds.value = [];
+  candidatePage.value = 1;
+  candidateTotal.value = 0;
   // 加载已分配用户
   getAuthUsers(row.id).then(res => {
     if (res.success && res.data?.userIds) {
@@ -425,8 +441,14 @@ function handleAuthUser(row) {
         // 分页加载全量用户列表，筛选已分配用户
         loadAllUsers().then(allUsers => {
           allocatedUsers.value = allUsers.filter(u => userIds.includes(u.id));
+          // 已分配用户加载完成后，再加载候选列表（以便过滤）
+          loadCandidates();
         });
+      } else {
+        loadCandidates();
       }
+    } else {
+      loadCandidates();
     }
   });
   authUserOpen.value = true;
@@ -455,22 +477,31 @@ async function loadAllUsers() {
 // 竞态保护：丢弃非最新请求的过期响应
 let candidateSearchSeq = 0;
 
-function searchCandidates() {
-  if (!candidateKeyword.value.trim()) return;
-  candidateSearched.value = true;
+function loadCandidates() {
+  candidateLoading.value = true;
   candidateSearchSeq++;
   const seq = candidateSearchSeq;
-  listUser({ page: 1, size: 50, keyword: candidateKeyword.value }).then(res => {
+  const params = { page: candidatePage.value, pageSize: candidatePageSize.value };
+  const keyword = candidateKeyword.value.trim();
+  if (keyword) params.keyword = keyword;
+  listUser(params).then(res => {
     if (seq !== candidateSearchSeq) return;
     if (res.success) {
       const all = res.data?.records || res.rows || [];
+      candidateTotal.value = res.data?.total || res.total || 0;
       // 过滤掉已分配的用户
       const allocatedIds = allocatedUsers.value.map(u => u.id);
       candidates.value = all.filter(u => !allocatedIds.includes(u.id));
       // 清除之前的选择
       selectedCandidateIds.value = [];
     }
-  });
+  }).finally(() => { candidateLoading.value = false; });
+}
+
+function searchCandidates() {
+  candidateSearched.value = true;
+  candidatePage.value = 1;
+  loadCandidates();
 }
 
 function addCandidateUsers() {

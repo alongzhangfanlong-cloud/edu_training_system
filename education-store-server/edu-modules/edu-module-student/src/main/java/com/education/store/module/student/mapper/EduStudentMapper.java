@@ -24,4 +24,12 @@ public interface EduStudentMapper extends BaseMapper<EduStudent> {
     /** 根据班级ID查询学员列表（用于作业通知等场景） */
     @Select("SELECT es.* FROM edu_student es INNER JOIN edu_class_student ecs ON es.id = ecs.student_id WHERE ecs.class_id = #{classId} AND ecs.status = 'ENROLLED' AND es.deleted = 0 AND ecs.deleted = 0")
     List<EduStudent> selectByClassId(@Param("classId") Long classId);
+
+    /** 根据顾问ID查询顾问姓名（跨 sys_user 表，避免模块循环依赖） */
+    @Select("SELECT real_name FROM sys_user WHERE id = #{counselorId}")
+    String selectCounselorName(@Param("counselorId") Long counselorId);
+
+    /** 根据课程ID查询课程名称（跨 edu_course 表，避免模块循环依赖） */
+    @Select("SELECT name FROM edu_course WHERE id = #{courseId}")
+    String selectCourseName(@Param("courseId") Long courseId);
 }

@@ -14,6 +14,7 @@ import com.education.store.module.system.service.SysMenuService;
 import com.education.store.module.system.service.SysRoleService;
 import com.education.store.module.system.service.SysUserService;
 import com.education.store.module.system.vo.UserDetailVO;
+import com.education.store.module.system.vo.UserSimpleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -174,6 +175,13 @@ public class SysUserController {
         result.put("roles", roles);
         result.put("permissions", permissions);
         return Result.success(result);
+    }
+
+    @Operation(summary = "查询拥有指定角色的用户列表（用于下拉选项）")
+    @PreAuthorize("@ss.hasPermi('class:class:list')")
+    @GetMapping("/role/{roleCode}")
+    public Result<List<UserSimpleVO>> listByRoleCode(@PathVariable String roleCode) {
+        return Result.success(userService.listUsersByRoleCode(roleCode));
     }
 
     @Operation(summary = "获取当前用户路由菜单")

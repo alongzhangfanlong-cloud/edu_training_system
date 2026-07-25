@@ -15,7 +15,7 @@
           </span>
         </el-descriptions-item>
         <el-descriptions-item label="状态">
-          <dict-tag :options="dicts.class_status" :value="classInfo.status" />
+          <dict-tag :options="classStatusOptions" :value="classInfo.status" />
         </el-descriptions-item>
         <el-descriptions-item label="开课日期">{{ classInfo.startDate || '-' }}</el-descriptions-item>
         <el-descriptions-item label="结课日期">{{ classInfo.endDate || '-' }}</el-descriptions-item>
@@ -103,6 +103,13 @@ const props = defineProps({
 const emit = defineEmits(['update:visible']);
 
 const { dicts, loadDict } = useDictsStore();
+const classStatusOptions = [
+  { value: 'RECRUITING', label: '招生中' },
+  { value: 'FULL', label: '已满' },
+  { value: 'SUSPENDED', label: '停招' },
+  { value: 'FINISHED', label: '已结课' },
+  { value: 'CANCELLED', label: '已取消' },
+];
 const loading = ref(false);
 const studentList = ref([]);
 const selectedStudents = ref([]);
@@ -121,7 +128,6 @@ let searchSeq = 0;
 
 async function onOpen() {
   await loadDict('class_student_status');
-  await loadDict('class_status');
   await fetchClassInfo();
   fetchList();
 }

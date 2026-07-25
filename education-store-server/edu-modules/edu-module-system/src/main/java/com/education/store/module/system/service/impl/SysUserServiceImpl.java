@@ -2,30 +2,42 @@ package com.education.store.module.system.service.impl;
 
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.useragent.UserAgent;
+import cn.hutool.http.useragent.UserAgentUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.constant.Constants;
+import com.education.store.common.enums.BusinessType;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.common.utils.AsyncManager;
 import com.education.store.module.system.dto.LoginDTO;
 import com.education.store.module.system.dto.LoginVO;
+import com.education.store.module.system.entity.system.SysOperLog;
 import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.vo.UserSimpleVO;
+import com.education.store.module.system.mapper.SysOperLogMapper;
 import com.education.store.module.system.mapper.SysUserMapper;
 import com.education.store.module.system.service.ISysUserRoleService;
 import com.education.store.module.system.service.SysUserService;
 import com.education.store.module.system.service.WechatAuthService;
 import com.education.store.security.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +52,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         implements SysUserService {
 
     private final SysUserMapper userMapper;
+    private final SysOperLogMapper operLogMapper;
     private final ISysUserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -51,21 +64,27 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
     @Override
     public LoginVO login(LoginDTO loginDTO) {
+        long start = System.currentTimeMillis();
         // 查询用户
         SysUser user = getByUsername(loginDTO.getUsername());
         if (user == null) {
+            recordLoginLog("用户登录", loginDTO.getUsername(), false, "用户名或密码错误", start);
             throw new BusinessException("用户名或密码错误");
         }
         if (Constants.STATUS_DISABLE.equals(user.getStatus())) {
+            recordLoginLog("用户登录", user.getUsername(), false, "账号已被禁用", start);
             throw new BusinessException("账号已被禁用，请联系管理员");
         }
 
         // 验证密码
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+            recordLoginLog("用户登录", user.getUsername(), false, "用户名或密码错误", start);
             throw new BusinessException("用户名或密码错误");
         }
 
-        return buildLoginResponse(user);
+        LoginVO result = buildLoginResponse(user);
+        recordLoginLog("用户登录", user.getUsername(), true, null, start);
+        return result;
     }
 
     @Override
@@ -110,10 +129,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         Set<String> permissions = getUserPermissions(user.getId());
         List<String> roleCodes = userMapper.selectRoleCodesByUserId(user.getId());
 
-        // 缓存权限
+        // 缓存权限（null + 空权限集合跳过 Redis SADD，避免无参数报错）
         String permKey = Constants.REDIS_KEY_PERM + user.getId();
-        stringRedisTemplate.opsForSet().add(permKey, permissions.toArray(new String[0]));
-        stringRedisTemplate.expire(permKey, 30, TimeUnit.MINUTES);
+        if (permissions != null && !permissions.isEmpty()) {
+            stringRedisTemplate.opsForSet().add(permKey, permissions.toArray(new String[0]));
+            stringRedisTemplate.expire(permKey, 30, TimeUnit.MINUTES);
+        }
 
         // 构建返回
         LoginVO vo = new LoginVO();
@@ -141,24 +162,30 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
     @Override
     public LoginVO wechatLogin(String code) {
+        long start = System.currentTimeMillis();
         // code → openid
         String openid = wechatAuthService.getOpenid(code);
 
         // 查用户
         SysUser user = getByOpenid(openid);
         if (user == null) {
+            recordLoginLog("微信登录", "unknown", false, "请先绑定手机号", start);
             throw new BusinessException("请先绑定手机号");
         }
         if (Constants.STATUS_DISABLE.equals(user.getStatus())) {
+            recordLoginLog("微信登录", user.getUsername(), false, "账号已被禁用", start);
             throw new BusinessException("账号已被禁用，请联系管理员");
         }
 
-        return buildLoginResponse(user);
+        LoginVO result = buildLoginResponse(user);
+        recordLoginLog("微信登录", user.getUsername(), true, null, start);
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LoginVO wechatBind(String code, String encryptedPhone, String iv) {
+        long start = System.currentTimeMillis();
         // code 只能使用一次：一次性获取 session 信息（openid + sessionKey）
         WxMaJscode2SessionResult session = wechatAuthService.getSessionInfo(code);
 
@@ -168,9 +195,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         // 按手机号查用户
         SysUser user = getByMobile(phone);
         if (user == null) {
+            recordLoginLog("微信绑定登录", "unknown", false, "手机号未关联账户", start);
             throw new BusinessException("手机号未关联账户，请联系机构");
         }
         if (Constants.STATUS_DISABLE.equals(user.getStatus())) {
+            recordLoginLog("微信绑定登录", user.getUsername(), false, "账号已被禁用", start);
             throw new BusinessException("账号已被禁用，请联系管理员");
         }
 
@@ -180,13 +209,16 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         // 检查该 openid 是否已被其他用户绑定
         SysUser existingOpenidUser = getByOpenid(openid);
         if (existingOpenidUser != null && !existingOpenidUser.getId().equals(user.getId())) {
+            recordLoginLog("微信绑定登录", user.getUsername(), false, "该微信已绑定其他账号", start);
             throw new BusinessException("该微信已绑定其他账号");
         }
 
         user.setWxOpenid(openid);
         userMapper.updateById(user);
 
-        return buildLoginResponse(user);
+        LoginVO result = buildLoginResponse(user);
+        recordLoginLog("微信绑定登录", user.getUsername(), true, null, start);
+        return result;
     }
 
     @Override
@@ -502,6 +534,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         return wrapper;
     }
 
+    @Override
+    public List<UserSimpleVO> listUsersByRoleCode(String roleCode) {
+        return userMapper.selectUsersByRoleCode(roleCode).stream()
+                .map(m -> new UserSimpleVO(
+                        ((Number) m.get("userId")).longValue(),
+                        (String) m.get("realName")))
+                .collect(Collectors.toList());
+    }
+
     /** 性别数值转中文 */
     private String toGenderText(Integer gender) {
         if (gender == null) return "";
@@ -510,5 +551,69 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
             case 2 -> "女";
             default -> "未知";
         };
+    }
+
+    // ======== 登录日志记录 ========
+
+    /**
+     * 记录登录操作日志（写入 sys_oper_log，businessType=LOGIN）
+     */
+    private void recordLoginLog(String title, String username, boolean success,
+                                String errorMsg, long startTime) {
+        SysOperLog operLog = new SysOperLog();
+        operLog.setTitle(title);
+        operLog.setBusinessType(BusinessType.LOGIN.name());
+        operLog.setOperName(username);
+        operLog.setStatus(success ? 1 : 0);
+        operLog.setCostTime(System.currentTimeMillis() - startTime);
+        operLog.setOperTime(LocalDateTime.now());
+        if (errorMsg != null && !errorMsg.isEmpty()) {
+            operLog.setErrorMsg(errorMsg.length() > 2000
+                    ? errorMsg.substring(0, 2000) : errorMsg);
+        }
+
+        // 获取请求信息（IP、浏览器、OS）并构建脱敏参数
+        try {
+            HttpServletRequest request = ((ServletRequestAttributes)
+                    RequestContextHolder.currentRequestAttributes()).getRequest();
+            operLog.setRequestMethod(request.getMethod());
+            operLog.setOperUrl(request.getRequestURI());
+            operLog.setOperIp(getIpAddress(request));
+
+            // 构建请求参数：username 保留，password 脱敏，附加浏览器/OS
+            Map<String, Object> params = new LinkedHashMap<>();
+            params.put("username", username);
+            params.put("password", "****");
+            String uaStr = request.getHeader("User-Agent");
+            if (uaStr != null) {
+                try {
+                    UserAgent ua = UserAgentUtil.parse(uaStr);
+                    params.put("browser", ua.getBrowser().toString());
+                    params.put("os", ua.getPlatform().toString());
+                } catch (Exception ignored) {}
+            }
+            operLog.setOperParam(JSONUtil.toJsonStr(params));
+        } catch (Exception ignored) {}
+
+        // 异步保存
+        AsyncManager.execute(() -> {
+            try {
+                operLogMapper.insert(operLog);
+            } catch (Exception ignored) {}
+        });
+    }
+
+    private String getIpAddress(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 }

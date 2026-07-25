@@ -333,7 +333,7 @@ function handleDelete(row) {
 
 onMounted(() => {
   getList();
-  loadDicts(['sys_menu_type', 'sys_show_hide', 'sys_yes_no']);
+  // loadDicts(['sys_menu_type', 'sys_show_hide', 'sys_yes_no']);
 });
 </script>
 

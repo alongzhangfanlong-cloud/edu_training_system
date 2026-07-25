@@ -28,9 +28,9 @@
       <el-table-column label="编号" align="center" prop="id" width="80" />
       <el-table-column label="学员姓名" align="center" prop="name" :show-overflow-tooltip="true" min-width="100" />
       <el-table-column label="联系电话" align="center" prop="mobile" width="120" />
-      <el-table-column label="性别" align="center" prop="gender" width="60">
+      <el-table-column label="性别" align="center" width="60">
         <template #default="{ row }">
-          <span>{{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}</span>
+          <dict-tag :options="dicts.sys_user_sex" :value="row.gender" />
         </template>
       </el-table-column>
       <el-table-column label="年级" align="center" prop="grade" width="80" />
@@ -59,8 +59,12 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, RefreshLeft } from '@element-plus/icons-vue';
 import { listStudent, changeStudentStatus } from '@/api/student/students';
+import { useDictsStore } from '@/stores/dicts';
 import RightToolbar from '@/components/RightToolbar/index.vue';
 import Pagination from '@/components/Pagination/index.vue';
+import DictTag from '@/components/DictTag/index.vue';
+
+const { dicts, loadDict } = useDictsStore();
 
 const loading = ref(false);
 const showSearch = ref(true);
@@ -111,7 +115,7 @@ function handleReactivate(row) {
 
 function handleSelectionChange(selection) { selectedIds.value = selection.map(i => i.id); }
 
-onMounted(() => { getList(); });
+onMounted(() => { getList(); loadDict('sys_user_sex'); });
 </script>
 
 <style scoped lang="less">

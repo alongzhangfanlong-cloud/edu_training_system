@@ -89,6 +89,9 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (8, 0, '教师端',   'M', '/teacher', NULL, 'Teacher', 'user', NULL, 8, 1, 1),
 (9, 0, '工作台',   'C', '/dashboard', 'dashboard/index', 'Dashboard', 'dashboard', 'dashboard:dashboard:view', 1, 1, 1);
 
+-- 工作台禁用 isFrame，避免生成无意义的 Layout 父路由
+UPDATE sys_menu SET is_frame = 0 WHERE id = 9;
+
 -- ---------- 业务模块菜单 ----------
 -- 学员管理
 INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, icon, permission, sort, visible, status) VALUES
@@ -96,7 +99,6 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (201, 2, '在读学员', 'C', 'enrolled',  'student/enrolled/index',  'StudentEnrolled',  '#', 'student:enrolled:list',  2, 1, 1),
 (202, 2, '结业学员', 'C', 'completed', 'student/completed/index', 'StudentCompleted', '#', 'student:completed:list', 3, 1, 1),
 (203, 2, '学员学时', 'C', 'hours',     'student/hours/index',     'StudentHours',     '#', 'student:hours:list',     4, 1, 1),
-(204, 2, '学员家长', 'C', 'parents',   'student/parents/index',   'StudentParents',   '#', 'student:parent:list',    5, 1, 1),
 -- 教务管理
 (210, 3, '科目管理', 'C', 'subject',      'course/subject/index',      'CourseSubject',      '#', 'course:subject:list',      1, 1, 1),
 (211, 3, '教室管理', 'C', 'classroom',    'course/classroom/index',    'CourseClassroom',    '#', 'course:classroom:list',    2, 1, 1),
@@ -295,7 +297,14 @@ INSERT INTO sys_dict_type (id, name, code, status, remark) VALUES
 (3, '系统是否', 'sys_yes_no',       1, '系统是否列表'),
 (4, '通知类型', 'sys_notice_type',  1, '通知类型列表'),
 (5, '菜单类型', 'sys_menu_type',    1, '菜单类型列表'),
-(6, '显示状态', 'sys_show_hide',    1, '显示状态列表');
+(6, '显示状态', 'sys_show_hide',    1, '显示状态列表'),
+(7, '来源渠道', 'student_source',   1, '意向学员来源渠道'),
+(8, '意向等级', 'interest_level',   1, '意向学员意向等级'),
+(9, '跟进状态', 'prospect_follow_status', 1, '意向学员跟进状态'),
+(10, '亲属关系', 'parent_relation', 1, '家长亲属关系'),
+(11, '学员状态', 'student_status', 1, '在学学员状态'),
+(12, '课程类型', 'course_type', 1, '课程类型列表'),
+(13, '班级状态', 'class_status', 1, '班级状态列表');
 
 -- ---------- 字典数据 ----------
 INSERT INTO sys_dict_data (type_code, label, value, sort, is_default, status) VALUES
@@ -312,7 +321,43 @@ INSERT INTO sys_dict_data (type_code, label, value, sort, is_default, status) VA
 ('sys_menu_type', '菜单', 'C', 2, 0, 1),
 ('sys_menu_type', '按钮', 'F', 3, 0, 1),
 ('sys_show_hide', '显示', '1', 1, 1, 1),
-('sys_show_hide', '隐藏', '0', 2, 0, 1);
+('sys_show_hide', '隐藏', '0', 2, 0, 1),
+-- 意向学员相关字典
+('student_source', '地推', 'DIRECT_MARKETING', 1, 0, 1),
+('student_source', '转介绍', 'REFERRAL', 2, 0, 1),
+('student_source', '线上', 'ONLINE', 3, 1, 1),
+('student_source', '其他', 'OTHER', 4, 0, 1),
+('interest_level', '高', 'HIGH', 1, 0, 1),
+('interest_level', '中', 'MEDIUM', 2, 1, 1),
+('interest_level', '低', 'LOW', 3, 0, 1),
+('prospect_follow_status', '新线索', 'NEW', 1, 1, 1),
+('prospect_follow_status', '已联系', 'CONTACTED', 2, 0, 1),
+('prospect_follow_status', '已试听', 'TRIAL', 3, 0, 1),
+('prospect_follow_status', '已转化', 'CONVERTED', 4, 0, 1),
+('prospect_follow_status', '已流失', 'LOST', 5, 0, 1),
+('parent_relation', '本人', 'SELF', 0, 0, 1),
+('parent_relation', '父亲', 'FATHER', 1, 0, 1),
+('parent_relation', '母亲', 'MOTHER', 2, 0, 1),
+('parent_relation', '爷爷', 'GRANDFATHER', 3, 0, 1),
+('parent_relation', '奶奶', 'GRANDMOTHER', 4, 0, 1),
+('parent_relation', '外公', 'GRANDFATHER_M', 5, 0, 1),
+('parent_relation', '外婆', 'GRANDMOTHER_M', 6, 0, 1),
+('parent_relation', '其他', 'OTHER', 7, 0, 1),
+-- 学员状态
+('student_status', '在读', 'ENROLLED', 1, 1, 1),
+('student_status', '停课', 'SUSPENDED', 2, 0, 1),
+('student_status', '结业', 'COMPLETED', 3, 0, 1),
+('student_status', '流失', 'LOST', 4, 0, 1),
+-- 课程类型
+('course_type', '班课', 'BATCH', 1, 1, 1),
+('course_type', '一对一', 'ONE_ON_ONE', 2, 0, 1),
+('course_type', '小班(2-6人)', 'SMALL_GROUP', 3, 0, 1),
+-- 班级状态
+('class_status', '招生中', 'RECRUITING', 1, 1, 1),
+('class_status', '已满员', 'FULL', 2, 0, 1),
+('class_status', '已停招', 'SUSPENDED', 3, 0, 1),
+('class_status', '已结课', 'FINISHED', 4, 0, 1),
+('class_status', '已取消', 'CANCELLED', 5, 0, 1);
 
 -- ---------- 系统参数 ----------
 INSERT INTO sys_config (name, `key`, `value`, type, remark) VALUES

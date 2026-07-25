@@ -39,11 +39,14 @@ public class EduClassroomController {
     public Result<PageResult<ClassroomVO>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status) {
         Page<EduClassroom> p = new Page<>(page, pageSize);
         EduClassroom condition = new EduClassroom();
-        condition.setName(name);
+        if (keyword != null && !keyword.isBlank()) {
+            condition.setName(keyword);
+            condition.setLocation(keyword);
+        }
         condition.setStatus(status);
         IPage<EduClassroom> result = classroomService.selectClassroomList(p, condition);
         List<ClassroomVO> records = result.getRecords().stream()

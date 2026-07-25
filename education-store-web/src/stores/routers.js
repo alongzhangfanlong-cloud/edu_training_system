@@ -42,8 +42,9 @@ const completeAsyncRouter = (asyncRouters) => {
       route.children = filterChildren(route.children, route);
     }
 
-    // 将后端菜单字段映射到 Vue Router meta
+    // 将后端菜单字段映射到 Vue Router meta（保留后端已有字段）
     route.meta = {
+      ...route.meta,
       title: route.meta?.title || route.name,
       icon: route.meta?.icon || route.icon
     };

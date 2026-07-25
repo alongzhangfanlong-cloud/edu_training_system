@@ -1,13 +1,13 @@
 <!-- 教室管理 -->
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryFormRef" size="small" :inline="true" v-show="showSearch">
+    <el-form :model="queryParams" ref="queryFormRef" size="small" :inline="true" v-show="showSearch" @submit.prevent>
       <el-form-item label="关键字" prop="keyword">
         <el-input v-model="queryParams.keyword" placeholder="教室名称/位置" clearable style="width:200px" @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="handleQuery"><el-icon><Search /></el-icon>搜索</el-button>
-        <el-button @click="resetQuery"><el-icon><Refresh /></el-icon>重置</el-button>
+        <el-button type="primary" native-type="button" @click="handleQuery"><el-icon><Search /></el-icon>搜索</el-button>
+        <el-button native-type="button" @click="resetQuery"><el-icon><Refresh /></el-icon>重置</el-button>
       </el-form-item>
     </el-form>
 
@@ -34,7 +34,7 @@
       <el-table-column label="设施" align="center" prop="facilities" :show-overflow-tooltip="true" min-width="150" />
       <el-table-column label="状态" align="center" width="80">
         <template #default="{ row }">
-          <dict-tag :options="dicts.sys_normal_disable" :value="String(row.status)" />
+          <el-tag :type="row.status === 0 ? 'danger' : 'success'">{{ row.status === 0 ? '停用' : '正常' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
@@ -60,17 +60,15 @@
           <el-input v-model="form.name" placeholder="请输入教室名称" />
         </el-form-item>
         <el-form-item label="容纳人数">
-          <el-input-number v-model="form.capacity" :min="0" style="width:100%" />
+          <el-input-number v-model="form.capacity" :min="1" style="width:160px" />
         </el-form-item>
         <el-form-item label="位置">
           <el-input v-model="form.location" placeholder="如：3楼301室" />
         </el-form-item>
         <el-form-item label="设施配置">
-          <el-select v-model="facilityTags" multiple filterable allow-create default-first-option
-            placeholder="选择或输入设施标签" style="width:100%"
-            @change="onFacilityChange">
-            <el-option v-for="tag in facilityPool" :key="tag" :label="tag" :value="tag" />
-          </el-select>
+          <el-checkbox-group v-model="facilityTags" @change="onFacilityChange">
+            <el-checkbox v-for="tag in facilityPool" :key="tag" :label="tag" :value="tag" />
+          </el-checkbox-group>
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
@@ -113,7 +111,7 @@ const title = ref('');
 const currentId = ref(null);
 const formRef = ref(null);
 const submitting = ref(false);
-const form = ref({ name: '', capacity: 0, location: '', facilities: '', status: 1, description: '' });
+const form = ref({ name: '', capacity: 6, location: '', facilities: '', status: 1, description: '' });
 const rules = { name: [{ required: true, message: '请输入教室名称', trigger: 'blur' }] };
 
 // 设施标签池
@@ -155,12 +153,12 @@ async function onOpen() {
     const res = await getClassroom(currentId.value);
     if (res.success && res.data) {
       const s = res.data.data || res.data;
-      form.value = { name: s.name || '', capacity: s.capacity || 0, location: s.location || '', facilities: s.facilities || '', status: s.status ?? 1, description: s.description || '' };
+      form.value = { name: s.name || '', capacity: s.capacity || 6, location: s.location || '', facilities: s.facilities || '', status: Number(s.status ?? 1), description: s.description || '' };
       facilityTags.value = s.facilities ? s.facilities.split(',').filter(Boolean) : [];
     }
   }
 }
-function reset() { form.value = { name: '', capacity: 0, location: '', facilities: '', status: 1, description: '' }; facilityTags.value = []; nextTick(() => formRef.value?.clearValidate()); }
+function reset() { form.value = { name: '', capacity: 6, location: '', facilities: '', status: 1, description: '' }; facilityTags.value = []; nextTick(() => formRef.value?.clearValidate()); }
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false); if (!valid) return;
   submitting.value = true;

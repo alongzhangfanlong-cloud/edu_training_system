@@ -7,7 +7,7 @@
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="班级状态" clearable style="width:150px">
-          <el-option v-for="d in dicts.class_status" :key="d.value" :label="d.label" :value="d.value" />
+          <el-option v-for="d in classStatusOptions" :key="d.value" :label="d.label" :value="d.value" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -46,9 +46,10 @@
           <el-tag v-if="row.maxStudents > 0 && row.currentCount >= row.maxStudents" type="danger" size="small" style="margin-left: 4px">满员</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="状态" align="center" width="90">
+      <el-table-column label="状态" align="center" width="110">
         <template #default="{ row }">
-          <dict-tag :options="dicts.class_status" :value="row.status" />
+          <dict-tag :options="classStatusOptions" :value="row.status" />
+          <el-tag v-if="isExpired(row)" type="warning" size="small" style="margin-left: 4px">已到期</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="开课日期" align="center" prop="startDate" width="110" />
@@ -61,7 +62,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="students">学员管理</el-dropdown-item>
-                <el-dropdown-item v-if="row.status === 'RECRUITING'" command="finish" divided>结课</el-dropdown-item>
+                <el-dropdown-item v-if="row.status === 'RECRUITING' || isExpired(row)" command="finish" divided>结课</el-dropdown-item>
                 <el-dropdown-item v-if="row.status === 'RECRUITING'" command="suspend">停招</el-dropdown-item>
                 <el-dropdown-item v-if="row.status === 'SUSPENDED'" command="resume">恢复招生</el-dropdown-item>
               </el-dropdown-menu>
@@ -89,14 +90,19 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Delete, ArrowDown } from '@element-plus/icons-vue';
 import { listClass, delClass, changeClassStatus } from '@/api/class/classes';
-import { useDictsStore } from '@/stores/dicts';
 import RightToolbar from '@/components/RightToolbar/index.vue';
 import Pagination from '@/components/Pagination/index.vue';
 import DictTag from '@/components/DictTag/index.vue';
 import ClassFormModal from './components/ClassFormModal.vue';
 import ClassStudentModal from './components/ClassStudentModal.vue';
 
-const { dicts, loadDict } = useDictsStore();
+const classStatusOptions = [
+  { value: 'RECRUITING', label: '招生中' },
+  { value: 'FULL', label: '已满' },
+  { value: 'SUSPENDED', label: '停招' },
+  { value: 'FINISHED', label: '已结课' },
+  { value: 'CANCELLED', label: '已取消' },
+];
 const loading = ref(false); const showSearch = ref(true);
 const list = ref([]); const total = ref(0); const error = ref('');
 const selectedIds = ref([]);
@@ -149,8 +155,13 @@ function handleCommand(cmd, row) {
       .then(res => { if (res.success) { getList(); ElMessage.success('已恢复招生'); } else { ElMessage.error(res.msg || '操作失败'); } });
   }
 }
+function isExpired(row) {
+  if (!row.endDate) return false;
+  if (row.status === 'FINISHED' || row.status === 'CANCELLED') return false;
+  return new Date(row.endDate) < new Date();
+}
 function handleSelectionChange(selection) { selectedIds.value = selection.map(i => i.id); }
-onMounted(() => { getList(); loadDict('class_status'); });
+onMounted(() => { getList(); });
 </script>
 
 <style scoped lang="less">

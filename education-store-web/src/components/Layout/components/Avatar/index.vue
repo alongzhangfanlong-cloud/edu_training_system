@@ -33,16 +33,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { getNickName, logout } from "@/utils/validate";
+import { computed, ref } from "vue";
+import { logout } from "@/utils/validate";
+import { useUserStore } from "@/stores/user";
 
 import { UserFilled, CaretBottom, SwitchButton, Edit } from "@element-plus/icons-vue";
 import ModifyPsw from "./modifyPsw/index.vue";
 
-const userName = ref("");
+const userStore = useUserStore();
 
-onMounted(() => {
-  userName.value = getNickName() || "未知用户";
+// 优先显示 realName，其次 username，都没有用 ID 兜底
+const userName = computed(() => {
+  return userStore.realName || userStore.username || `用户#${userStore.id}` || "未知用户";
 });
 
 // ## 修改密码

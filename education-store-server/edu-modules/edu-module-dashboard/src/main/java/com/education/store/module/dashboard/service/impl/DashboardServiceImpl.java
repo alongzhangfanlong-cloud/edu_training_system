@@ -71,7 +71,7 @@ public class DashboardServiceImpl implements IDashboardService {
     private final EduTeacherMapper teacherMapper;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     @Override
@@ -120,11 +120,11 @@ public class DashboardServiceImpl implements IDashboardService {
                 .eq(EduTeacher::getDeleted, 0);
         long teacherCount = teacherMapper.selectCount(teacherWrapper);
 
-        // 4. 本月营收
+        // 4. 本月营收（edu_tuition_fee 表用 create_time 作为收费时间）
         LambdaQueryWrapper<EduTuitionFee> feeWrapper = new LambdaQueryWrapper<>();
-        feeWrapper.between(EduTuitionFee::getPayTime,
+        feeWrapper.between(EduTuitionFee::getCreateTime,
                         monthStart.atStartOfDay(), todayEnd.plusDays(1).atStartOfDay())
-                .eq(EduTuitionFee::getStatus, "CONFIRMED")
+                .eq(EduTuitionFee::getStatus, "PAID")
                 .eq(EduTuitionFee::getDeleted, 0);
         List<EduTuitionFee> fees = tuitionFeeMapper.selectList(feeWrapper);
         BigDecimal monthlyIncome = fees.stream()
@@ -150,9 +150,9 @@ public class DashboardServiceImpl implements IDashboardService {
         LocalDate lastMonthEnd = today.minusMonths(1);
 
         LambdaQueryWrapper<EduTuitionFee> lastFeeWrapper = new LambdaQueryWrapper<>();
-        lastFeeWrapper.between(EduTuitionFee::getPayTime,
+        lastFeeWrapper.between(EduTuitionFee::getCreateTime,
                         lastMonthStart.atStartOfDay(), lastMonthEnd.plusDays(1).atStartOfDay())
-                .eq(EduTuitionFee::getStatus, "CONFIRMED")
+                .eq(EduTuitionFee::getStatus, "PAID")
                 .eq(EduTuitionFee::getDeleted, 0);
         List<EduTuitionFee> lastFees = tuitionFeeMapper.selectList(lastFeeWrapper);
         BigDecimal lastMonthIncome = lastFees.stream()

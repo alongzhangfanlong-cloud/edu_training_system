@@ -53,7 +53,7 @@
         :type="queryParams.subjectId === s.id ? 'primary' : ''" size="small"
         @click="selectSubject(s.id)">{{ s.name }}</el-button>
       <el-button type="info" plain size="small" @click="handleManageSubjects" v-permission="['course:subject:list']">
-        <el-icon><Setting /></el-icon>管理
+        <el-icon><Setting /></el-icon>管理科目
       </el-button>
     </div>
 
@@ -99,6 +99,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue';
 import { listCourse, delCourse } from '@/api/course/courses';
@@ -110,6 +111,7 @@ import DictTag from '@/components/DictTag/index.vue';
 import CourseFormModal from './components/CourseFormModal.vue';
 
 const { dicts, loadDict } = useDictsStore();
+const router = useRouter();
 
 const loading = ref(false);
 const showSearch = ref(true);
@@ -154,8 +156,7 @@ function resetQuery() { queryParams.value = { page: 1, size: 10, keyword: '', su
 
 function selectSubject(subjectId) { queryParams.value.subjectId = subjectId; handleQuery(); }
 function handleManageSubjects() {
-  // 跳转到科目管理页面
-  window.location.hash = '/course/subject';
+  router.push('/course/subject');
 }
 
 function handleAdd() { title.value = '新增课程'; currentId.value = null; open.value = true; }

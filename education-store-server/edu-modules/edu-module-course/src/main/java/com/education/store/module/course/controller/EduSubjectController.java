@@ -39,11 +39,11 @@ public class EduSubjectController {
     public Result<PageResult<SubjectVO>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status) {
         Page<EduSubject> p = new Page<>(page, pageSize);
         EduSubject condition = new EduSubject();
-        condition.setName(name);
+        condition.setName(keyword);
         condition.setStatus(status);
         IPage<EduSubject> result = subjectService.selectSubjectList(p, condition);
         List<SubjectVO> records = result.getRecords().stream()

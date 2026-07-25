@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.education.store.module.system.dto.LoginDTO;
 import com.education.store.module.system.dto.LoginVO;
 import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.vo.UserSimpleVO;
 
 import java.util.List;
 import java.util.Set;
@@ -97,4 +98,7 @@ public interface SysUserService extends IService<SysUser> {
 
     /** 导出用户（按查询条件返回 Excel 字节数组） */
     byte[] exportUser(String keyword, Integer status);
+
+    /** 查询拥有指定角色的所有启用用户（用于下拉选项） */
+    List<UserSimpleVO> listUsersByRoleCode(String roleCode);
 }

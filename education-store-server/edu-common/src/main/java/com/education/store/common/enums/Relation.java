@@ -4,6 +4,7 @@ package com.education.store.common.enums;
  * 亲属关系枚举
  */
 public enum Relation {
+    SELF("本人"),
     FATHER("父亲"),
     MOTHER("母亲"),
     GRANDFATHER("爷爷"),

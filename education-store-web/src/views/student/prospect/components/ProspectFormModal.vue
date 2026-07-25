@@ -9,24 +9,19 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="联系电话" prop="mobile">
-            <el-input v-model="form.mobile" placeholder="请输入联系电话" maxlength="11" />
+          <el-form-item label="性别" prop="gender">
+            <el-select v-model="form.gender" placeholder="请选择性别" style="width:100%">
+              <el-option v-for="d in dicts.sys_user_sex" :key="d.value" :label="d.label" :value="d.value" />
+            </el-select>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="家长姓名" prop="parentName">
-            <el-input v-model="form.parentName" placeholder="请输入家长姓名" />
+          <el-form-item label="手机号" prop="mobile">
+            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="家长手机号">
-            <el-input v-model="form.parentMobile" placeholder="请输入家长手机号" maxlength="11" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="亲属关系">
             <el-select v-model="form.parentRelation" placeholder="请选择亲属关系" style="width:100%" clearable>
@@ -34,18 +29,11 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="微信昵称">
-            <el-input v-model="form.wechatNickname" placeholder="请输入微信昵称" />
-          </el-form-item>
-        </el-col>
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="性别" prop="gender">
-            <el-select v-model="form.gender" placeholder="请选择性别" style="width:100%">
-              <el-option v-for="d in dicts.sys_user_sex" :key="d.value" :label="d.label" :value="d.value" />
-            </el-select>
+          <el-form-item label="家长姓名">
+            <el-input v-model="form.parentName" placeholder="请输入家长姓名" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -75,8 +63,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="意向课程">
-            <el-input v-model="form.intendedCourseName" placeholder="请输入意向课程名称" />
+          <el-form-item label="意向科目">
+            <el-select v-model="form.intendedCourseId" placeholder="请选择科目" filterable style="width:100%" clearable>
+              <el-option v-for="c in courseOptions" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
           </el-form-item>
         </el-col>
       </el-row>
@@ -99,7 +89,7 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="跟进状态" prop="followStatus">
-            <el-select v-model="form.followStatus" placeholder="请选择跟进状态" style="width:100%">
+            <el-select v-model="form.followStatus" placeholder="请选择跟进状态" style="width:100%" :disabled="isTerminal">
               <el-option v-for="d in dicts.prospect_follow_status" :key="d.value" :label="d.label" :value="d.value" />
             </el-select>
           </el-form-item>
@@ -117,10 +107,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getProspect, addProspect, updateProspect } from '@/api/student/prospects';
 import { listUser } from '@/api/system/user';
+import { listSubject } from '@/api/course/subjects';
 import { useDictsStore } from '@/stores/dicts';
 
 const props = defineProps({
@@ -140,16 +131,29 @@ const counselorLoading = ref(false);
 let counselorTimer = null;
 let counselorSeq = 0;
 
+const courseOptions = ref([]);
+const courseLoading = ref(false);
+let courseTimer = null;
+let courseSeq = 0;
+
+// 终态（已转化/已流失）不可变更跟进状态
+const isTerminal = computed(() =>
+  ['CONVERTED', 'LOST'].includes(form.value.followStatus)
+);
+
 const form = ref({
   name: '', mobile: '', parentName: '', parentMobile: '', parentRelation: '',
-  wechatNickname: '', gender: '', birthDate: '', grade: '', school: '',
-  counselorId: null, intendedCourseName: '', source: '', interestLevel: '',
+  gender: '', birthDate: '', grade: '', school: '',
+  counselorId: null, intendedCourseId: null, intendedCourseName: '', source: '', interestLevel: '',
   followStatus: 'NEW', remark: '',
 });
 
 const rules = {
   name: [{ required: true, message: '请输入学员姓名', trigger: 'blur' }],
-  mobile: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }],
+  mobile: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' },
+  ],
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
   followStatus: [{ required: true, message: '请选择跟进状态', trigger: 'change' }],
 };
@@ -171,24 +175,39 @@ function searchCounselors(keyword) {
   }, 300);
 }
 
+// 加载科目列表
+async function loadSubjects() {
+  try {
+    const res = await listSubject({ page: 1, size: 200 });
+    if (res.success) courseOptions.value = res.data?.records || res.rows || [];
+  } catch { /* ignore */ }
+}
+
 async function onOpen() {
   reset();
   await loadDicts(['sys_user_sex', 'student_source', 'prospect_follow_status', 'interest_level', 'parent_relation']);
+  await loadSubjects();
   if (props.prospectId) {
     const res = await getProspect(props.prospectId);
     if (res.success && res.data) {
       const s = res.data;
       form.value = {
-        name: s.name || '', mobile: s.mobile || '', parentName: s.parentName || '',
-        parentMobile: s.parentMobile || '', parentRelation: s.parentRelation || '',
-        wechatNickname: s.wechatNickname || '', gender: s.gender || '',
+        name: s.name || '', mobile: s.mobile || '',
+        parentName: s.parentName || '', parentMobile: s.parentMobile || '',
+        parentRelation: s.parentRelation || '',
+        gender: s.gender || '',
         birthDate: s.birthDate || '', grade: s.grade || '', school: s.school || '',
-        counselorId: s.counselorId || null, intendedCourseName: s.intendedCourseName || '',
+        counselorId: s.counselorId || null,
+        intendedCourseId: s.intendedCourseId || null,
+        intendedCourseName: s.intendedCourseName || '',
         source: s.source || '', interestLevel: s.interestLevel || '',
         followStatus: s.followStatus || 'NEW', remark: s.remark || '',
       };
       if (s.counselorId && s.counselorName) {
         counselorOptions.value = [{ id: s.counselorId, realName: s.counselorName }];
+      }
+      if (s.intendedCourseId && s.intendedCourseName) {
+        courseOptions.value = [{ id: s.intendedCourseId, name: s.intendedCourseName }];
       }
     }
   }
@@ -197,11 +216,12 @@ async function onOpen() {
 function reset() {
   form.value = {
     name: '', mobile: '', parentName: '', parentMobile: '', parentRelation: '',
-    wechatNickname: '', gender: '', birthDate: '', grade: '', school: '',
-    counselorId: null, intendedCourseName: '', source: '', interestLevel: '',
+    gender: '', birthDate: '', grade: '', school: '',
+    counselorId: null, intendedCourseId: null, intendedCourseName: '', source: '', interestLevel: '',
     followStatus: 'NEW', remark: '',
   };
   counselorOptions.value = [];
+  courseOptions.value = [];
   nextTick(() => formRef.value?.clearValidate());
 }
 
@@ -211,6 +231,15 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     const data = { ...form.value };
+    // 带上课程名称（用于持久化存储）
+    if (data.intendedCourseId) {
+      const selected = courseOptions.value.find(c => c.id === data.intendedCourseId);
+      if (selected) data.intendedCourseName = selected.name;
+    }
+    // 亲属关系为"本人"时，自动同步家长手机号
+    if (data.parentRelation === 'SELF' && data.mobile && !data.parentMobile) {
+      data.parentMobile = data.mobile;
+    }
     let res;
     if (props.prospectId) {
       data.id = props.prospectId;

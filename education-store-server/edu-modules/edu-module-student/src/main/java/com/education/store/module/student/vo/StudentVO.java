@@ -21,6 +21,12 @@ public class StudentVO {
     private String mobile;
     private Long counselorId;
     private String counselorName;
+    private String parentName;
+    private String parentRelation;
+    private String parentMobile;
+    private String wechatNickname;
+    private Long intendedCourseId;
+    private String intendedCourseName;
     private String source;
     private String tags;
     private String status;

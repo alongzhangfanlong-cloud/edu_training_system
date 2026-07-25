@@ -5,21 +5,28 @@ import com.education.store.common.base.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 /**
- * 班级排课规则实体（与班级1:1关联）
+ * 班级排课规则实体（与班级1:N关联，支持每周重复和指定日期两种模式）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("edu_class_schedule_rule")
 public class EduClassScheduleRule extends BaseEntity {
 
-    /** 班级ID → edu_class.id（UNIQUE，1:1） */
+    /** 班级ID → edu_class.id */
     private Long classId;
 
-    /** 每周上课日（逗号分隔，1=周一,7=周日，如 "1,3,5"） */
-    private String weekDays;
+    /** 规则类型(WEEKLY=每周重复, SPECIFIC=指定日期) */
+    private String ruleType;
+
+    /** 上课日（ruleType=WEEKLY 时使用，1=周一, 7=周日） */
+    private Integer weekDay;
+
+    /** 上课日期（ruleType=SPECIFIC 时使用） */
+    private LocalDate scheduleDate;
 
     /** 上课开始时间 */
     private LocalTime startTime;

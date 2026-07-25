@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 排课规则 Service 实现
@@ -25,30 +23,30 @@ public class EduClassScheduleRuleServiceImpl extends ServiceImpl<EduClassSchedul
     private final EduClassScheduleRuleMapper scheduleRuleMapper;
 
     @Override
-    public EduClassScheduleRule selectByClassId(Long classId) {
+    public List<EduClassScheduleRule> selectByClassId(Long classId) {
         LambdaQueryWrapper<EduClassScheduleRule> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EduClassScheduleRule::getClassId, classId);
-        return scheduleRuleMapper.selectOne(wrapper);
+        return scheduleRuleMapper.selectList(wrapper);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int insertRule(EduClassScheduleRule rule) {
-        validateWeekDays(rule.getWeekDays());
-        validateTime(rule);
-        return scheduleRuleMapper.insert(rule);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public int updateRule(EduClassScheduleRule rule) {
-        EduClassScheduleRule exist = scheduleRuleMapper.selectById(rule.getId());
-        if (exist == null) {
-            throw new BusinessException("排课规则不存在");
+    public void batchSave(Long classId, List<EduClassScheduleRule> rules) {
+        // 校验每条规则
+        for (EduClassScheduleRule rule : rules) {
+            validateRule(rule);
         }
-        validateWeekDays(rule.getWeekDays());
-        validateTime(rule);
-        return scheduleRuleMapper.updateById(rule);
+
+        // 删除旧规则
+        LambdaQueryWrapper<EduClassScheduleRule> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(EduClassScheduleRule::getClassId, classId);
+        scheduleRuleMapper.delete(wrapper);
+
+        // 批量插入新规则
+        for (EduClassScheduleRule rule : rules) {
+            rule.setClassId(classId);
+            scheduleRuleMapper.insert(rule);
+        }
     }
 
     @Override
@@ -57,24 +55,23 @@ public class EduClassScheduleRuleServiceImpl extends ServiceImpl<EduClassSchedul
         return scheduleRuleMapper.deleteById(id);
     }
 
-    /** 校验星期格式：逗号分隔的 1-7 */
-    private void validateWeekDays(String weekDays) {
-        if (weekDays == null || weekDays.isBlank()) {
-            throw new BusinessException("上课日不能为空");
+    /** 校验规则 */
+    private void validateRule(EduClassScheduleRule rule) {
+        if (rule.getRuleType() == null) {
+            throw new BusinessException("规则类型不能为空");
         }
-        try {
-            List<Integer> days = Arrays.stream(weekDays.split(","))
-                    .map(String::trim)
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList());
-            for (Integer day : days) {
-                if (day < 1 || day > 7) {
-                    throw new BusinessException("星期值必须在 1-7 之间（1=周一, 7=周日）");
-                }
+        if ("WEEKLY".equals(rule.getRuleType())) {
+            if (rule.getWeekDay() == null || rule.getWeekDay() < 1 || rule.getWeekDay() > 7) {
+                throw new BusinessException("每周模式须指定星期（1-7）");
             }
-        } catch (NumberFormatException e) {
-            throw new BusinessException("上课日格式错误，应为逗号分隔的数字（如 1,3,5）");
+        } else if ("SPECIFIC".equals(rule.getRuleType())) {
+            if (rule.getScheduleDate() == null) {
+                throw new BusinessException("指定日期模式须选择日期");
+            }
+        } else {
+            throw new BusinessException("未知规则类型: " + rule.getRuleType());
         }
+        validateTime(rule);
     }
 
     /** 校验上课时间 */

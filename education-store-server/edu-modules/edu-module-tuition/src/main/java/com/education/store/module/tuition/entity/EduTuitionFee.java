@@ -1,5 +1,6 @@
 package com.education.store.module.tuition.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import lombok.Data;
@@ -21,6 +22,7 @@ public class EduTuitionFee extends BaseEntity {
     private BigDecimal amountPaid;
     private String paymentMethod;
     private String status;
+    @TableField(exist = false)
     private LocalDateTime payTime;
     private String remark;
     private Long operatorId;

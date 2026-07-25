@@ -28,10 +28,23 @@ public class StudentUpdateDTO {
     @Size(max = 50, message = "学校名称最多50字符")
     private String school;
 
-    @Pattern(regexp = "^1\\d{10}$", message = "手机号格式不正确")
+    @Pattern(regexp = "^(1\\d{10})?$", message = "手机号格式不正确")
     private String mobile;
 
     private Long counselorId;
+
+    /** 家长姓名 */
+    private String parentName;
+
+    /** 亲属关系（FATHER/MOTHER/GRANDFATHER/GRANDMOTHER/GRANDFATHER_M/GRANDMOTHER_M/OTHER） */
+    private String parentRelation;
+
+    /** 微信昵称 */
+    @Size(max = 50, message = "微信昵称最多50字符")
+    private String wechatNickname;
+
+    /** 报名课程ID → edu_course.id */
+    private Long intendedCourseId;
 
     private String source;
 

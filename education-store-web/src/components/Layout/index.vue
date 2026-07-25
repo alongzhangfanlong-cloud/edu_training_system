@@ -9,7 +9,7 @@
     <!-- 左侧菜单栏 -->
     <div class="app-sider-menus" :class="{ 'sider-collapsed': siderIsCollapsed }">
       <div class="logo-info">
-        <img src="@/assets/logo/logo.svg" alt="logo" />
+        <!-- <img src="@/assets/logo/logo.svg" alt="logo" /> -->
         <strong v-if="!siderIsCollapsed">{{ systemTitle }}</strong>
       </div>
       <div class="menu-container">
@@ -28,11 +28,11 @@
       <div class="layout-container">
         <div class="layout-container-inner">
           <router-view v-slot="{ Component, route }">
-            <transition name="page-fade" mode="out-in">
-              <keep-alive :include="cacheRoutes">
+            <keep-alive :include="cacheRoutes">
+              <transition name="page-fade" mode="out-in">
                 <component :is="Component" :key="route.path" />
-              </keep-alive>
-            </transition>
+              </transition>
+            </keep-alive>
           </router-view>
         </div>
       </div>

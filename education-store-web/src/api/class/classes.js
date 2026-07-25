@@ -48,3 +48,17 @@ export function updateClassStudentStatus(classId, id, status) {
 export function removeClassStudent(classId, id) {
   return request({ url: `${BASE}/${classId}/students/${id}`, method: 'delete' });
 }
+
+// ===== 班级排课规则 =====
+
+export function getScheduleRules(classId) {
+  return request({ url: `${BASE}/${classId}/schedule-rule`, method: 'get' });
+}
+
+export function saveScheduleRules(classId, rules) {
+  return request({ url: `${BASE}/${classId}/schedule-rule`, method: 'put', data: rules });
+}
+
+export function deleteScheduleRule(classId, id) {
+  return request({ url: `${BASE}/${classId}/schedule-rule/${id}`, method: 'delete' });
+}

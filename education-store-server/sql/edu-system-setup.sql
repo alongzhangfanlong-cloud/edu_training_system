@@ -324,6 +324,13 @@ CREATE TABLE edu_student (
     school            VARCHAR(50)     DEFAULT ''               COMMENT '就读学校',
     mobile            VARCHAR(20)     NOT NULL                 COMMENT '手机号',
     counselor_id      BIGINT                                   COMMENT '顾问ID(关联sys_user)',
+    parent_name       VARCHAR(20)     DEFAULT NULL             COMMENT '家长姓名',
+    parent_relation   VARCHAR(20)     DEFAULT NULL             COMMENT '亲属关系(FATHER/MOTHER/GRANDFATHER/GRANDMOTHER/GRANDFATHER_M/GRANDMOTHER_M/OTHER)',
+    parent_mobile     VARCHAR(20)     DEFAULT NULL             COMMENT '家长手机号',
+    parent_id         BIGINT          DEFAULT NULL             COMMENT '家长用户ID(关联sys_user，用于微信通知)',
+    wechat_nickname   VARCHAR(50)     DEFAULT NULL             COMMENT '微信昵称',
+    intended_course_id   BIGINT         DEFAULT NULL             COMMENT '报名课程ID → edu_course.id',
+    intended_course_name VARCHAR(100)   DEFAULT NULL             COMMENT '报名课程名称',
     source            VARCHAR(20)                              COMMENT '来源渠道(DIRECT_MARKETING/REFERRAL/ONLINE/OTHER)',
     tags              VARCHAR(255)    DEFAULT ''               COMMENT '标签(逗号分隔)',
     status            VARCHAR(20)     NOT NULL DEFAULT 'ENROLLED' COMMENT '状态(ENROLLED/SUSPENDED/COMPLETED/LOST)',
@@ -343,6 +350,8 @@ CREATE TABLE edu_student (
     KEY idx_grade (grade),
     KEY idx_status (status),
     KEY idx_counselor_id (counselor_id),
+    KEY idx_parent_id (parent_id),
+    KEY idx_intended_course (intended_course_id),
     KEY idx_source (source),
     KEY idx_last_visit (last_visit_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='在学学员表';
@@ -481,12 +490,13 @@ CREATE TABLE edu_prospect (
     birth_date            DATE                                     COMMENT '出生日期',
     grade                 VARCHAR(20)                              COMMENT '年级编码',
     school                VARCHAR(50)     DEFAULT ''               COMMENT '就读学校',
-    mobile                VARCHAR(20)     NOT NULL                 COMMENT '联系电话',
+    mobile                VARCHAR(20)     DEFAULT NULL             COMMENT '联系电话',
     parent_name           VARCHAR(20)     NOT NULL                 COMMENT '家长姓名',
     parent_relation       VARCHAR(20)     NOT NULL                 COMMENT '亲属关系',
     parent_mobile         VARCHAR(20)     NOT NULL                 COMMENT '家长手机号',
-    wechat_nickname       VARCHAR(50)     DEFAULT ''               COMMENT '微信昵称',
+    wechat_nickname       VARCHAR(50)     DEFAULT NULL             COMMENT '微信昵称',
     intended_course_id    BIGINT                                   COMMENT '意向课程ID',
+    intended_course_name  VARCHAR(100)    DEFAULT NULL             COMMENT '意向课程名称',
     interest_level        VARCHAR(10)     DEFAULT 'MEDIUM'         COMMENT '意向等级(HIGH/MEDIUM/LOW)',
     source                VARCHAR(20)     NOT NULL DEFAULT 'OTHER' COMMENT '来源渠道(DIRECT_MARKETING/REFERRAL/ONLINE/OTHER)',
     counselor_id          BIGINT                                   COMMENT '顾问ID(关联sys_user)',
@@ -501,7 +511,6 @@ CREATE TABLE edu_prospect (
     update_time           DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted               TINYINT          NOT NULL DEFAULT 0                COMMENT '逻辑删除',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_mobile_deleted (mobile, deleted),
     KEY idx_name_mobile (name, mobile),
     KEY idx_follow_status (follow_status),
     KEY idx_counselor_id (counselor_id),
@@ -1354,6 +1363,9 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (8, 0, '教师端',   'M', '/teacher', NULL, 'Teacher', 'user', NULL, 8, 1, 1),
 (9, 0, '工作台',   'C', '/dashboard', 'dashboard/index', 'Dashboard', 'dashboard', 'dashboard:dashboard:view', 1, 1, 1);
 
+-- 工作台禁用 isFrame，避免生成无意义的 Layout 父路由
+UPDATE sys_menu SET is_frame = 0 WHERE id = 9;
+
 -- ---------- 业务模块菜单 ----------
 -- 学员管理
 INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, icon, permission, sort, visible, status) VALUES
@@ -1361,7 +1373,6 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (201, 2, '在读学员', 'C', 'enrolled',  'student/enrolled/index',  'StudentEnrolled',  '#', 'student:enrolled:list',  2, 1, 1),
 (202, 2, '结业学员', 'C', 'completed', 'student/completed/index', 'StudentCompleted', '#', 'student:completed:list', 3, 1, 1),
 (203, 2, '学员学时', 'C', 'hours',     'student/hours/index',     'StudentHours',     '#', 'student:hours:list',     4, 1, 1),
-(204, 2, '学员家长', 'C', 'parents',   'student/parents/index',   'StudentParents',   '#', 'student:parent:list',    5, 1, 1),
 -- 教务管理
 (210, 3, '科目管理', 'C', 'subject',      'course/subject/index',      'CourseSubject',      '#', 'course:subject:list',      1, 1, 1),
 (211, 3, '教室管理', 'C', 'classroom',    'course/classroom/index',    'CourseClassroom',    '#', 'course:classroom:list',    2, 1, 1),
@@ -1560,7 +1571,12 @@ INSERT INTO sys_dict_type (id, name, code, status, remark) VALUES
 (3, '系统是否', 'sys_yes_no',       1, '系统是否列表'),
 (4, '通知类型', 'sys_notice_type',  1, '通知类型列表'),
 (5, '菜单类型', 'sys_menu_type',    1, '菜单类型列表'),
-(6, '显示状态', 'sys_show_hide',    1, '显示状态列表');
+(6, '显示状态', 'sys_show_hide',    1, '显示状态列表'),
+(7, '来源渠道', 'student_source',   1, '意向学员来源渠道'),
+(8, '意向等级', 'interest_level',   1, '意向学员意向等级'),
+(9, '跟进状态', 'prospect_follow_status', 1, '意向学员跟进状态'),
+(10, '亲属关系', 'parent_relation', 1, '家长亲属关系'),
+(11, '学员状态', 'student_status', 1, '在学学员状态');
 
 -- ---------- 字典数据 ----------
 INSERT INTO sys_dict_data (type_code, label, value, sort, is_default, status) VALUES
@@ -1577,7 +1593,33 @@ INSERT INTO sys_dict_data (type_code, label, value, sort, is_default, status) VA
 ('sys_menu_type', '菜单', 'C', 2, 0, 1),
 ('sys_menu_type', '按钮', 'F', 3, 0, 1),
 ('sys_show_hide', '显示', '1', 1, 1, 1),
-('sys_show_hide', '隐藏', '0', 2, 0, 1);
+('sys_show_hide', '隐藏', '0', 2, 0, 1),
+-- 意向学员相关字典
+('student_source', '地推', 'DIRECT_MARKETING', 1, 0, 1),
+('student_source', '转介绍', 'REFERRAL', 2, 0, 1),
+('student_source', '线上', 'ONLINE', 3, 1, 1),
+('student_source', '其他', 'OTHER', 4, 0, 1),
+('interest_level', '高', 'HIGH', 1, 0, 1),
+('interest_level', '中', 'MEDIUM', 2, 1, 1),
+('interest_level', '低', 'LOW', 3, 0, 1),
+('prospect_follow_status', '新线索', 'NEW', 1, 1, 1),
+('prospect_follow_status', '已联系', 'CONTACTED', 2, 0, 1),
+('prospect_follow_status', '已试听', 'TRIAL', 3, 0, 1),
+('prospect_follow_status', '已转化', 'CONVERTED', 4, 0, 1),
+('prospect_follow_status', '已流失', 'LOST', 5, 0, 1),
+('parent_relation', '本人', 'SELF', 0, 0, 1),
+('parent_relation', '父亲', 'FATHER', 1, 0, 1),
+('parent_relation', '母亲', 'MOTHER', 2, 0, 1),
+('parent_relation', '爷爷', 'GRANDFATHER', 3, 0, 1),
+('parent_relation', '奶奶', 'GRANDMOTHER', 4, 0, 1),
+('parent_relation', '外公', 'GRANDFATHER_M', 5, 0, 1),
+('parent_relation', '外婆', 'GRANDMOTHER_M', 6, 0, 1),
+('parent_relation', '其他', 'OTHER', 7, 0, 1),
+-- 学员状态
+('student_status', '在读', 'ENROLLED', 1, 1, 1),
+('student_status', '停课', 'SUSPENDED', 2, 0, 1),
+('student_status', '结业', 'COMPLETED', 3, 0, 1),
+('student_status', '流失', 'LOST', 4, 0, 1);
 
 -- ---------- 系统参数 ----------
 INSERT INTO sys_config (name, `key`, `value`, type, remark) VALUES
@@ -1586,3 +1628,18 @@ INSERT INTO sys_config (name, `key`, `value`, type, remark) VALUES
 ('系统描述',       'sys.system.description',  '在线教育课程展示与交易平台', 'Y', '系统描述'),
 ('账号最大重试次数', 'sys.account.maxRetryCount', '5', 'Y', '登录失败锁定阈值'),
 ('账号锁定时间(分)', 'sys.account.lockTime',      '10', 'Y', '登录失败锁定时长');
+
+-- =====================================================
+-- Migration: 排课规则 1:1 → 1:N 改造
+-- 执行日期: 2026-07-25
+-- 说明: 将 week_days(逗号分隔多日) 改为 week_day(单日)，去掉 UNIQUE 约束，支持一个班级多条规则
+-- =====================================================
+ALTER TABLE edu_class_schedule_rule
+    DROP INDEX uk_class_id,
+    CHANGE COLUMN week_days week_day INT NOT NULL COMMENT '上课日(1=周一, 7=周日)',
+    ADD INDEX idx_class_id (class_id);
+
+ALTER TABLE edu_class_schedule_rule
+    ADD COLUMN rule_type VARCHAR(20) NOT NULL DEFAULT 'WEEKLY' COMMENT '规则类型(WEEKLY=每周, SPECIFIC=指定日期)' AFTER class_id,
+    ADD COLUMN schedule_date DATE NULL COMMENT '上课日期(ruleType=SPECIFIC时使用)' AFTER week_day,
+    MODIFY COLUMN week_day INT NULL COMMENT '上课日(ruleType=WEEKLY时使用, 1=周一, 7=周日)';

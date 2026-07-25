@@ -8,7 +8,7 @@
   <div class="page-container">
     <div class="image-section">
       <div class="logo">
-        <img src="@assets/logo/logo.svg" alt="" />
+        <!-- <img src="@assets/logo/logo.svg" alt="" /> -->
       </div>
     </div>
     <div class="content-section">
@@ -79,7 +79,7 @@ const doLogin = async () => {
       setToken(data.accessToken);
       if (data.refreshToken) setRefreshToken(data.refreshToken);
       await useUserStore().loadUserInfo();
-      router.push("/");
+      router.push("/dashboard");
     } else {
       ElMessage.error(res?.message || "登录失败");
     }

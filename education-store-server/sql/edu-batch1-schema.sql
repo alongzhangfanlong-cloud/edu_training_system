@@ -95,6 +95,13 @@ CREATE TABLE edu_student (
     school            VARCHAR(50)     DEFAULT ''               COMMENT '就读学校',
     mobile            VARCHAR(20)     NOT NULL                 COMMENT '手机号',
     counselor_id      BIGINT                                   COMMENT '顾问ID(关联sys_user)',
+    parent_name       VARCHAR(20)     DEFAULT NULL             COMMENT '家长姓名',
+    parent_relation   VARCHAR(20)     DEFAULT NULL             COMMENT '亲属关系(FATHER/MOTHER/GRANDFATHER/GRANDMOTHER/GRANDFATHER_M/GRANDMOTHER_M/OTHER)',
+    parent_mobile     VARCHAR(20)     DEFAULT NULL             COMMENT '家长手机号',
+    parent_id         BIGINT          DEFAULT NULL             COMMENT '家长用户ID(关联sys_user，用于微信通知)',
+    wechat_nickname   VARCHAR(50)     DEFAULT NULL             COMMENT '微信昵称',
+    intended_course_id   BIGINT         DEFAULT NULL             COMMENT '报名课程ID → edu_course.id',
+    intended_course_name VARCHAR(100)   DEFAULT NULL             COMMENT '报名课程名称',
     source            VARCHAR(20)                              COMMENT '来源渠道(DIRECT_MARKETING/REFERRAL/ONLINE/OTHER)',
     tags              VARCHAR(255)    DEFAULT ''               COMMENT '标签(逗号分隔)',
     status            VARCHAR(20)     NOT NULL DEFAULT 'ENROLLED' COMMENT '状态(ENROLLED/SUSPENDED/COMPLETED/LOST)',
@@ -114,6 +121,8 @@ CREATE TABLE edu_student (
     KEY idx_grade (grade),
     KEY idx_status (status),
     KEY idx_counselor_id (counselor_id),
+    KEY idx_parent_id (parent_id),
+    KEY idx_intended_course (intended_course_id),
     KEY idx_source (source),
     KEY idx_last_visit (last_visit_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='在学学员表';
@@ -252,12 +261,13 @@ CREATE TABLE edu_prospect (
     birth_date            DATE                                     COMMENT '出生日期',
     grade                 VARCHAR(20)                              COMMENT '年级编码',
     school                VARCHAR(50)     DEFAULT ''               COMMENT '就读学校',
-    mobile                VARCHAR(20)     NOT NULL                 COMMENT '联系电话',
+    mobile                VARCHAR(20)     DEFAULT NULL             COMMENT '联系电话',
     parent_name           VARCHAR(20)     NOT NULL                 COMMENT '家长姓名',
     parent_relation       VARCHAR(20)     NOT NULL                 COMMENT '亲属关系',
     parent_mobile         VARCHAR(20)     NOT NULL                 COMMENT '家长手机号',
-    wechat_nickname       VARCHAR(50)     DEFAULT ''               COMMENT '微信昵称',
+    wechat_nickname       VARCHAR(50)     DEFAULT NULL             COMMENT '微信昵称',
     intended_course_id    BIGINT                                   COMMENT '意向课程ID',
+    intended_course_name  VARCHAR(100)    DEFAULT NULL             COMMENT '意向课程名称',
     interest_level        VARCHAR(10)     DEFAULT 'MEDIUM'         COMMENT '意向等级(HIGH/MEDIUM/LOW)',
     source                VARCHAR(20)     NOT NULL DEFAULT 'OTHER' COMMENT '来源渠道(DIRECT_MARKETING/REFERRAL/ONLINE/OTHER)',
     counselor_id          BIGINT                                   COMMENT '顾问ID(关联sys_user)',
@@ -272,7 +282,6 @@ CREATE TABLE edu_prospect (
     update_time           DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted               TINYINT          NOT NULL DEFAULT 0                COMMENT '逻辑删除',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_mobile_deleted (mobile, deleted),
     KEY idx_name_mobile (name, mobile),
     KEY idx_follow_status (follow_status),
     KEY idx_counselor_id (counselor_id),
@@ -359,3 +368,18 @@ SET FOREIGN_KEY_CHECKS = 1;
 --   N02(意向) ←── edu_prospect.intended_course_id ──→ N03(课程)
 --   N02(学员) ←── edu_student_hours_log.enrollment_id ──→ N06(报名, Batch 2)
 -- =====================================================
+
+-- =====================================================
+-- Migration: 排课规则 1:1 → 1:N 改造
+-- 执行日期: 2026-07-25
+-- 说明: 将 week_days(逗号分隔多日) 改为 week_day(单日)，去掉 UNIQUE 约束，支持一个班级多条规则
+-- =====================================================
+ALTER TABLE edu_class_schedule_rule
+    DROP INDEX uk_class_id,
+    CHANGE COLUMN week_days week_day INT NOT NULL COMMENT '上课日(1=周一, 7=周日)',
+    ADD INDEX idx_class_id (class_id);
+
+ALTER TABLE edu_class_schedule_rule
+    ADD COLUMN rule_type VARCHAR(20) NOT NULL DEFAULT 'WEEKLY' COMMENT '规则类型(WEEKLY=每周, SPECIFIC=指定日期)' AFTER class_id,
+    ADD COLUMN schedule_date DATE NULL COMMENT '上课日期(ruleType=SPECIFIC时使用)' AFTER week_day,
+    MODIFY COLUMN week_day INT NULL COMMENT '上课日(ruleType=WEEKLY时使用, 1=周一, 7=周日)';

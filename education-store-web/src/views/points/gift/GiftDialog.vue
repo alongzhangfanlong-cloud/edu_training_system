@@ -118,7 +118,9 @@ const form = ref({
 
 const fileList = computed(() => {
   if (form.value.imageUrl && !removedImage.value) {
-    return [{ name: '礼品图片', url: form.value.imageUrl }];
+    // 兼容旧数据：/api/v1/files/ → /upload/ 用于内联图片显示
+    const url = form.value.imageUrl.replace('/api/v1/files/', '/upload/');
+    return [{ name: '礼品图片', url }];
   }
   return [];
 });
@@ -162,7 +164,7 @@ async function handleUpload({ file }) {
       uploadPercent.value = 100;
       // 后端返回 { fileName, filePath, fileSize, fileType, storedName }
       const fp = typeof res.data === 'string' ? res.data : (res.data.filePath || res.data.url || '');
-      form.value.imageUrl = fp ? `/api/v1/files/${fp}` : '';
+      form.value.imageUrl = fp ? `/upload/${fp}` : '';
       removedImage.value = false;
       formRef.value?.validateField('imageUrl');
     } else {

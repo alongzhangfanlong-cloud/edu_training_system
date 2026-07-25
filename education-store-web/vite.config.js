@@ -37,6 +37,11 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_TARGET,
           changeOrigin: true,
           rewrite: path => path.replace(new RegExp(`^${env.VITE_API_PREFIX}`), "")
+        },
+        // 上传文件静态资源 — 直接转发到后端（路径不变）
+        "/upload": {
+          target: env.VITE_API_TARGET,
+          changeOrigin: true
         }
       }
     },

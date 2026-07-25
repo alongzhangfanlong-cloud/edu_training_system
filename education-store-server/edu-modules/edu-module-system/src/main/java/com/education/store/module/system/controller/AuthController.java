@@ -32,7 +32,6 @@ public class AuthController {
     private final StringRedisTemplate stringRedisTemplate;
 
     @Operation(summary = "用户名密码登录")
-    @com.education.store.common.annotation.Log(title = "用户登录", businessType = BusinessType.OTHER)
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
         LoginVO vo = userService.login(loginDTO);
@@ -55,7 +54,6 @@ public class AuthController {
     }
 
     @Operation(summary = "微信小程序手机号绑定登录")
-    @com.education.store.common.annotation.Log(title = "微信绑定", businessType = BusinessType.OTHER)
     @PostMapping("/wechat-bind")
     public Result<LoginVO> wechatBind(@Valid @RequestBody WechatBindDTO dto) {
         LoginVO vo = userService.wechatBind(dto.getCode(), dto.getEncryptedPhone(), dto.getIv());

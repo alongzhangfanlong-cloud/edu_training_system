@@ -12,8 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
- * 班级排课规则控制器
+ * 班级排课规则控制器（1:N，支持多条规则）
  */
 @Tag(name = "排课规则")
 @RestController
@@ -23,33 +25,20 @@ public class EduClassScheduleRuleController {
 
     private final IEduClassScheduleRuleService scheduleRuleService;
 
-    @Operation(summary = "查询排课规则")
+    @Operation(summary = "查询排课规则列表")
     @PreAuthorize("@ss.hasPermi('class:class:query')")
     @GetMapping
-    public Result<EduClassScheduleRule> get(@PathVariable Long classId) {
+    public Result<List<EduClassScheduleRule>> list(@PathVariable Long classId) {
         return Result.success(scheduleRuleService.selectByClassId(classId));
     }
 
-    @Operation(summary = "设置排课规则")
-    @Log(title = "排课规则", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('class:class:edit')")
-    @PostMapping
-    public Result<Void> create(@PathVariable Long classId,
-                               @Valid @RequestBody EduClassScheduleRule rule) {
-        rule.setClassId(classId);
-        scheduleRuleService.insertRule(rule);
-        return Result.success();
-    }
-
-    @Operation(summary = "更新排课规则")
+    @Operation(summary = "批量保存排课规则（覆盖式，先删后插）")
     @Log(title = "排课规则", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('class:class:edit')")
-    @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long classId, @PathVariable Long id,
-                               @Valid @RequestBody EduClassScheduleRule rule) {
-        rule.setId(id);
-        rule.setClassId(classId);
-        scheduleRuleService.updateRule(rule);
+    @PutMapping
+    public Result<Void> batchSave(@PathVariable Long classId,
+                                   @Valid @RequestBody List<EduClassScheduleRule> rules) {
+        scheduleRuleService.batchSave(classId, rules);
         return Result.success();
     }
 

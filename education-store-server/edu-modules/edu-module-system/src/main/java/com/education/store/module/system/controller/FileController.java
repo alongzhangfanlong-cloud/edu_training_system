@@ -3,6 +3,7 @@ package com.education.store.module.system.controller;
 import com.education.store.common.model.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -42,6 +43,15 @@ public class FileController {
 
     @Value("${edu.upload-path:upload}")
     private String uploadPath;
+
+    /**
+     * 将相对路径的上传目录解析为绝对路径，避免因 Tomcat/JVM 工作目录变化导致文件写入错误位置
+     */
+    @PostConstruct
+    private void resolveUploadPath() {
+        Path absolute = Paths.get(uploadPath).toAbsolutePath().normalize();
+        this.uploadPath = absolute.toString();
+    }
 
     @Operation(summary = "文件上传")
     @PreAuthorize("isAuthenticated()")

@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -58,4 +59,12 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     /** 根据用户名查询用户 */
     @Select("SELECT * FROM sys_user WHERE username = #{username} AND deleted = 0")
     SysUser selectUserByUsername(@Param("username") String username);
+
+    /** 查询拥有指定角色的所有启用用户（用于下拉选项） */
+    @Select("SELECT u.id AS userId, u.real_name AS realName FROM sys_user u " +
+            "INNER JOIN sys_user_role ur ON u.id = ur.user_id " +
+            "INNER JOIN sys_role r ON ur.role_id = r.id " +
+            "WHERE r.code = #{roleCode} AND u.deleted = 0 AND u.status = 1 " +
+            "ORDER BY u.real_name")
+    List<Map<String, Object>> selectUsersByRoleCode(@Param("roleCode") String roleCode);
 }

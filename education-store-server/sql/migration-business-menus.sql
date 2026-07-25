@@ -38,6 +38,9 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, icon, permission, sort, visible, status) VALUES
 (9, 0, '工作台', 'C', '/dashboard', 'dashboard/index', 'Dashboard', 'dashboard', 'dashboard:dashboard:view', 1, 1, 1);
 
+-- 工作台禁用 isFrame，避免生成无意义的 Layout 父路由
+UPDATE sys_menu SET is_frame = 0 WHERE id = 9;
+
 -- ============================================================
 -- 第三部分：业务模块菜单 (C, parent_id=各目录ID)
 -- ============================================================
@@ -47,8 +50,7 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, ic
 (200, 2, '意向学员', 'C', 'prospect',  'student/prospect/index',  'StudentProspect',  '#', 'student:prospect:list',  1, 1, 1),
 (201, 2, '在读学员', 'C', 'enrolled',  'student/enrolled/index',  'StudentEnrolled',  '#', 'student:enrolled:list',  2, 1, 1),
 (202, 2, '结业学员', 'C', 'completed', 'student/completed/index', 'StudentCompleted', '#', 'student:completed:list', 3, 1, 1),
-(203, 2, '学员学时', 'C', 'hours',     'student/hours/index',     'StudentHours',     '#', 'student:hours:list',     4, 1, 1),
-(204, 2, '学员家长', 'C', 'parents',   'student/parents/index',   'StudentParents',   '#', 'student:parent:list',    5, 1, 1);
+(203, 2, '学员学时', 'C', 'hours',     'student/hours/index',     'StudentHours',     '#', 'student:hours:list',     4, 1, 1);
 
 -- ---------- 教务管理 (parent_id=3) ----------
 INSERT INTO sys_menu (id, parent_id, name, type, path, component, route_name, icon, permission, sort, visible, status) VALUES

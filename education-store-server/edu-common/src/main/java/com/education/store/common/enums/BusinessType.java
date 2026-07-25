@@ -12,6 +12,7 @@ public enum BusinessType {
     IMPORT("导入"),
     FORCE("强退"),
     CLEAN("清空"),
+    LOGIN("登录"),
     OTHER("其他");
 
     private final String label;

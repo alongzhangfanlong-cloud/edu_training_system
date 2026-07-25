@@ -1,5 +1,6 @@
 package com.education.store.module.prospect.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import lombok.Data;
@@ -78,4 +79,13 @@ public class EduProspect extends BaseEntity {
 
     /** 更新者 */
     private String updateBy;
+
+    // ===== 以下为展示用 transient 字段，不映射数据库 =====
+
+    /** 顾问姓名（关联 sys_user.real_name） */
+    @TableField(exist = false)
+    private String counselorName;
+
+    /** 意向课程名称（用户填写的文本，若有关联课程ID则由 fillNames 覆盖为实际课程名） */
+    private String intendedCourseName;
 }

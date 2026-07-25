@@ -6,9 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
 import com.education.store.module.classinfo.entity.EduClass;
-import com.education.store.module.classinfo.entity.EduClassScheduleRule;
 import com.education.store.module.classinfo.mapper.EduClassMapper;
-import com.education.store.module.classinfo.mapper.EduClassScheduleRuleMapper;
 import com.education.store.module.classinfo.service.IEduClassService;
 import com.education.store.module.course.entity.EduCourse;
 import com.education.store.module.course.mapper.EduCourseMapper;
@@ -31,7 +29,6 @@ public class EduClassServiceImpl extends ServiceImpl<EduClassMapper, EduClass>
         implements IEduClassService {
 
     private final EduClassMapper classMapper;
-    private final EduClassScheduleRuleMapper scheduleRuleMapper;
     private final EduCourseMapper courseMapper;
 
     @Override
@@ -86,13 +83,6 @@ public class EduClassServiceImpl extends ServiceImpl<EduClassMapper, EduClass>
 
         // 4. 插入班级
         int rows = classMapper.insert(clazz);
-
-        // 5. 同步创建排课规则（1:1）
-        EduClassScheduleRule rule = new EduClassScheduleRule();
-        rule.setClassId(clazz.getId());
-        rule.setWeekDays("1,3,5"); // 默认周一三五
-        rule.setDuration(45);
-        scheduleRuleMapper.insert(rule);
 
         return rows;
     }

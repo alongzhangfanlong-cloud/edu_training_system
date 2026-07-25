@@ -71,7 +71,8 @@ public class EduProspectController {
     @PreAuthorize("@ss.hasPermi('student:prospect:add')")
     @PostMapping
     public Result<Void> create(@Valid @RequestBody EduProspect prospect) {
-        if (!prospectService.checkMobileUnique(prospect)) {
+        if (prospect.getMobile() != null && !prospect.getMobile().isBlank()
+                && !prospectService.checkMobileUnique(prospect)) {
             return Result.error("手机号已被使用");
         }
         prospectService.insertProspect(prospect);
@@ -86,7 +87,8 @@ public class EduProspectController {
         if (prospect.getId() == null) {
             return Result.badRequest("ID不能为空");
         }
-        if (!prospectService.checkMobileUnique(prospect)) {
+        if (prospect.getMobile() != null && !prospect.getMobile().isBlank()
+                && !prospectService.checkMobileUnique(prospect)) {
             return Result.error("手机号已被使用");
         }
         prospectService.updateProspect(prospect);
