@@ -33,6 +33,7 @@
       <el-table-column label="班级" align="center" prop="className" min-width="120" />
       <el-table-column label="课程" align="center" prop="courseName" width="100" />
       <el-table-column label="教师" align="center" prop="teacherName" width="80" />
+      <el-table-column label="教室" align="center" prop="roomName" width="100" />
       <el-table-column label="开始日期" align="center" prop="startDate" width="110" />
       <el-table-column label="结束日期" align="center" prop="endDate" width="110" />
       <el-table-column label="计划课次" align="center" prop="plannedSessions" width="90" />
@@ -108,8 +109,8 @@
       </template>
     </el-dialog>
 
-    <el-dialog :model-value="open" :title="title" width="550px" destroy-on-close append-to-body @open="onOpen" @update:model-value="(val) => open = val">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+    <el-dialog :model-value="open" :title="title" width="660px" destroy-on-close append-to-body @open="onOpen" @update:model-value="(val) => open = val">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
         <el-form-item label="班级" prop="classId">
           <el-select v-model="form.classId" placeholder="请选择班级" style="width:100%" :disabled="!!currentId">
             <el-option v-for="c in classOptions" :key="c.id" :label="c.name" :value="c.id" />
@@ -127,12 +128,47 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="上课时间" prop="timeSlot">
-          <el-input v-model="form.timeSlot" placeholder="如：每周一、三 09:00-10:30" />
+        <el-form-item label="教室">
+          <el-select v-model="form.roomId" placeholder="请选择教室（可选，默认使用班级教室）" style="width:100%" clearable>
+            <el-option v-for="r in roomOptions" :key="r.id" :label="r.name" :value="r.id" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="计划课次">
-          <el-input-number v-model="form.plannedSessions" :min="1" style="width:100%" />
-        </el-form-item>
+        <!-- 上课规则 -->
+        <el-divider content-position="left">上课规则</el-divider>
+        <div class="rule-list">
+          <div v-for="(rule, index) in form.rules" :key="index" class="rule-item">
+            <div class="rule-item-head">
+              <span class="rule-item-num">规则 {{ index + 1 }}</span>
+              <el-button type="danger" link size="small" @click="removeRule(index)">删除</el-button>
+            </div>
+            <el-row :gutter="10">
+              <el-col :span="10">
+                <el-select v-model="rule.ruleType" size="small" style="width:100%">
+                  <el-option label="每周" value="WEEKLY" />
+                  <el-option label="指定日期" value="SPECIFIC" />
+                </el-select>
+              </el-col>
+              <el-col :span="14">
+                <el-select v-if="rule.ruleType === 'WEEKLY'" v-model="rule.weekDay" size="small" placeholder="选择星期" style="width:100%">
+                  <el-option v-for="d in weekDayOptions" :key="d.value" :label="d.label" :value="d.value" />
+                </el-select>
+                <el-date-picker v-else v-model="rule.scheduleDate" type="date" size="small" style="width:100%" value-format="YYYY-MM-DD" placeholder="选择日期" />
+              </el-col>
+            </el-row>
+            <el-row :gutter="10" style="margin-top: 6px">
+              <el-col :span="10">
+                <el-time-picker v-model="rule.startTime" size="small" style="width:100%" format="HH:mm" value-format="HH:mm" placeholder="开始时间" />
+              </el-col>
+              <el-col :span="4" class="rule-time-sep">至</el-col>
+              <el-col :span="10">
+                <el-time-picker v-model="rule.endTime" size="small" style="width:100%" format="HH:mm" value-format="HH:mm" placeholder="结束时间" />
+              </el-col>
+            </el-row>
+            <div v-if="ruleDuration(rule)" class="rule-duration">{{ ruleDuration(rule) }}</div>
+          </div>
+          <div v-if="form.rules.length === 0" class="rule-empty">暂未添加上课规则</div>
+        </div>
+        <el-button class="add-rule-btn" size="small" @click="addRule"><el-icon><Plus /></el-icon>添加规则</el-button>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" />
         </el-form-item>
@@ -150,7 +186,9 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue';
 import { listSchedulePlan, getSchedulePlan, addSchedulePlan, updateSchedulePlan, delSchedulePlan, previewSchedulePlan, regenerateSchedulePlan } from '@/api/schedule/schedulePlans';
+import { getPlanRules, savePlanRules } from '@/api/schedule/schedulePlans';
 import { listClass } from '@/api/class/classes';
+import { listClassroom } from '@/api/course/classrooms';
 import { useDictsStore } from '@/stores/dicts';
 import RightToolbar from '@/components/RightToolbar/index.vue';
 import Pagination from '@/components/Pagination/index.vue';
@@ -162,16 +200,92 @@ const list = ref([]); const total = ref(0); const error = ref('');
 const selectedIds = ref([]);
 const multiple = computed(() => selectedIds.value.length === 0);
 const classOptions = ref([]);
+const roomOptions = ref([]);
 const queryParams = ref({ page: 1, size: 10, classId: '' });
 const open = ref(false); const title = ref(''); const currentId = ref(null);
 const formRef = ref(null); const submitting = ref(false);
-const form = ref({ classId: null, startDate: '', endDate: '', timeSlot: '', plannedSessions: 1, remark: '' });
-const rules = {
+const form = ref({ classId: null, startDate: '', endDate: '', roomId: null, rules: [], remark: '' });
+const weekDayOptions = [
+  { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
+  { value: 4, label: '周四' }, { value: 5, label: '周五' }, { value: 6, label: '周六' }, { value: 7, label: '周日' },
+];
+const formRules = {
   classId: [{ required: true, message: '请选择班级', trigger: 'change' }],
   startDate: [{ required: true, message: '请选择开始日期', trigger: 'change' }],
   endDate: [{ required: true, message: '请选择结束日期', trigger: 'change' }],
 };
 let querySeq = 0;
+
+// ===== 规则管理 =====
+function addRule() {
+  form.value.rules.push({ ruleType: 'WEEKLY', weekDay: null, scheduleDate: '', startTime: '', endTime: '' });
+}
+function removeRule(index) { form.value.rules.splice(index, 1); }
+
+function ruleDuration(rule) {
+  const mins = calcDuration(rule.startTime, rule.endTime);
+  if (!mins || mins <= 0) return '';
+  if (mins < 60) return `${mins}分钟`;
+  const h = Math.floor(mins / 60); const m = mins % 60;
+  return m > 0 ? `${h}小时${m}分钟` : `${h}小时`;
+}
+function calcDuration(startTime, endTime) {
+  if (!startTime || !endTime) return null;
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  return mins > 0 ? mins : null;
+}
+
+async function onOpen() {
+  reset(); loadClasses(); loadRooms(); await loadDict('schedule_plan_status');
+  if (currentId.value) {
+    const res = await getSchedulePlan(currentId.value);
+    if (res.success && res.data) {
+      const p = res.data.data || res.data;
+      form.value = { classId: p.classId, startDate: p.startDate || '', endDate: p.endDate || '', roomId: p.roomId || null, rules: [], remark: p.remark || '' };
+      // 加载已有规则
+      try {
+        const rr = await getPlanRules(currentId.value);
+        if (rr.success && rr.data) {
+          form.value.rules = rr.data.map(r => ({ id: r.id, ruleType: r.ruleType || 'WEEKLY', weekDay: r.weekDay, scheduleDate: r.scheduleDate || '', startTime: r.startTime || '', endTime: r.endTime || '' }));
+        }
+      } catch { /* 静默 */ }
+    }
+  }
+}
+function reset() { form.value = { classId: null, startDate: '', endDate: '', roomId: null, rules: [], remark: '' }; nextTick(() => formRef.value?.clearValidate()); }
+
+async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false); if (!valid) return;
+  submitting.value = true;
+  try {
+    const data = { ...form.value }; const rules = data.rules || []; delete data.rules;
+    let res;
+    if (currentId.value) {
+      res = await updateSchedulePlan({ id: currentId.value, classId: data.classId, startDate: data.startDate, endDate: data.endDate, roomId: data.roomId, remark: data.remark });
+      if (res.success) {
+        await savePlanRules(currentId.value, rules.map(r => {
+          const d = calcDuration(r.startTime, r.endTime);
+          return { ruleType: r.ruleType || 'WEEKLY', weekDay: r.ruleType === 'WEEKLY' ? r.weekDay : null, scheduleDate: r.ruleType === 'SPECIFIC' ? r.scheduleDate : null, startTime: r.startTime || null, endTime: r.endTime || null, duration: d || 45 };
+        }));
+      }
+    } else {
+      res = await addSchedulePlan(data);
+      if (res.success) {
+        const planId = res.data?.id || res.data?.data?.id;
+        if (planId) {
+          await savePlanRules(planId, rules.map(r => {
+            const d = calcDuration(r.startTime, r.endTime);
+            return { ruleType: r.ruleType || 'WEEKLY', weekDay: r.ruleType === 'WEEKLY' ? r.weekDay : null, scheduleDate: r.ruleType === 'SPECIFIC' ? r.scheduleDate : null, startTime: r.startTime || null, endTime: r.endTime || null, duration: d || 45 };
+          }));
+        }
+      }
+    }
+    if (res.success) { ElMessage.success(currentId.value ? '修改成功' : '新增成功'); open.value = false; getList(); }
+    else { ElMessage.error(res.msg || '操作失败'); }
+  } finally { submitting.value = false; }
+}
 
 function getList() {
   loading.value = true; querySeq++; const seq = querySeq;
@@ -184,6 +298,7 @@ function getList() {
   .finally(() => { if (seq === querySeq) loading.value = false; });
 }
 function loadClasses() { listClass({ page: 1, size: 999 }).then(res => { if (res.success) classOptions.value = res.data?.records || res.rows || []; }); }
+function loadRooms() { listClassroom({ page: 1, size: 999 }).then(res => { if (res.success) roomOptions.value = res.data?.records || res.rows || []; }); }
 function handleQuery() { queryParams.value.page = 1; getList(); }
 function resetQuery() { queryParams.value = { page: 1, size: 10, classId: '' }; getList(); }
 function handleAdd() { title.value = '新增排课计划'; currentId.value = null; open.value = true; }
@@ -218,11 +333,12 @@ async function loadPreview() {
     const p = plan.data.data || plan.data;
     // 构建预览请求数据
     const dto = {
-      classIds: parseClassIds(p.classIds),
+      classId: p.classId,
       startDate: p.startDate,
       endDate: p.endDate,
+      roomId: p.roomId || null,
       // 默认周一，默认 09:00-10:30
-      weekDays: p.weekDays ? parseClassIds(p.weekDays) : [1],
+      weekDays: p.weekDays || [1],
       startTime: '09:00:00',
       endTime: '10:30:00',
     };
@@ -231,15 +347,6 @@ async function loadPreview() {
     else { ElMessage.error(res.msg || '预览失败'); previewOpen.value = false; }
   } catch { ElMessage.error('预览请求失败'); previewOpen.value = false; }
   finally { previewLoading.value = false; }
-}
-
-function parseClassIds(val) {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  if (typeof val === 'string') {
-    try { return JSON.parse(val); } catch { return val.replace(/[[\]"]/g, '').split(',').map(Number).filter(Boolean); }
-  }
-  return [];
 }
 
 function handleGenerateAfterPreview() {
@@ -277,32 +384,21 @@ function handleRegenerate(row) {
       else { ElMessage.error(res.msg || '操作失败'); }
     });
 }
-async function onOpen() {
-  reset(); loadClasses(); await loadDict('schedule_plan_status');
-  if (currentId.value) {
-    const res = await getSchedulePlan(currentId.value);
-    if (res.success && res.data) {
-      const p = res.data.data || res.data;
-      form.value = { classId: p.classId || null, startDate: p.startDate || '', endDate: p.endDate || '', timeSlot: p.timeSlot || '', plannedSessions: p.plannedSessions || 1, remark: p.remark || '' };
-    }
-  }
-}
-function reset() { form.value = { classId: null, startDate: '', endDate: '', timeSlot: '', plannedSessions: 1, remark: '' }; nextTick(() => formRef.value?.clearValidate()); }
-async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false); if (!valid) return;
-  submitting.value = true;
-  try {
-    const data = { ...form.value }; let res;
-    if (currentId.value) { data.id = currentId.value; res = await updateSchedulePlan(data); }
-    else { res = await addSchedulePlan(data); }
-    if (res.success) { ElMessage.success(currentId.value ? '修改成功' : '新增成功'); open.value = false; getList(); }
-    else { ElMessage.error(res.msg || '操作失败'); }
-  } finally { submitting.value = false; }
-}
-onMounted(() => { getList(); loadDict('schedule_plan_status'); loadClasses(); });
+onMounted(() => { getList(); loadDict('schedule_plan_status'); loadClasses(); loadRooms(); });
 </script>
 
 <style scoped lang="less">
 .app-container { padding: 16px; }
 .mb8 { margin-bottom: 8px; }
+.rule-list { margin-bottom: 8px; }
+.rule-item {
+  background: #fafafa; border: 1px solid #ebeef5; border-radius: 6px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.rule-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.rule-item-num { font-size: 13px; font-weight: 500; color: #606266; }
+.rule-time-sep { display: flex; align-items: center; justify-content: center; font-size: 13px; color: #909399; }
+.rule-duration { margin-top: 6px; font-size: 12px; color: #67c23a; }
+.rule-empty { text-align: center; color: #c0c4cc; font-size: 13px; padding: 12px 0; }
+.add-rule-btn { width: 100%; border-style: dashed; margin-bottom: 12px; }
 </style>

@@ -7,6 +7,7 @@ import com.education.store.common.enums.BusinessType;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
 import com.education.store.module.schedule.dto.SchedulePlanCreateDTO;
+import com.education.store.module.schedule.dto.SchedulePlanSaveDTO;
 import com.education.store.module.schedule.dto.SchedulePreviewVO;
 import com.education.store.module.schedule.entity.EduSchedulePlan;
 import com.education.store.module.schedule.service.IEduSchedulePlanService;
@@ -53,20 +54,18 @@ public class EduSchedulePlanController {
         return Result.success(planService.previewPlan(dto));
     }
 
-    @Operation(summary = "新增排课计划并生成排课记录")
-    @Log(title = "排课计划", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增排课方案")
+    @Log(title = "排课方案", businessType = BusinessType.INSERT)
     @PreAuthorize("@ss.hasPermi('schedule:plan:add')")
     @PostMapping
-    public Result<EduSchedulePlan> create(@Valid @RequestBody SchedulePlanCreateDTO dto) {
-        // 1. 保存计划
+    public Result<EduSchedulePlan> create(@Valid @RequestBody SchedulePlanSaveDTO dto) {
         EduSchedulePlan plan = new EduSchedulePlan();
-        plan.setClassIds(dto.getClassIds().toString());
+        plan.setClassId(dto.getClassId());
+        plan.setRoomId(dto.getRoomId());
         plan.setStartDate(dto.getStartDate());
         plan.setEndDate(dto.getEndDate());
         plan.setRemark(dto.getRemark());
         planService.insertPlan(plan);
-        // 2. 生成排课记录
-        planService.generateSchedules(plan.getId(), dto);
         return Result.success(plan);
     }
 

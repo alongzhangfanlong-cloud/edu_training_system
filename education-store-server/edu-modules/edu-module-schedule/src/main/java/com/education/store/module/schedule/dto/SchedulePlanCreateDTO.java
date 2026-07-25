@@ -14,9 +14,9 @@ import java.util.List;
 @Data
 public class SchedulePlanCreateDTO {
 
-    /** 关联班级ID列表 */
-    @NotEmpty(message = "班级列表不能为空")
-    private List<Long> classIds;
+    /** 关联班级ID */
+    @NotNull(message = "班级不能为空")
+    private Long classId;
 
     /** 排课起始日期 */
     @NotNull(message = "起始日期不能为空")
