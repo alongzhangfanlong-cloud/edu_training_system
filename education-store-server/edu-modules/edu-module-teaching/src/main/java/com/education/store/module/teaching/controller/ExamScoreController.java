@@ -29,6 +29,7 @@ public class ExamScoreController {
     private final IEduExamScoreService examService;
 
     @Operation(summary = "考试成绩列表")
+    @PreAuthorize("@ss.hasPermi('teaching:exam:list')")
     @GetMapping("/list")
     public Result<PageResult<EduExamScore>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,

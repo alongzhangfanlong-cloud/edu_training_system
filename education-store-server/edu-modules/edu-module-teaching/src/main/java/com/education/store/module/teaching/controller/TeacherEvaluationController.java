@@ -75,7 +75,6 @@ public class TeacherEvaluationController {
     }
 
     @Operation(summary = "教师评价统计（teacherId=0 获取全部教师概览）")
-    @PreAuthorize("@ss.hasPermi('teaching:teacher-evaluation:list')")
     @GetMapping("/stats/teacher/{teacherId}")
     public Result<Map<String, Object>> stats(@PathVariable Long teacherId) {
         if (teacherId == 0) {
