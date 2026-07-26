@@ -34,7 +34,6 @@ public class EduClassController {
     private final IEduClassService classService;
 
     @Operation(summary = "班级列表(分页)")
-    @PreAuthorize("@ss.hasPermi('class:class:list')")
     @GetMapping("/list")
     public Result<PageResult<ClassVO>> list(
             @RequestParam(defaultValue = "1") long page,

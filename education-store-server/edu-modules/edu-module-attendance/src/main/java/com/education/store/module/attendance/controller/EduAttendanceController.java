@@ -26,7 +26,6 @@ public class EduAttendanceController {
     private final IEduAttendanceService attendanceService;
 
     @Operation(summary = "签到记录列表")
-    @PreAuthorize("@ss.hasPermi('attendance:signin:list')")
     @GetMapping("/list")
     public Result<PageResult<EduAttendance>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize, @RequestParam(required = false) Long scheduleId,
