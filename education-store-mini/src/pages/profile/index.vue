@@ -1,29 +1,27 @@
 <template>
   <view class="profile-page">
-    <!-- children list -->
     <view v-if="childrenStore.loading"><loading-skeleton :rows="2" /></view>
     <view v-else-if="!childrenStore.children.length"><empty-state icon="👶" text="暂无关联孩子" /></view>
     <view v-else class="section">
       <view class="section-title">我的孩子</view>
       <view
         v-for="child in childrenStore.children"
-        :key="child.studentId"
+        :key="child.studentId || child.id"
         class="child-card"
-        @click="goChildDetail(child.studentId)"
+        @click="goChildDetail(child.studentId || child.id)"
       >
         <image class="child-avatar" :src="child.avatar || '/static/logo.png'" mode="aspectFill" />
         <view class="child-info">
-          <text class="child-name">{{ child.name }}</text>
-          <text class="child-meta">{{ child.grade || '--' }} · {{ child.school || '--' }}</text>
+          <text class="child-name">{{ child.name || child.studentName }}</text>
+          <text class="child-meta">{{ child.grade || child.className || '--' }} · {{ child.school || '--' }}</text>
           <view class="child-hours">
-            <text>剩余课时：<text class="hours-num">{{ child.remainingHours || 0 }}</text> / {{ child.totalHours || 0 }}</text>
+            <text>剩余课时：<text class="hours-num">{{ child.remainingHours ?? child.remainHours ?? 0 }}</text> / {{ child.totalHours ?? child.total ?? 0 }}</text>
           </view>
         </view>
         <text class="child-arrow">›</text>
       </view>
     </view>
 
-    <!-- quick links -->
     <view class="section">
       <view class="section-title">快捷入口</view>
       <view class="menu-list">
@@ -45,7 +43,6 @@
       </view>
     </view>
 
-    <!-- logout -->
     <view class="section">
       <view class="logout-btn" @click="handleLogout"><text>退出登录</text></view>
     </view>
@@ -53,6 +50,7 @@
 </template>
 
 <script setup>
+import { onShow } from '@dcloudio/uni-app';
 import { useChildrenStore } from '@/stores/children';
 import { useAuthStore } from '@/stores/auth';
 import EmptyState from '@/components/empty-state.vue';
@@ -61,12 +59,18 @@ import LoadingSkeleton from '@/components/loading-skeleton.vue';
 const childrenStore = useChildrenStore();
 const authStore = useAuthStore();
 
+onShow(() => {
+  if (authStore.isLogin && !authStore.isTeacher) {
+    childrenStore.fetchChildren();
+  }
+});
+
 function goChildDetail(studentId) {
   uni.navigateTo({ url: `/pages/profile/child-detail?studentId=${studentId}` });
 }
 
 function goPage(url) {
-  const childId = childrenStore.currentChild?.studentId;
+  const childId = childrenStore.currentChild?.studentId || childrenStore.currentChild?.id;
   uni.navigateTo({ url: childId ? `${url}?studentId=${childId}` : url });
 }
 

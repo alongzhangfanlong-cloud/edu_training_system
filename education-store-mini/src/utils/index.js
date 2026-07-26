@@ -41,3 +41,43 @@ export const STATUS_MAP = {
   leave: { 0: '待审批', 1: '已通过', 2: '已拒绝' },
   attendance: { PRESENT: '出勤', LATE: '迟到', ABSENT: '缺勤', LEAVE: '请假' },
 };
+
+/**
+ * 统一处理分页参数，兼容多种命名格式
+ * 支持: page/current, pageSize/size
+ */
+export function normalizePaginationParams(params = {}) {
+  const { page, current, pageNum, pageSize, size, ...rest } = params;
+  return {
+    page: page || current || pageNum || 1,
+    pageSize: pageSize || size || 10,
+    ...rest,
+  };
+}
+
+/**
+ * 统一解析分页响应数据，兼容多种格式
+ * 支持响应格式: { records, total } / { list, total } / { data, total } / 直接数组
+ */
+export function parsePaginationResponse(res) {
+  if (!res) {
+    return { list: [], total: 0, hasMore: false };
+  }
+  const code = res.code;
+  if (code !== 200 && code !== 0 && code !== '200' && code !== '0') {
+    return { list: [], total: 0, hasMore: false };
+  }
+  const data = res.data;
+  let list = [];
+  let total = 0;
+
+  if (Array.isArray(data)) {
+    list = data;
+    total = data.length;
+  } else if (data) {
+    list = data.records || data.list || data.data || data.rows || [];
+    total = data.total ?? data.totalCount ?? data.count ?? data.totalElements ?? list.length;
+  }
+
+  return { list, total: Number(total) || list.length, hasMore: list.length > 0 };
+}

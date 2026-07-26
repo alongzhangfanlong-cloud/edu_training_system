@@ -3,7 +3,14 @@
     <view class="batch-header">
       <text class="bh-course">{{ courseInfo.courseName }}</text>
       <text class="bh-class">{{ courseInfo.className }}</text>
-      <text class="bh-count">已签 {{ signedCount }} / 应到 {{ students.length }}</text>
+      <view class="bh-stats">
+        <text class="bh-count">已签到 {{ signedCount }} / 应到 {{ students.length }}</text>
+        <view class="bh-detail">
+          <text class="stat-item present">已签到 {{ presentCount }}</text>
+          <text class="stat-item late">迟到 {{ lateCount }}</text>
+          <text class="stat-item absent">缺勤 {{ absentCount }}</text>
+        </view>
+      </view>
     </view>
 
     <view v-if="loading"><loading-skeleton :rows="4" /></view>
@@ -35,7 +42,7 @@ import EmptyState from '@/components/empty-state.vue';
 import LoadingSkeleton from '@/components/loading-skeleton.vue';
 
 const STATUSES = ['PRESENT', 'LATE', 'ABSENT'];
-const STATUS_LABELS = { PRESENT: '到校', LATE: '迟到', ABSENT: '缺勤' };
+const STATUS_LABELS = { PRESENT: '已签到', LATE: '迟到', ABSENT: '缺勤' };
 const STATUS_COLORS = { PRESENT: 'tag-green', LATE: 'tag-orange', ABSENT: 'tag-red' };
 
 let scheduleId = null;
@@ -66,7 +73,10 @@ async function loadStudents() {
   finally { loading.value = false; }
 }
 
-const signedCount = computed(() => students.value.length);
+const presentCount = computed(() => students.value.filter(s => s._status === 'PRESENT').length);
+const lateCount = computed(() => students.value.filter(s => s._status === 'LATE').length);
+const absentCount = computed(() => students.value.filter(s => s._status === 'ABSENT').length);
+const signedCount = presentCount;
 
 function cycleStatus(s) {
   const idx = STATUSES.indexOf(s._status);
@@ -111,7 +121,13 @@ async function handleSubmit() {
 .batch-header { padding: 24rpx; background: #fff; margin-bottom: 16rpx; }
 .bh-course { font-size: 34rpx; font-weight: 700; color: #303133; display: block; }
 .bh-class { font-size: 26rpx; color: #606266; margin-top: 4rpx; display: block; }
-.bh-count { font-size: 24rpx; color: #409eff; margin-top: 8rpx; display: block; }
+.bh-stats { margin-top: 12rpx; }
+.bh-count { font-size: 26rpx; color: #409eff; font-weight: 600; display: block; }
+.bh-detail { display: flex; gap: 24rpx; margin-top: 12rpx; flex-wrap: wrap; }
+.stat-item { font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
+.stat-item.present { background: #f0f9eb; color: #67c23a; }
+.stat-item.late { background: #fdf6ec; color: #e6a23c; }
+.stat-item.absent { background: #fef0f0; color: #f56c6c; }
 
 .student-list { padding: 0 24rpx; }
 .student-row { display: flex; justify-content: space-between; align-items: center; padding: 24rpx; background: #fff; border-radius: 12rpx; margin-bottom: 8rpx; }

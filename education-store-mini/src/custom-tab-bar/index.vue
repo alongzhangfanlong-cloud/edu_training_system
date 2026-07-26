@@ -59,7 +59,7 @@ function updateCurrentIndex() {
 
 function switchTab(tab, index) {
   currentIndex.value = index;
-  uni.switchTab({ url: tab.pagePath });
+  uni.reLaunch({ url: tab.pagePath });
 }
 </script>
 

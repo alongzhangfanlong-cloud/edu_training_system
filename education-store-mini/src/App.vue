@@ -1,17 +1,47 @@
 <script setup>
-import { onLaunch } from '@dcloudio/uni-app';
+import { onLaunch, onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores/auth';
 import { useChildrenStore } from '@/stores/children';
 
+let appInitialized = false;
+
+async function initAppData() {
+  const authStore = useAuthStore();
+  const isAuthed = authStore.checkAuth();
+
+  if (!isAuthed) {
+    const pages = getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    if (!currentPage || currentPage.route !== 'pages/login/index') {
+      uni.reLaunch({ url: '/pages/login/index' });
+    }
+    return;
+  }
+
+  if (authStore.isTeacher) {
+    return;
+  }
+
+  const childrenStore = useChildrenStore();
+  if (childrenStore.children.length === 0) {
+    await childrenStore.fetchChildren();
+  }
+}
+
 onLaunch(async () => {
+  appInitialized = true;
+  await initAppData();
+});
+
+onShow(async () => {
+  if (!appInitialized) return;
   const authStore = useAuthStore();
   if (authStore.checkAuth()) {
-    if (authStore.role === 'TEACHER' || authStore.role === 'teacher') {
-      // 教师端：默认进入课表 Tab，数据在各页面 onShow 时按需加载
-    } else {
-      // 家长端：加载孩子列表
+    if (!authStore.isTeacher) {
       const childrenStore = useChildrenStore();
-      await childrenStore.fetchChildren();
+      if (childrenStore.children.length === 0) {
+        await childrenStore.fetchChildren();
+      }
     }
   }
 });

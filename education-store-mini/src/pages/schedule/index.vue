@@ -17,27 +17,86 @@
     <view v-else-if="!list.length"><empty-state icon="📅" text="当前日期范围暂无课程" /></view>
     <view v-else class="record-list">
       <view v-for="item in list" :key="item.id" class="sched-card">
-        <view class="sched-top"><text class="sched-date">{{ item.scheduleDate || '--' }}</text><text class="sched-time">{{ item.startTime || '' }} - {{ item.endTime || '' }}</text></view>
-        <text class="sched-course">{{ item.courseName || '--' }}</text>
-        <view class="sched-meta"><text v-if="item.roomName">📍 {{ item.roomName }}</text></view>
+        <view class="sched-top"><text class="sched-date">{{ item.scheduleDate || item.date || '--' }}</text><text class="sched-time">{{ item.startTime || '' }} - {{ item.endTime || '' }}</text></view>
+        <text class="sched-course">{{ item.courseName || item.course || '--' }}</text>
+        <view class="sched-meta"><text v-if="item.roomName || item.classroom">📍 {{ item.roomName || item.classroom }}</text></view>
       </view>
     </view>
   </view>
 </template>
 <script setup>
-import { ref } from 'vue'; import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
-import { useChildrenStore } from '@/stores/children'; import { getSchedule } from '@/api/schedule';
-import ChildSwitcher from '@/components/child-switcher.vue'; import EmptyState from '@/components/empty-state.vue'; import LoadingSkeleton from '@/components/loading-skeleton.vue';
-const childrenStore = useChildrenStore(); const currentChildId = ref(null); const list = ref([]); const loading = ref(true); const error = ref(false);
-const now = new Date(); const dayOfWeek = now.getDay() || 7;
-const monday = new Date(now); monday.setDate(now.getDate() - dayOfWeek + 1);
-const sunday = new Date(now); sunday.setDate(now.getDate() + (7 - dayOfWeek));
+import { ref } from 'vue';
+import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app';
+import { useChildrenStore } from '@/stores/children';
+import { getSchedule } from '@/api/schedule';
+import ChildSwitcher from '@/components/child-switcher.vue';
+import EmptyState from '@/components/empty-state.vue';
+import LoadingSkeleton from '@/components/loading-skeleton.vue';
+
+const childrenStore = useChildrenStore();
+const currentChildId = ref(null);
+const list = ref([]);
+const loading = ref(true);
+const error = ref(false);
+
+const now = new Date();
+const dayOfWeek = now.getDay() || 7;
+const monday = new Date(now);
+monday.setDate(now.getDate() - dayOfWeek + 1);
+const sunday = new Date(now);
+sunday.setDate(now.getDate() + (7 - dayOfWeek));
 const fmt = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const startDate = ref(fmt(monday)); const endDate = ref(fmt(sunday));
-onLoad((options) => { currentChildId.value = Number(options.studentId) || childrenStore.currentChildId; loadData(); });
-async function loadData() { if (!currentChildId.value) return; loading.value = true; error.value = false; try { const res = await getSchedule(currentChildId.value, { startDate: startDate.value, endDate: endDate.value }); if (res.code === 200) list.value = res.data || []; } catch { error.value = true; } finally { loading.value = false; } }
-function onChildChange(id) { currentChildId.value = id; loadData(); }
-onPullDownRefresh(async () => { await loadData(); uni.stopPullDownRefresh(); });
+const startDate = ref(fmt(monday));
+const endDate = ref(fmt(sunday));
+
+onLoad((options) => {
+  if (options?.studentId) {
+    currentChildId.value = Number(options.studentId);
+  }
+});
+
+onShow(() => {
+  if (!currentChildId.value) {
+    currentChildId.value = childrenStore.currentChildId;
+  }
+  if (childrenStore.children.length === 0) {
+    childrenStore.fetchChildren().then(() => {
+      if (!currentChildId.value) {
+        currentChildId.value = childrenStore.currentChildId;
+      }
+      loadData();
+    });
+  } else {
+    loadData();
+  }
+});
+
+async function loadData() {
+  if (!currentChildId.value) return;
+  loading.value = true;
+  error.value = false;
+  try {
+    const res = await getSchedule(currentChildId.value, { startDate: startDate.value, endDate: endDate.value });
+    if (res.code === 200) {
+      const data = res.data;
+      list.value = Array.isArray(data) ? data : (data.records || data.list || data || []);
+    }
+  } catch {
+    error.value = true;
+  } finally {
+    loading.value = false;
+  }
+}
+
+function onChildChange(id) {
+  currentChildId.value = id;
+  loadData();
+}
+
+onPullDownRefresh(async () => {
+  await loadData();
+  uni.stopPullDownRefresh();
+});
 </script>
 <style scoped lang="scss">
 .sub-page { min-height: 100vh; padding-bottom: 24rpx; }

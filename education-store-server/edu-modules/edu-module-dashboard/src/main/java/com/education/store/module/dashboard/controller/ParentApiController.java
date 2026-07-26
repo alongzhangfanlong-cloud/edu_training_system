@@ -36,7 +36,6 @@ import com.education.store.module.teaching.mapper.EduHomeworkMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -79,20 +78,22 @@ public class ParentApiController {
     //  考勤
     // ================================================================
 
-    @Operation(summary = "孩子考勤记录（分页，支持月份筛选）")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
+    @Operation(summary = "孩子考勤记录（分页，支持月份/日期筛选）")
     @GetMapping("/children/{studentId}/attendance")
     public Result<PageResult<Map<String, Object>>> attendance(
             @PathVariable Long studentId,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
-            @RequestParam(required = false) String yearMonth) {
+            @RequestParam(required = false) String yearMonth,
+            @RequestParam(required = false) String date) {
         Long userId = SecurityUtils.getUserId();
         requireParentOf(userId, studentId);
 
         LambdaQueryWrapper<EduAttendance> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EduAttendance::getStudentId, studentId);
-        if (yearMonth != null && !yearMonth.isEmpty()) {
+        if (date != null && !date.isEmpty()) {
+            wrapper.apply("DATE(create_time) = {0}", date);
+        } else if (yearMonth != null && !yearMonth.isEmpty()) {
             wrapper.apply("DATE_FORMAT(create_time, '%Y-%m') = {0}", yearMonth);
         }
         wrapper.orderByDesc(EduAttendance::getCreateTime);
@@ -110,6 +111,8 @@ public class ParentApiController {
             m.put("signinTime", a.getSigninTime());
             m.put("remark", a.getRemark());
             m.put("createTime", a.getCreateTime());
+            m.put("attendanceDate", a.getCreateTime() != null ? a.getCreateTime().toLocalDate() : null);
+            m.put("date", a.getCreateTime() != null ? a.getCreateTime().toLocalDate().toString() : null);
             return m;
         }).collect(Collectors.toList());
 
@@ -117,7 +120,6 @@ public class ParentApiController {
     }
 
     @Operation(summary = "孩子本月考勤统计")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/attendance-stats")
     public Result<Map<String, Object>> attendanceStats(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
@@ -156,7 +158,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子作业列表（通过班级关联查询）")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/homework")
     public Result<List<Map<String, Object>>> homework(
             @PathVariable Long studentId,
@@ -196,7 +197,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子请假记录")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/leaves")
     public Result<List<Map<String, Object>>> leaves(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
@@ -222,7 +222,6 @@ public class ParentApiController {
     }
 
     @Operation(summary = "家长帮孩子提交请假申请")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @PostMapping("/children/{studentId}/leaves")
     @Transactional(rollbackFor = Exception.class)
     public Result<Map<String, Object>> submitLeave(@PathVariable Long studentId,
@@ -251,7 +250,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子报名记录")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/enrollments")
     public Result<List<Map<String, Object>>> enrollments(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
@@ -288,7 +286,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子课表（未来排课，按日期升序）")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/schedule")
     public Result<List<Map<String, Object>>> schedule(
             @PathVariable Long studentId,
@@ -337,6 +334,7 @@ public class ParentApiController {
             m.put("roomId", s.getRoomId());
             m.put("roomName", roomNameMap.getOrDefault(s.getRoomId(), ""));
             m.put("scheduleDate", s.getScheduleDate());
+            m.put("date", s.getScheduleDate() != null ? s.getScheduleDate().toString() : null);
             m.put("startTime", s.getStartTime());
             m.put("endTime", s.getEndTime());
             return m;
@@ -350,7 +348,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子考试成绩")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/exam-scores")
     public Result<List<Map<String, Object>>> examScores(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
@@ -380,7 +377,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子收到的课堂评价")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/evaluations")
     public Result<List<Map<String, Object>>> evaluations(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
@@ -421,7 +417,6 @@ public class ParentApiController {
     // ================================================================
 
     @Operation(summary = "孩子积分余额")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/points")
     public Result<Map<String, Object>> points(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
@@ -439,7 +434,6 @@ public class ParentApiController {
     }
 
     @Operation(summary = "孩子积分日志")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}/points/log")
     public Result<List<Map<String, Object>>> pointsLog(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();

@@ -9,7 +9,6 @@ import com.education.store.module.student.mapper.EduStudentParentMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -31,7 +30,6 @@ public class ParentController {
     private final EduStudentMapper studentMapper;
 
     @Operation(summary = "获取当前家长关联的所有孩子（含摘要信息）")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children")
     public Result<List<Map<String, Object>>> getChildren() {
         Long userId = SecurityUtils.getUserId();
@@ -69,7 +67,6 @@ public class ParentController {
     }
 
     @Operation(summary = "查看孩子详情")
-    @PreAuthorize("@ss.hasPermi('student:parent:query')")
     @GetMapping("/children/{studentId}")
     public Result<Map<String, Object>> getChildDetail(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();

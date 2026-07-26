@@ -16,7 +16,7 @@
     },
     {
       "path": "pages/messages/index",
-      "style": { "navigationBarTitleText": "消息" }
+      "style": { "navigationBarTitleText": "消息", "enablePullDownRefresh": true, "navigationStyle": "custom" }
     },
     {
       "path": "pages/profile/index",
@@ -126,7 +126,11 @@
     "list": [
       { "pagePath": "pages/index/index", "text": "首页" },
       { "pagePath": "pages/messages/index", "text": "消息" },
-      { "pagePath": "pages/profile/index", "text": "我的" }
+      { "pagePath": "pages/profile/index", "text": "我的" },
+      { "pagePath": "pages/teacher/schedule/index", "text": "课表" },
+      { "pagePath": "pages/teacher/checkin/index", "text": "签到" },
+      { "pagePath": "pages/teacher/teaching/index", "text": "教学" },
+      { "pagePath": "pages/teacher/profile/index", "text": "我的" }
     ]
   }
 }

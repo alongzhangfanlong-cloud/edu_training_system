@@ -1,33 +1,90 @@
 <template>
   <view class="sub-page">
     <child-switcher v-if="childrenStore.children.length > 1" :children="childrenStore.children" :current-id="currentChildId" @change="onChildChange" />
-    <view v-if="loading"><loading-skeleton :rows="3" /></view>
-    <view v-else-if="error"><empty-state icon="⚠️" text="加载失败" :show-retry="true" @retry="() => loadData()" /></view>
+    <view v-if="loading && list.length === 0"><loading-skeleton :rows="3" /></view>
+    <view v-else-if="error && list.length === 0"><empty-state icon="⚠️" text="加载失败" :show-retry="true" @retry="() => loadData()" /></view>
     <view v-else-if="!list.length"><empty-state icon="📋" text="暂无请假记录" /></view>
     <view v-else class="record-list">
-      <view v-for="item in list" :key="item.id" class="leave-card">
-        <view class="leave-header"><text class="leave-date">{{ item.leaveDate || '--' }}</text><text class="leave-status" :style="{ color: leaveStatusColor(item.status) }">{{ leaveStatusText(item.status) }}</text></view>
-        <text class="leave-type">{{ leaveTypeText(item.leaveType) }}</text>
+      <view v-for="item in list" :key="item.id || item.leaveId" class="leave-card">
+        <view class="leave-header"><text class="leave-date">{{ item.leaveDate || item.startDate || '--' }}</text><text class="leave-status" :style="{ color: leaveStatusColor(item.status) }">{{ leaveStatusText(item.status) }}</text></view>
+        <text class="leave-type">{{ leaveTypeText(item.leaveType || item.type) }}</text>
         <text v-if="item.reason" class="leave-reason">{{ item.reason }}</text>
-        <text v-if="item.rejectReason" class="leave-reject">驳回原因：{{ item.rejectReason }}</text>
+        <text v-if="item.rejectReason || item.rejectReason" class="leave-reject">驳回原因：{{ item.rejectReason }}</text>
       </view>
     </view>
     <view class="fab-wrap"><button class="fab-btn" @click="goSubmit">+ 发起请假</button></view>
   </view>
 </template>
 <script setup>
-import { ref } from 'vue'; import { onShow, onPullDownRefresh } from '@dcloudio/uni-app';
-import { useChildrenStore } from '@/stores/children'; import { getLeaves } from '@/api/leave';
-import ChildSwitcher from '@/components/child-switcher.vue'; import EmptyState from '@/components/empty-state.vue'; import LoadingSkeleton from '@/components/loading-skeleton.vue';
-const childrenStore = useChildrenStore(); const currentChildId = ref(null); const list = ref([]); const loading = ref(true); const error = ref(false);
-const leaveStatusText = (s) => ({ 0: '待审批', 1: '已通过', 2: '已拒绝' }[s] || '--');
-const leaveStatusColor = (s) => ({ 0: '#e6a23c', 1: '#67c23a', 2: '#f56c6c' }[s] || '#909399');
-const leaveTypeText = (t) => ({ 1: '事假', 2: '病假', 3: '其他' }[t] || '--');
-onShow(() => { currentChildId.value = childrenStore.currentChildId; loadData(); });
-async function loadData() { if (!currentChildId.value) return; loading.value = true; error.value = false; try { const res = await getLeaves(currentChildId.value); if (res.code === 200) list.value = res.data || []; } catch { error.value = true; } finally { loading.value = false; } }
-function onChildChange(id) { currentChildId.value = id; loadData(); }
-function goSubmit() { uni.navigateTo({ url: `/pages/leave/submit?studentId=${currentChildId.value}` }); }
-onPullDownRefresh(async () => { await loadData(); uni.stopPullDownRefresh(); });
+import { ref } from 'vue';
+import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app';
+import { useChildrenStore } from '@/stores/children';
+import { getLeaves } from '@/api/leave';
+import ChildSwitcher from '@/components/child-switcher.vue';
+import EmptyState from '@/components/empty-state.vue';
+import LoadingSkeleton from '@/components/loading-skeleton.vue';
+
+const childrenStore = useChildrenStore();
+const currentChildId = ref(null);
+const list = ref([]);
+const loading = ref(true);
+const error = ref(false);
+const leaveStatusText = (s) => ({ 0: '待审批', 1: '已通过', 2: '已拒绝', PENDING: '待审批', APPROVED: '已通过', REJECTED: '已拒绝' }[s] || '--');
+const leaveStatusColor = (s) => ({ 0: '#e6a23c', 1: '#67c23a', 2: '#f56c6c', PENDING: '#e6a23c', APPROVED: '#67c23a', REJECTED: '#f56c6c' }[s] || '#909399');
+const leaveTypeText = (t) => ({ 1: '事假', 2: '病假', 3: '其他', PERSONAL: '事假', SICK: '病假', OTHER: '其他' }[t] || '--');
+
+onLoad((options) => {
+  if (options?.studentId) {
+    currentChildId.value = Number(options.studentId);
+  }
+});
+
+onShow(() => {
+  if (!currentChildId.value) {
+    currentChildId.value = childrenStore.currentChildId;
+  }
+  if (childrenStore.children.length === 0) {
+    childrenStore.fetchChildren().then(() => {
+      if (!currentChildId.value) {
+        currentChildId.value = childrenStore.currentChildId;
+      }
+      loadData();
+    });
+  } else {
+    loadData();
+  }
+});
+
+async function loadData() {
+  if (!currentChildId.value) return;
+  loading.value = true;
+  error.value = false;
+  try {
+    const res = await getLeaves(currentChildId.value);
+    if (res.code === 200) {
+      const data = res.data;
+      list.value = Array.isArray(data) ? data : (data.records || data.list || data || []);
+    }
+  } catch {
+    error.value = true;
+  } finally {
+    loading.value = false;
+  }
+}
+
+function onChildChange(id) {
+  currentChildId.value = id;
+  loadData();
+}
+
+function goSubmit() {
+  uni.navigateTo({ url: `/pages/leave/submit?studentId=${currentChildId.value}` });
+}
+
+onPullDownRefresh(async () => {
+  await loadData();
+  uni.stopPullDownRefresh();
+});
 </script>
 <style scoped lang="scss">
 .sub-page { min-height: 100vh; padding-bottom: 120rpx; } .record-list { padding: 0 24rpx; }

@@ -1,28 +1,85 @@
 <template>
   <view class="sub-page">
     <child-switcher v-if="childrenStore.children.length > 1" :children="childrenStore.children" :current-id="currentChildId" @change="onChildChange" />
-    <view v-if="balance" class="balance-card"><text class="balance-num">{{ balance.balance || 0 }}</text><text class="balance-label">当前积分</text><view class="balance-total"><text>累计获得：{{ balance.totalEarned || 0 }}</text></view></view>
+    <view v-if="balance" class="balance-card"><text class="balance-num">{{ balance.balance ?? balance.points ?? 0 }}</text><text class="balance-label">当前积分</text><view class="balance-total"><text>累计获得：{{ balance.totalEarned ?? balance.total ?? 0 }}</text></view></view>
     <view class="section-title">积分明细</view>
-    <view v-if="loading"><loading-skeleton :rows="4" /></view>
-    <view v-else-if="error"><empty-state icon="⚠️" text="加载失败" :show-retry="true" @retry="() => loadData()" /></view>
+    <view v-if="loading && logList.length === 0"><loading-skeleton :rows="4" /></view>
+    <view v-else-if="error && logList.length === 0"><empty-state icon="⚠️" text="加载失败" :show-retry="true" @retry="() => loadData()" /></view>
     <view v-else-if="!logList.length"><empty-state icon="📋" text="暂无积分记录" /></view>
     <view v-else class="record-list">
-      <view v-for="item in logList" :key="item.id" class="log-card">
-        <view class="log-left"><text class="log-type">{{ item.changeType || item.sourceType || '--' }}</text><text class="log-remark" v-if="item.remark">{{ item.remark }}</text><text class="log-time">{{ item.createTime || '' }}</text></view>
-        <text class="log-amount" :class="item.amount > 0 ? 'positive' : 'negative'">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</text>
+      <view v-for="item in logList" :key="item.id || item.logId" class="log-card">
+        <view class="log-left"><text class="log-type">{{ item.changeType || item.sourceType || item.type || '--' }}</text><text class="log-remark" v-if="item.remark || item.description">{{ item.remark || item.description }}</text><text class="log-time">{{ item.createTime || item.time || '' }}</text></view>
+        <text class="log-amount" :class="(item.amount ?? item.points ?? 0) > 0 ? 'positive' : 'negative'">{{ (item.amount ?? item.points ?? 0) > 0 ? '+' : '' }}{{ item.amount ?? item.points ?? 0 }}</text>
       </view>
     </view>
   </view>
 </template>
 <script setup>
-import { ref } from 'vue'; import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
-import { useChildrenStore } from '@/stores/children'; import { getPoints, getPointsLog } from '@/api/points';
-import ChildSwitcher from '@/components/child-switcher.vue'; import EmptyState from '@/components/empty-state.vue'; import LoadingSkeleton from '@/components/loading-skeleton.vue';
-const childrenStore = useChildrenStore(); const currentChildId = ref(null); const balance = ref(null); const logList = ref([]); const loading = ref(true); const error = ref(false);
-onLoad((options) => { currentChildId.value = Number(options.studentId) || childrenStore.currentChildId; loadData(); });
-async function loadData() { if (!currentChildId.value) return; loading.value = true; error.value = false; try { const [pointsRes, logRes] = await Promise.all([getPoints(currentChildId.value), getPointsLog(currentChildId.value)]); if (pointsRes.code === 200) balance.value = pointsRes.data; if (logRes.code === 200) logList.value = logRes.data || []; } catch { error.value = true; } finally { loading.value = false; } }
-function onChildChange(id) { currentChildId.value = id; loadData(); }
-onPullDownRefresh(async () => { await loadData(); uni.stopPullDownRefresh(); });
+import { ref } from 'vue';
+import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app';
+import { useChildrenStore } from '@/stores/children';
+import { getPoints, getPointsLog } from '@/api/points';
+import { parsePaginationResponse } from '@/utils/index';
+import ChildSwitcher from '@/components/child-switcher.vue';
+import EmptyState from '@/components/empty-state.vue';
+import LoadingSkeleton from '@/components/loading-skeleton.vue';
+
+const childrenStore = useChildrenStore();
+const currentChildId = ref(null);
+const balance = ref(null);
+const logList = ref([]);
+const loading = ref(true);
+const error = ref(false);
+
+onLoad((options) => {
+  if (options?.studentId) {
+    currentChildId.value = Number(options.studentId);
+  }
+});
+
+onShow(() => {
+  if (!currentChildId.value) {
+    currentChildId.value = childrenStore.currentChildId;
+  }
+  if (childrenStore.children.length === 0) {
+    childrenStore.fetchChildren().then(() => {
+      if (!currentChildId.value) {
+        currentChildId.value = childrenStore.currentChildId;
+      }
+      loadData();
+    });
+  } else {
+    loadData();
+  }
+});
+
+async function loadData() {
+  if (!currentChildId.value) return;
+  loading.value = true;
+  error.value = false;
+  try {
+    const [pointsRes, logRes] = await Promise.all([getPoints(currentChildId.value), getPointsLog(currentChildId.value)]);
+    if (pointsRes.code === 200) balance.value = pointsRes.data;
+    if (logRes.code === 200) {
+      const { list } = parsePaginationResponse(logRes);
+      logList.value = list;
+    }
+  } catch {
+    error.value = true;
+  } finally {
+    loading.value = false;
+  }
+}
+
+function onChildChange(id) {
+  currentChildId.value = id;
+  loadData();
+}
+
+onPullDownRefresh(async () => {
+  await loadData();
+  uni.stopPullDownRefresh();
+});
 </script>
 <style scoped lang="scss">
 .sub-page { min-height: 100vh; padding-bottom: 24rpx; }

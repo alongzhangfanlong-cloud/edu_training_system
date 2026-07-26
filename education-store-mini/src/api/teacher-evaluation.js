@@ -16,8 +16,8 @@ export function saveEvaluationDraft(data) {
 }
 
 /** 提交评价（status→1，含积分发放） */
-export function submitEvaluation(id) {
-  return request({ url: `/api/v1/teaching/evaluation/${id}/submit`, method: 'POST' });
+export function submitEvaluation(data) {
+  return request({ url: `/api/v1/teaching/evaluation/${data.id}/submit`, method: 'POST', data });
 }
 
 /** 删除评价（仅草稿可删） */

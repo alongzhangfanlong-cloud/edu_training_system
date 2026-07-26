@@ -94,9 +94,16 @@ async function saveDraft() {
 
 async function handleSubmit() {
   if (!form.summary.trim()) { uni.showToast({ title: '请输入课堂总结', icon: 'none' }); return; }
+  for (let i = 0; i < form.students.length; i++) {
+    const s = form.students[i];
+    if (!s.overall || s.overall === 0) {
+      uni.showToast({ title: `请为${s.studentName}打分（综合表现）`, icon: 'none' });
+      return;
+    }
+  }
   submitting.value = true;
   try {
-    const res = await submitEvaluation(evalId);
+    const res = await submitEvaluation({ id: evalId, summary: form.summary, students: form.students });
     if (res.code === 200) {
       uni.showToast({ title: '提交成功', icon: 'success' });
       setTimeout(() => uni.navigateBack(), 1500);
