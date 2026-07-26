@@ -1,5 +1,6 @@
 package com.education.store.module.course.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import lombok.Data;
@@ -60,4 +61,12 @@ public class EduResource extends BaseEntity {
 
     /** 更新者 */
     private String updateBy;
+
+    /** 科目名称（非数据库字段，关联查询填充） */
+    @TableField(exist = false)
+    private String subjectName;
+
+    /** 上传人姓名（非数据库字段，关联查询填充） */
+    @TableField(exist = false)
+    private String uploadByName;
 }

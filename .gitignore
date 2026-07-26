@@ -33,3 +33,26 @@ dump.rdb
 # Temp
 *.log
 *.tmp
+
+# 临时调试/验证脚本
+/check-*.js
+/clean-*.js
+/cleanup-*.js
+/debug-*.js
+/fix-*.js
+/insert-*.js
+/probe-*.js
+/reset-*.js
+/run-sql.js
+/test-*.js
+/verify-*.js
+/final-*.js
+/full-validation*.js
+/login-debug.js
+/test_flow.ps1
+/validation-report.md
+/CODE_REVIEW_LOG.md
+/CHANGELOG_AND_REVIEW.md
+
+# 上传文件目录
+education-store-server/edu-server-app/upload/

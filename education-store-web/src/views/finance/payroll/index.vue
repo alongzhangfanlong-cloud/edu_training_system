@@ -8,7 +8,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="月份">
-        <el-month-picker v-model="queryParams.month" placeholder="选择月份" value-format="YYYY-MM" clearable style="width:160px" />
+        <el-date-picker v-model="queryParams.month" type="month" placeholder="选择月份" value-format="YYYY-MM" clearable style="width:160px" />
       </el-form-item>
       <el-form-item label="状态">
         <el-select v-model="queryParams.status" placeholder="全部" clearable style="width:120px">
@@ -27,6 +27,11 @@
       <el-col :span="1.5">
         <el-button type="primary" plain size="small" @click="handleAdd" v-permission="['payroll:payroll:add']">
           <el-icon><Plus /></el-icon>新增
+        </el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="primary" size="small" @click="handleAutoGenerate" v-permission="['payroll:payroll:add']">
+          <el-icon><Refresh /></el-icon>自动统计
         </el-button>
       </el-col>
       <el-col :span="1.5">
@@ -50,9 +55,9 @@
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange" border stripe show-summary :summary-method="getSummaries">
       <el-table-column type="selection" width="50" align="center" />
       <el-table-column label="序号" align="center" width="60" type="index" />
-      <el-table-column label="教师" align="center" prop="teacherId" width="80" />
+      <el-table-column label="教师" align="center" prop="teacherName" width="120" />
       <el-table-column label="月份" align="center" prop="month" width="100" />
-      <el-table-column label="课程" align="center" prop="courseId" width="80" />
+      <el-table-column label="课程" align="center" prop="courseName" width="150" />
       <el-table-column label="消课数" align="center" prop="lessonCount" width="90" />
       <el-table-column label="单节课酬" align="right" width="110">
         <template #default="{ row }">¥{{ Number(row.payPerLesson || 0).toFixed(2) }}</template>
@@ -93,8 +98,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Check, Close, Delete } from '@element-plus/icons-vue';
-import { listPayroll, confirmPayroll, cancelConfirmPayroll, payPayroll, delPayroll } from '@/api/finance/payrolls';
-import { listTeacher } from '@/api/teaching/teachers';
+import { listPayroll, confirmPayroll, cancelConfirmPayroll, payPayroll, delPayroll, autoGeneratePayroll } from '@/api/finance/payrolls';
+import { listTeacherUsers } from '@/api/teaching/teachers';
 import RightToolbar from '@/components/RightToolbar/index.vue';
 import Pagination from '@/components/Pagination/index.vue';
 import PayrollFormModal from './components/PayrollFormModal.vue';
@@ -132,12 +137,13 @@ function getList() {
 let tTimer = null; let tSeq = 0;
 function searchTeachers(keyword) {
   clearTimeout(tTimer);
-  if (!keyword) { teacherOptions.value = []; return; }
   teacherLoading.value = true;
   tTimer = setTimeout(() => { tSeq++; const seq = tSeq;
-    listTeacher({ page: 1, pageSize: 100, keyword }).then(res => {
+    listTeacherUsers(keyword || '').then(res => {
       if (seq !== tSeq) return;
-      if (res.success) teacherOptions.value = res.data?.records || res.rows || [];
+      if (res.success) {
+        teacherOptions.value = (res.data || []).map(u => ({ id: u.userId, name: u.realName }));
+      }
     }).finally(() => { if (seq === tSeq) teacherLoading.value = false; });
   }, 300);
 }
@@ -151,7 +157,7 @@ function getSummaries({ columns, data }) {
     if (idx === 0) { sums[idx] = '合计'; return; }
     if (col.property === 'lessonCount') {
       sums[idx] = data.reduce((s, r) => s + (Number(r.lessonCount) || 0), 0);
-    } else if (!col.property || col.property === 'totalPay') {
+    } else if (col.property === 'totalPay') {
       const total = data.reduce((s, r) => s + (Number(r.totalPay) || 0), 0);
       sums[idx] = '¥' + total.toFixed(2);
     } else { sums[idx] = ''; }
@@ -162,6 +168,37 @@ function getSummaries({ columns, data }) {
 function handleQuery() { queryParams.value.page = 1; getList(); }
 function resetQuery() { queryParams.value = { page: 1, pageSize: 10, teacherId: '', month: '', status: '' }; getList(); }
 function handleAdd() { open.value = true; }
+
+function getCurrentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function handleAutoGenerate() {
+  const month = queryParams.value.month || getCurrentMonth();
+  ElMessageBox.confirm(`将统计 ${month} 月份所有已消课排课的课酬，是否继续？`, '自动统计课酬', { type: 'info' })
+    .then(() => {
+      loading.value = true;
+      return autoGeneratePayroll(month);
+    })
+    .then(res => {
+      if (res?.success || res?.code === 200) {
+        const count = res?.data ?? res?.rows ?? 0;
+        ElMessage.success(`自动统计完成，生成 ${count} 条课酬记录`);
+        getList();
+      } else {
+        ElMessage.error(res?.msg || res?.message || '统计失败');
+      }
+    })
+    .catch((err) => {
+      if (err !== 'cancel') {
+        ElMessage.error('网络异常，请稍后重试');
+      }
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+}
 
 function handleConfirm(row) {
   ElMessageBox.confirm('确认该课酬记录？确认后将锁定消课数和单价。', '确认课酬', { type: 'warning' })
@@ -221,7 +258,7 @@ function handleDelete(row) {
 
 function handleSelectionChange(selection) { selectedIds.value = selection.map(i => i.id); selectedRows.value = selection; }
 
-onMounted(() => { getList(); });
+onMounted(() => { getList(); searchTeachers(''); });
 </script>
 
 <style scoped lang="less">

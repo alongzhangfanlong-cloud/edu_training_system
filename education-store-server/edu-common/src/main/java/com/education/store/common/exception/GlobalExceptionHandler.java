@@ -2,6 +2,8 @@ package com.education.store.common.exception;
 
 import com.education.store.common.model.Result;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -25,6 +27,7 @@ public class GlobalExceptionHandler {
 
     /** 业务异常 */
     @ExceptionHandler(BusinessException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleBusinessException(BusinessException e) {
         log.warn("业务异常: {}", e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
@@ -75,6 +78,17 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleMissingParam(MissingServletRequestParameterException e) {
         return Result.badRequest("缺少必要参数: " + e.getParameterName());
+    }
+
+    /** 方法级参数校验异常（@RequestParam/@PathVariable上的注解） */
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining("; "));
+        log.warn("参数校验失败(Constraint): {}", message);
+        return Result.badRequest(message);
     }
 
     /** 其他未处理异常 */

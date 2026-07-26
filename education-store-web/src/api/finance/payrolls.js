@@ -39,3 +39,8 @@ export function payPayroll(id) {
 export function delPayroll(ids) {
   return request({ url: `${BASE}/${ids}`, method: 'delete' });
 }
+
+/** 自动统计课酬（从已消课排课聚合生成） */
+export function autoGeneratePayroll(month) {
+  return request({ url: `${BASE}/auto-generate`, method: 'post', params: { month } });
+}

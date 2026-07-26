@@ -5,8 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.common.utils.SecurityUtils;
+import com.education.store.module.classinfo.entity.EduClass;
+import com.education.store.module.classinfo.mapper.EduClassMapper;
+import com.education.store.module.course.entity.EduCourse;
+import com.education.store.module.course.mapper.EduCourseMapper;
 import com.education.store.module.enrollment.entity.EduEnrollment;
 import com.education.store.module.enrollment.mapper.EduEnrollmentMapper;
+import com.education.store.module.student.entity.EduStudent;
 import com.education.store.module.student.entity.EduStudentHoursLog;
 import com.education.store.module.student.mapper.EduStudentHoursLogMapper;
 import com.education.store.module.student.mapper.EduStudentMapper;
@@ -21,9 +27,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +40,8 @@ public class EduTuitionFeeServiceImpl extends ServiceImpl<EduTuitionFeeMapper, E
     private final EduEnrollmentMapper enrollmentMapper;
     private final EduStudentHoursLogMapper hoursLogMapper;
     private final EduStudentMapper studentMapper;
+    private final EduClassMapper classMapper;
+    private final EduCourseMapper courseMapper;
 
     @Override
     public IPage<EduTuitionFee> selectFeeList(IPage<EduTuitionFee> page, EduTuitionFee fee) {
@@ -42,16 +50,27 @@ public class EduTuitionFeeServiceImpl extends ServiceImpl<EduTuitionFeeMapper, E
         if (fee.getEnrollmentId() != null) wrapper.eq(EduTuitionFee::getEnrollmentId, fee.getEnrollmentId());
         if (StrUtil.isNotBlank(fee.getStatus())) wrapper.eq(EduTuitionFee::getStatus, fee.getStatus());
         wrapper.orderByDesc(EduTuitionFee::getCreateTime);
-        return feeMapper.selectPage(page, wrapper);
+        IPage<EduTuitionFee> result = feeMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
-    @Override public EduTuitionFee selectFeeById(Long id) { return feeMapper.selectById(id); }
+    @Override public EduTuitionFee selectFeeById(Long id) {
+        EduTuitionFee fee = feeMapper.selectById(id);
+        if (fee != null) {
+            fillNamesForList(Collections.singletonList(fee));
+        }
+        return fee;
+    }
 
     @Override @Transactional(rollbackFor = Exception.class)
     public int insertFee(EduTuitionFee fee) {
         fee.setFeeNo(generateFeeNo("T"));
         fee.setStatus("CONFIRMED");
         fee.setPayTime(LocalDateTime.now());
+        if (fee.getOperatorId() == null) {
+            fee.setOperatorId(SecurityUtils.getUserId());
+        }
         int rows = feeMapper.insert(fee);
 
         // 回写报名记录收费状态（累计所有已确认的收费记录判断是否全额付清）
@@ -127,6 +146,38 @@ public class EduTuitionFeeServiceImpl extends ServiceImpl<EduTuitionFeeMapper, E
             student.setTotalHours(total != null ? total : BigDecimal.ZERO);
             student.setRemainingHours(remaining != null ? remaining : BigDecimal.ZERO);
             studentMapper.updateById(student);
+        }
+    }
+
+    private void fillNamesForList(List<EduTuitionFee> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> studentIds = new HashSet<>();
+        Set<Long> classIds = new HashSet<>();
+        Set<Long> courseIds = new HashSet<>();
+        for (EduTuitionFee fee : list) {
+            if (fee.getStudentId() != null) studentIds.add(fee.getStudentId());
+            if (fee.getClassId() != null) classIds.add(fee.getClassId());
+            if (fee.getCourseId() != null) courseIds.add(fee.getCourseId());
+        }
+        Map<Long, EduStudent> studentMap = studentIds.isEmpty() ? Collections.emptyMap()
+                : studentMapper.selectBatchIds(studentIds).stream().collect(Collectors.toMap(EduStudent::getId, s -> s));
+        Map<Long, EduClass> classMap = classIds.isEmpty() ? Collections.emptyMap()
+                : classMapper.selectBatchIds(classIds).stream().collect(Collectors.toMap(EduClass::getId, c -> c));
+        Map<Long, EduCourse> courseMap = courseIds.isEmpty() ? Collections.emptyMap()
+                : courseMapper.selectBatchIds(courseIds).stream().collect(Collectors.toMap(EduCourse::getId, c -> c));
+        for (EduTuitionFee fee : list) {
+            if (fee.getStudentId() != null) {
+                EduStudent student = studentMap.get(fee.getStudentId());
+                if (student != null) fee.setStudentName(student.getName());
+            }
+            if (fee.getClassId() != null) {
+                EduClass clazz = classMap.get(fee.getClassId());
+                if (clazz != null) fee.setClassName(clazz.getName());
+            }
+            if (fee.getCourseId() != null) {
+                EduCourse course = courseMap.get(fee.getCourseId());
+                if (course != null) fee.setCourseName(course.getName());
+            }
         }
     }
 }

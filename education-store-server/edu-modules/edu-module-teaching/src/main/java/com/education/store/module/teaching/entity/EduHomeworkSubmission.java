@@ -2,6 +2,8 @@ package com.education.store.module.teaching.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -37,7 +39,8 @@ public class EduHomeworkSubmission extends BaseEntity {
     private String status;
 
     /** 评分（1-5） */
-    @Positive(message = "评分必须大于0")
+    @Min(value = 1, message = "评分最小为1")
+    @Max(value = 5, message = "评分最大为5")
     private Integer score;
 
     /** 教师评语 */

@@ -29,6 +29,7 @@ public class FeeUpdateDTO {
     @DecimalMin(value = "0.01", message = "应收金额必须大于0")
     private BigDecimal amountReceivable;
 
+    @DecimalMin(value = "0.00", message = "实缴金额不能为负数")
     private BigDecimal amountPaid;
 
     private String paymentMethod;

@@ -202,8 +202,18 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
         Map<Long, EduCourse> courseMap = courseMapper.selectBatchIds(courseIds).stream()
                 .collect(Collectors.toMap(EduCourse::getId, c -> c));
 
-        Set<Long> roomIds = classMap.values().stream().map(EduClass::getClassroomId)
-                .filter(Objects::nonNull).collect(Collectors.toSet());
+        // 优先使用排课记录的roomId，其次使用班级默认教室classroomId
+        Set<Long> roomIds = new HashSet<>();
+        for (EduSchedule s : schedules) {
+            if (s.getRoomId() != null) {
+                roomIds.add(s.getRoomId());
+            } else {
+                EduClass clazz = classMap.get(s.getClassId());
+                if (clazz != null && clazz.getClassroomId() != null) {
+                    roomIds.add(clazz.getClassroomId());
+                }
+            }
+        }
         Map<Long, EduClassroom> roomMap = classroomMapper.selectBatchIds(roomIds).stream()
                 .collect(Collectors.toMap(EduClassroom::getId, r -> r));
 
@@ -220,7 +230,9 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
         for (EduSchedule s : schedules) {
             EduClass clazz = classMap.get(s.getClassId());
             EduCourse course = clazz != null ? courseMap.get(clazz.getCourseId()) : null;
-            EduClassroom room = clazz != null ? roomMap.get(clazz.getClassroomId()) : null;
+            // 优先使用排课记录的roomId，其次使用班级默认教室
+            Long roomId = s.getRoomId() != null ? s.getRoomId() : (clazz != null ? clazz.getClassroomId() : null);
+            EduClassroom room = roomId != null ? roomMap.get(roomId) : null;
 
             // 应到人数
             int expectedCount = clazz != null ? (clazz.getCurrentCount() != null ? clazz.getCurrentCount() : 0) : 0;
@@ -364,23 +376,15 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
     // ============ 辅助方法 ============
 
     /**
-     * 获取当前登录用户对应的教师ID
-     * edu_schedule.teacher_id 关联的是 edu_teacher.id，而非 sys_user.id
+     * 获取当前登录教师的用户ID
+     * 业务表(schedule/payroll/class)中的teacher_id统一使用sys_user.id
      */
     private Long getTeacherId() {
         Long userId = SecurityUtils.getUserId();
         if (userId == null) {
             throw new RuntimeException("无法获取当前用户信息");
         }
-        LambdaQueryWrapper<EduTeacher> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(EduTeacher::getUserId, userId)
-                .eq(EduTeacher::getDeleted, 0)
-                .last("LIMIT 1");
-        EduTeacher teacher = teacherMapper.selectOne(wrapper);
-        if (teacher == null) {
-            throw new RuntimeException("当前用户未关联教师档案");
-        }
-        return teacher.getId();
+        return userId;
     }
 
     private String getDayOfWeekChinese(DayOfWeek dayOfWeek) {

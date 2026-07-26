@@ -27,9 +27,9 @@ export function delTeacher(ids) {
   return request({ url: `${BASE}/${ids}`, method: 'delete' });
 }
 
-// ===== 教师角色用户（用于下拉选项） =====
+// ===== 教师角色用户（用于下拉选项，返回sys_user.id） =====
 
-/** 查询所有拥有教师角色的启用用户 */
-export function listTeacherUsers() {
-  return request({ url: '/api/v1/teachers/options', method: 'get' });
+/** 查询所有拥有教师角色的启用用户（支持关键字搜索） */
+export function listTeacherUsers(keyword) {
+  return request({ url: '/api/v1/teachers/options', method: 'get', params: { keyword } });
 }

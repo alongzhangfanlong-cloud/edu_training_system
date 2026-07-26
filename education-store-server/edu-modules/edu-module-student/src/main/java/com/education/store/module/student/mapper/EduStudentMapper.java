@@ -6,6 +6,9 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+import java.math.BigDecimal;
 
 /**
  * 在学学员 Mapper
@@ -32,4 +35,17 @@ public interface EduStudentMapper extends BaseMapper<EduStudent> {
     /** 根据课程ID查询课程名称（跨 edu_course 表，避免模块循环依赖） */
     @Select("SELECT name FROM edu_course WHERE id = #{courseId}")
     String selectCourseName(@Param("courseId") Long courseId);
+
+    /**
+     * 原子扣减课时：只有余额≥1时才扣减，返回影响行数
+     * @return 影响行数，0表示余额不足
+     */
+    @Update("UPDATE edu_student SET remaining_hours = remaining_hours - #{hours}, last_visit_time = NOW() WHERE id = #{studentId} AND remaining_hours >= #{hours} AND deleted = 0")
+    int deductHoursAtomic(@Param("studentId") Long studentId, @Param("hours") BigDecimal hours);
+
+    /**
+     * 原子增加课时
+     */
+    @Update("UPDATE edu_student SET remaining_hours = remaining_hours + #{hours} WHERE id = #{studentId} AND deleted = 0")
+    int addHoursAtomic(@Param("studentId") Long studentId, @Param("hours") BigDecimal hours);
 }

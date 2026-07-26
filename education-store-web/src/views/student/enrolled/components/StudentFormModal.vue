@@ -19,7 +19,19 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="手机号" prop="mobile">
-            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" />
+            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" @input="form.mobile = form.mobile?.replace(/\D/g, '')" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="家长手机号" prop="parentMobile">
+            <el-input v-model="form.parentMobile" placeholder="请输入家长手机号" maxlength="11" @input="form.parentMobile = form.parentMobile?.replace(/\D/g, '')" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="家长姓名">
+            <el-input v-model="form.parentName" placeholder="请输入家长姓名" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -31,11 +43,6 @@
         </el-col>
       </el-row>
       <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="家长姓名">
-            <el-input v-model="form.parentName" placeholder="请输入家长姓名" />
-          </el-form-item>
-        </el-col>
         <el-col :span="12">
           <el-form-item label="出生日期" prop="birthDate">
             <el-date-picker v-model="form.birthDate" type="date" placeholder="请选择出生日期" style="width:100%" value-format="YYYY-MM-DD" />
@@ -139,17 +146,28 @@ let courseTimer = null;
 let courseSeq = 0;
 
 const form = ref({
-  name: '', mobile: '', gender: '', birthDate: '',
+  name: '', mobile: '', parentMobile: '', gender: '', birthDate: '',
   grade: '', school: '', parentName: '', parentRelation: '',
   counselorId: null, intendedCourseId: null, intendedCourseName: '', source: '',
   status: 'ENROLLED', tags: '', wechatNickname: '', remark: '',
 });
+
+const validateMobileOptional = (rule, value, callback) => {
+  if (value && !/^1[3-9]\d{9}$/.test(value)) {
+    callback(new Error('请输入正确的手机号格式'));
+  } else {
+    callback();
+  }
+};
 
 const rules = {
   name: [{ required: true, message: '请输入学员姓名', trigger: 'blur' }],
   mobile: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' },
+  ],
+  parentMobile: [
+    { validator: validateMobileOptional, trigger: 'blur' }
   ],
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
 };
@@ -203,6 +221,7 @@ async function onOpen() {
       form.value = {
         name: s.name || '',
         mobile: s.mobile || '',
+        parentMobile: s.parentMobile || '',
         gender: s.gender || '',
         birthDate: s.birthDate || '',
         grade: s.grade || '',
@@ -228,7 +247,7 @@ async function onOpen() {
 
 function reset() {
   form.value = {
-    name: '', mobile: '', gender: '', birthDate: '',
+    name: '', mobile: '', parentMobile: '', gender: '', birthDate: '',
     grade: '', school: '', parentName: '', parentRelation: '',
     counselorId: null, intendedCourseId: null, intendedCourseName: '', source: '',
     status: 'ENROLLED', tags: '', wechatNickname: '', remark: '',

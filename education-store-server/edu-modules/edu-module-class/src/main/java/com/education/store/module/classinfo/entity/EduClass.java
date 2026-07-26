@@ -1,5 +1,6 @@
 package com.education.store.module.classinfo.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import lombok.Data;
@@ -53,4 +54,13 @@ public class EduClass extends BaseEntity {
 
     /** 更新者 */
     private String updateBy;
+
+    @TableField(exist = false)
+    private String courseName;
+
+    @TableField(exist = false)
+    private String teacherName;
+
+    @TableField(exist = false)
+    private String classroomName;
 }

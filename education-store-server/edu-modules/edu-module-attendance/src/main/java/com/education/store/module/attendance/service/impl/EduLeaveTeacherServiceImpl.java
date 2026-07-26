@@ -11,13 +11,15 @@ import com.education.store.module.attendance.mapper.EduLeaveTeacherMapper;
 import com.education.store.module.attendance.service.IEduLeaveTeacherService;
 import com.education.store.module.schedule.entity.EduSchedule;
 import com.education.store.module.schedule.mapper.EduScheduleMapper;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class EduLeaveTeacherServiceImpl extends ServiceImpl<EduLeaveTeacherMappe
     private final EduLeaveTeacherMapper leaveMapper;
     private final EduScheduleMapper scheduleMapper;
     private final EduLeaveConflictMapper conflictMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public IPage<EduLeaveTeacher> selectLeaveList(IPage<EduLeaveTeacher> page, EduLeaveTeacher leave) {
@@ -34,7 +37,9 @@ public class EduLeaveTeacherServiceImpl extends ServiceImpl<EduLeaveTeacherMappe
         if (leave.getTeacherId() != null) wrapper.eq(EduLeaveTeacher::getTeacherId, leave.getTeacherId());
         if (leave.getStatus() != null) wrapper.eq(EduLeaveTeacher::getStatus, leave.getStatus());
         wrapper.orderByDesc(EduLeaveTeacher::getCreateTime);
-        return leaveMapper.selectPage(page, wrapper);
+        IPage<EduLeaveTeacher> result = leaveMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
     @Override public EduLeaveTeacher selectLeaveById(Long id) { return leaveMapper.selectById(id); }
@@ -89,4 +94,20 @@ public class EduLeaveTeacherServiceImpl extends ServiceImpl<EduLeaveTeacherMappe
 
     @Override @Transactional(rollbackFor = Exception.class)
     public int deleteLeaveByIds(Long[] ids) { return leaveMapper.deleteBatchIds(Arrays.asList(ids)); }
+
+    private void fillNamesForList(List<EduLeaveTeacher> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> teacherIds = new HashSet<>();
+        for (EduLeaveTeacher leave : list) {
+            if (leave.getTeacherId() != null) teacherIds.add(leave.getTeacherId());
+        }
+        Map<Long, SysUser> userMap = teacherIds.isEmpty() ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(teacherIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        for (EduLeaveTeacher leave : list) {
+            if (leave.getTeacherId() != null) {
+                SysUser user = userMap.get(leave.getTeacherId());
+                if (user != null) leave.setTeacherName(user.getRealName());
+            }
+        }
+    }
 }

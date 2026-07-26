@@ -4,6 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.student.entity.EduStudent;
+import com.education.store.module.student.mapper.EduStudentMapper;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import com.education.store.module.teaching.entity.EduTeacher;
 import com.education.store.module.teaching.entity.EduTeacherEvaluation;
 import com.education.store.module.teaching.mapper.EduTeacherEvaluationMapper;
@@ -24,6 +28,8 @@ public class EduTeacherEvaluationServiceImpl extends ServiceImpl<EduTeacherEvalu
 
     private final EduTeacherEvaluationMapper mapper;
     private final EduTeacherMapper teacherMapper;
+    private final SysUserMapper sysUserMapper;
+    private final EduStudentMapper studentMapper;
 
     @Override
     public IPage<EduTeacherEvaluation> selectList(IPage<EduTeacherEvaluation> page, Long teacherId, Long studentId, String status, String startDate, String endDate) {
@@ -44,7 +50,9 @@ public class EduTeacherEvaluationServiceImpl extends ServiceImpl<EduTeacherEvalu
             wrapper.le(EduTeacherEvaluation::getSubmitTime, endDate + " 23:59:59");
         }
         wrapper.orderByDesc(EduTeacherEvaluation::getSubmitTime);
-        return mapper.selectPage(page, wrapper);
+        IPage<EduTeacherEvaluation> result = mapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
     @Override
@@ -154,5 +162,29 @@ public class EduTeacherEvaluationServiceImpl extends ServiceImpl<EduTeacherEvalu
         stats.put("avgScore", avgScore != null ? avgScore.setScale(1, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO);
         stats.put("evaluationCount", count);
         return stats;
+    }
+
+    private void fillNamesForList(List<EduTeacherEvaluation> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> teacherIds = new HashSet<>();
+        Set<Long> studentIds = new HashSet<>();
+        for (EduTeacherEvaluation e : list) {
+            if (e.getTeacherId() != null) teacherIds.add(e.getTeacherId());
+            if (e.getStudentId() != null) studentIds.add(e.getStudentId());
+        }
+        Map<Long, SysUser> teacherMap = teacherIds.isEmpty() ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(teacherIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        Map<Long, EduStudent> studentMap = studentIds.isEmpty() ? Collections.emptyMap()
+                : studentMapper.selectBatchIds(studentIds).stream().collect(Collectors.toMap(EduStudent::getId, s -> s));
+        for (EduTeacherEvaluation e : list) {
+            if (e.getTeacherId() != null) {
+                SysUser u = teacherMap.get(e.getTeacherId());
+                if (u != null) e.setTeacherName(u.getRealName());
+            }
+            if (e.getStudentId() != null) {
+                EduStudent s = studentMap.get(e.getStudentId());
+                if (s != null) e.setStudentName(s.getName());
+            }
+        }
     }
 }

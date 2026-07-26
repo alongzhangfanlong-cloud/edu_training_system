@@ -26,21 +26,18 @@ public class DashboardController {
     private final IDashboardService dashboardService;
 
     @Operation(summary = "获取欢迎区信息")
-    @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/user-info")
     public Result<UserInfoVO> getUserInfo() {
         return Result.success(dashboardService.getUserInfo());
     }
 
     @Operation(summary = "获取统计卡片数据")
-    @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/statistics")
     public Result<StatisticsVO> getStatistics() {
         return Result.success(dashboardService.getStatistics());
     }
 
     @Operation(summary = "获取排课日历数据")
-    @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/calendar")
     public Result<CalendarVO> getCalendar(
             @Parameter(description = "视图类型：MONTH/WEEK/DAY") @RequestParam(defaultValue = "MONTH") String viewType,
@@ -50,7 +47,6 @@ public class DashboardController {
     }
 
     @Operation(summary = "获取某排课的学生签到详情")
-    @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/schedule/{scheduleId}/students")
     public Result<ScheduleStudentVO> getScheduleStudents(
             @Parameter(description = "排课记录ID") @PathVariable Long scheduleId) {
@@ -58,14 +54,12 @@ public class DashboardController {
     }
 
     @Operation(summary = "获取待办提醒数据")
-    @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/todos")
     public Result<TodosVO> getTodos() {
         return Result.success(dashboardService.getTodos());
     }
 
     @Operation(summary = "获取本月报名统计")
-    @PreAuthorize("@ss.hasPermi('dashboard:dashboard:view')")
     @GetMapping("/enrollment-stats")
     public Result<EnrollmentStatsVO> getEnrollmentStats() {
         return Result.success(dashboardService.getEnrollmentStats());

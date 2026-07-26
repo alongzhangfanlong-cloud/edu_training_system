@@ -27,7 +27,15 @@
         </dependency>
         <dependency>
             <groupId>com.education.store</groupId>
+            <artifactId>edu-module-course</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.education.store</groupId>
             <artifactId>edu-module-student</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.education.store</groupId>
+            <artifactId>edu-module-system</artifactId>
         </dependency>
         <dependency>
             <groupId>com.education.store</groupId>

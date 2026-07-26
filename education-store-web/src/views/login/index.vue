@@ -51,8 +51,8 @@ const systemTitle = import.meta.env.VITE_DOCUMENT_TITLE;
 
 const router = useRouter();
 
-const userName = ref("admin");
-const password = ref("admin123");
+const userName = ref("");
+const password = ref("");
 
 // 正在登录
 const loging = ref(false);

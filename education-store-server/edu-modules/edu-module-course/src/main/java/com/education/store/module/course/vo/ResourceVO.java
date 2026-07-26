@@ -22,6 +22,7 @@ public class ResourceVO {
     private String fileType;
     private Integer isPublic;
     private Long uploadBy;
+    private String uploadByName;
     private Integer downloadCount;
     private Integer status;
     private String description;

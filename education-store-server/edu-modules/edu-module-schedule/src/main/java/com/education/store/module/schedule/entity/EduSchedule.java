@@ -89,6 +89,18 @@ public class EduSchedule extends BaseEntity {
     @TableField(exist = false)
     private String courseName;
 
+    /** 班级名称（非数据库字段，查询时关联填充） */
+    @TableField(exist = false)
+    private String className;
+
+    /** 教师名称（非数据库字段，查询时关联填充） */
+    @TableField(exist = false)
+    private String teacherName;
+
+    /** 教室名称（非数据库字段，查询时关联填充） */
+    @TableField(exist = false)
+    private String roomName;
+
     /** 备注 */
     private String remark;
 

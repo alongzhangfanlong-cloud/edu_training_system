@@ -40,8 +40,8 @@
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange" border stripe>
       <el-table-column type="selection" width="50" align="center" />
       <el-table-column label="序号" align="center" width="60" type="index" />
-      <el-table-column label="教师" align="center" prop="teacherId" width="80" />
-      <el-table-column label="课程" align="center" prop="courseId" width="80" />
+      <el-table-column label="教师" align="center" prop="teacherName" width="120" />
+      <el-table-column label="课程" align="center" prop="courseName" width="150" />
       <el-table-column label="单节课酬" align="right" width="120">
         <template #default="{ row }">¥{{ Number(row.payPerLesson || 0).toFixed(2) }}</template>
       </el-table-column>
@@ -104,12 +104,12 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { listPayRate, getPayRate, addPayRate, updatePayRate, delPayRate } from '@/api/finance/payRates';
-import { listTeacher } from '@/api/teaching/teachers';
-import { listCourse } from '@/api/course/courses';
+import { listTeacherUsers } from '@/api/teaching/teachers';
+import { listCourse, listAllCourses } from '@/api/course/courses';
 import RightToolbar from '@/components/RightToolbar/index.vue';
 import Pagination from '@/components/Pagination/index.vue';
 
@@ -121,7 +121,7 @@ const error = ref('');
 const selectedIds = ref([]);
 const single = computed(() => selectedIds.value.length !== 1);
 const multiple = computed(() => selectedIds.value.length === 0);
-const queryParams = ref({ page: 1, pageSize: 10, teacherId: '', courseId: '' });
+const queryParams = ref({ page: 1, pageSize: 10, teacherId: null, courseId: null });
 const teacherOptions = ref([]);
 const teacherLoading = ref(false);
 const courseOptions = ref([]);
@@ -158,12 +158,13 @@ function getList() {
 let tTimer = null; let tSeq = 0;
 function searchTeachers(keyword) {
   clearTimeout(tTimer);
-  if (!keyword) { teacherOptions.value = []; return; }
   teacherLoading.value = true;
   tTimer = setTimeout(() => { tSeq++; const seq = tSeq;
-    listTeacher({ page: 1, pageSize: 100, keyword }).then(res => {
+    listTeacherUsers(keyword || '').then(res => {
       if (seq !== tSeq) return;
-      if (res.success) teacherOptions.value = res.data?.records || res.rows || [];
+      if (res.success) {
+        teacherOptions.value = (res.data || []).map(u => ({ id: u.userId, name: u.realName }));
+      }
     }).finally(() => { if (seq === tSeq) teacherLoading.value = false; });
   }, 300);
 }
@@ -171,20 +172,34 @@ function searchTeachers(keyword) {
 let cTimer = null; let cSeq = 0;
 function searchCourses(keyword) {
   clearTimeout(cTimer);
-  if (!keyword) { courseOptions.value = []; return; }
   courseLoading.value = true;
   cTimer = setTimeout(() => { cSeq++; const seq = cSeq;
-    listCourse({ page: 1, size: 100, keyword }).then(res => {
+    // 如果没有关键词，加载所有课程；有关键词时分页搜索
+    const apiCall = !keyword 
+      ? listAllCourses() 
+      : listCourse({ page: 1, pageSize: 100, name: keyword });
+    apiCall.then(res => {
       if (seq !== cSeq) return;
-      if (res.success) courseOptions.value = res.data?.records || res.rows || [];
+      if (res.success) {
+        const courses = Array.isArray(res.data) ? res.data : (res.data?.records || res.rows || []);
+        courseOptions.value = courses.map(c => ({ id: c.id, name: c.name }));
+      }
     }).finally(() => { if (seq === cSeq) courseLoading.value = false; });
   }, 300);
 }
 
 function handleQuery() { queryParams.value.page = 1; getList(); }
-function resetQuery() { queryParams.value = { page: 1, pageSize: 10, teacherId: '', courseId: '' }; getList(); }
+function resetQuery() { queryParams.value = { page: 1, pageSize: 10, teacherId: null, courseId: null }; teacherOptions.value = []; courseOptions.value = []; getList(); }
 function handleAdd() { title.value = '新增课酬单价'; currentId.value = null; open.value = true; }
-function handleUpdate(row) { title.value = '修改课酬单价'; currentId.value = row ? row.id : selectedIds.value[0]; open.value = true; }
+function handleUpdate(row) { 
+  if (!row && selectedIds.value.length !== 1) {
+    ElMessage.warning('请选择一条记录');
+    return;
+  }
+  title.value = '修改课酬单价'; 
+  currentId.value = row ? row.id : selectedIds.value[0]; 
+  open.value = true; 
+}
 
 function handleDelete(row) {
   const ids = row ? [row.id] : selectedIds.value;
@@ -193,41 +208,96 @@ function handleDelete(row) {
     .then(() => delPayRate(ids.join(','))).then(res => {
       if (res.success) { getList(); ElMessage.success('删除成功'); }
       else { ElMessage.error(res.msg || '删除失败'); }
-    }).catch(() => { ElMessage.error('网络异常，请稍后重试'); });
+    }).catch(() => {});
 }
 
 function handleSelectionChange(selection) { selectedIds.value = selection.map(i => i.id); }
 
 async function onFormOpen() {
   resetForm();
+  // 并行加载教师和课程列表
+  await Promise.all([searchTeachers(''), searchCourses('')]);
   if (currentId.value) {
-    const res = await getPayRate(currentId.value);
-    if (res.success && res.data) {
-      const r = res.data;
-      form.value = { teacherId: r.teacherId || null, courseId: r.courseId || null, payPerLesson: r.payPerLesson || null, effectiveFrom: r.effectiveFrom || '', effectiveTo: r.effectiveTo || '' };
+    try {
+      const res = await getPayRate(currentId.value);
+      if (res.success && res.data) {
+        const r = res.data;
+        form.value = { 
+          teacherId: r.teacherId || null, 
+          courseId: r.courseId || null, 
+          payPerLesson: r.payPerLesson || null, 
+          effectiveFrom: r.effectiveFrom || '', 
+          effectiveTo: r.effectiveTo || '' 
+        };
+        // 确保选中的教师在选项中
+        if (r.teacherId && r.teacherName) {
+          const exists = teacherOptions.value.find(t => t.id === r.teacherId);
+          if (!exists) {
+            teacherOptions.value.push({ id: r.teacherId, name: r.teacherName });
+          }
+        }
+        // 确保选中的课程在选项中
+        if (r.courseId && r.courseName) {
+          const exists = courseOptions.value.find(c => c.id === r.courseId);
+          if (!exists) {
+            courseOptions.value.push({ id: r.courseId, name: r.courseName });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('加载课酬单价详情失败', e);
     }
   }
 }
 
 function resetForm() {
   form.value = { teacherId: null, courseId: null, payPerLesson: null, effectiveFrom: '', effectiveTo: '' };
-  nextTick(() => formRef.value?.clearValidate());
+  nextTick(() => {
+    if (formRef.value) {
+      formRef.value.clearValidate();
+    }
+  });
 }
 
 async function handleFormSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return;
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch (e) {
+    return;
+  }
   submitting.value = true;
   try {
-    const data = { ...form.value }; let res;
-    if (currentId.value) { data.id = currentId.value; res = await updatePayRate(data); }
-    else { res = await addPayRate(data); }
-    if (res.success) { ElMessage.success(currentId.value ? '修改成功' : '新增成功'); open.value = false; getList(); }
-    else { ElMessage.error(res.msg || '操作失败'); }
-  } finally { submitting.value = false; }
+    const data = { ...form.value }; 
+    // 格式化日期为字符串
+    if (data.effectiveFrom && typeof data.effectiveFrom !== 'string') {
+      data.effectiveFrom = data.effectiveFrom;
+    }
+    let res;
+    if (currentId.value) { 
+      data.id = currentId.value; 
+      res = await updatePayRate(data); 
+    } else { 
+      res = await addPayRate(data); 
+    }
+    if (res.success) { 
+      ElMessage.success(currentId.value ? '修改成功' : '新增成功'); 
+      open.value = false; 
+      getList(); 
+    } else { 
+      ElMessage.error(res.msg || '操作失败'); 
+    }
+  } catch (e) {
+    ElMessage.error('网络异常，请稍后重试');
+  } finally { 
+    submitting.value = false; 
+  }
 }
 
-onMounted(() => { getList(); });
+onMounted(() => { 
+  getList(); 
+  searchTeachers('');
+});
 </script>
 
 <style scoped lang="less">

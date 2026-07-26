@@ -150,7 +150,7 @@ async function loadTree() {
   treeLoading.value = true;
   try {
     const res = await getCategoryTree();
-    if (res.success) treeData.value = res.data || [];
+    if (res.success) treeData.value = res.data?.tree || res.data || [];
   } catch { /* ignore */ }
   treeLoading.value = false;
 }

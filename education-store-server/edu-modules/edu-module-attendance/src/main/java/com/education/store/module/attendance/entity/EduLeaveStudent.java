@@ -1,5 +1,6 @@
 package com.education.store.module.attendance.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import lombok.Data;
@@ -24,4 +25,10 @@ public class EduLeaveStudent extends BaseEntity {
     private Integer autoApproved;
     private String createBy;
     private String updateBy;
+
+    @TableField(exist = false)
+    private String studentName;
+
+    @TableField(exist = false)
+    private String confirmTeacherName;
 }

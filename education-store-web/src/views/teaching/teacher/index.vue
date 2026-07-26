@@ -55,7 +55,7 @@
           <el-input v-model="form.realName" placeholder="请输入教师姓名" />
         </el-form-item>
         <el-form-item label="联系电话" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" />
+          <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" @input="form.phone = form.phone?.replace(/\D/g, '')" />
         </el-form-item>
         <el-form-item label="可授科目">
           <el-input v-model="form.subjects" placeholder="多个科目逗号分隔" />
@@ -110,7 +110,10 @@ const formRef = ref(null); const submitting = ref(false);
 const form = ref({ realName: '', phone: '', subjects: '', defaultPayPerLesson: null, hireDate: '', status: 'ACTIVE', remark: '' });
 const rules = {
   realName: [{ required: true, message: '请输入教师姓名', trigger: 'blur' }],
-  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }],
+  phone: [
+    { required: true, message: '请输入联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
+  ],
   defaultPayPerLesson: [{ required: true, message: '请输入课酬单价', trigger: 'blur' }],
 };
 let querySeq = 0;

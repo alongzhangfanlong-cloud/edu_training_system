@@ -8,21 +8,27 @@ import com.education.store.common.exception.BusinessException;
 import com.education.store.module.attendance.entity.EduAttendance;
 import com.education.store.module.attendance.mapper.EduAttendanceMapper;
 import com.education.store.module.attendance.service.IEduAttendanceService;
+import com.education.store.module.course.entity.EduCourse;
+import com.education.store.module.course.mapper.EduCourseMapper;
 import com.education.store.module.schedule.entity.EduSchedule;
 import com.education.store.module.schedule.mapper.EduScheduleMapper;
 import com.education.store.module.student.entity.EduStudentHoursLog;
 import com.education.store.module.student.mapper.EduStudentHoursLogMapper;
 import com.education.store.module.student.mapper.EduStudentMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.education.store.common.utils.SecurityUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, EduAttendance>
@@ -32,6 +38,7 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
     private final EduStudentHoursLogMapper hoursLogMapper;
     private final EduStudentMapper studentMapper;
     private final EduScheduleMapper scheduleMapper;
+    private final EduCourseMapper courseMapper;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -82,38 +89,65 @@ public class EduAttendanceServiceImpl extends ServiceImpl<EduAttendanceMapper, E
             attendanceMapper.insert(record);
             count++;
         }
-        // 发布签到事件，异步通知家长
+        // 发布签到事件，异步通知家长和积分发放
+        String courseName = "";
+        if (schedule != null && schedule.getCourseId() != null) {
+            try {
+                EduCourse course = courseMapper.selectById(schedule.getCourseId());
+                if (course != null) {
+                    courseName = course.getName();
+                }
+            } catch (Exception e) {
+                log.warn("查询课程名称失败: courseId={}", schedule.getCourseId(), e);
+            }
+        }
         for (EduAttendance record : records) {
-            String courseName = schedule != null ? schedule.getCourseName() : "";
             eventPublisher.publishEvent(new SignInEvent(
                 this, record.getStudentId(), scheduleId, courseName, LocalDateTime.now()));
         }
+        // 自动消课检查：班级所有学员都完成考勤后，自动标记排课已消课
+        autoConsumeScheduleIfAllSignedIn(scheduleId);
         return count;
     }
 
+    /**
+     * 自动消课检查：班级所有在学学员都已完成考勤时，自动标记排课为已消课
+     */
+    private void autoConsumeScheduleIfAllSignedIn(Long scheduleId) {
+        try {
+            int totalStudents = scheduleMapper.countClassEnrolledStudents(scheduleId);
+            int signedStudents = scheduleMapper.countAttendedStudents(scheduleId);
+            if (totalStudents > 0 && signedStudents >= totalStudents) {
+                String consumeBy = SecurityUtils.getUserId() != null ? SecurityUtils.getUserId().toString() : "system";
+                scheduleMapper.markConsumed(scheduleId, consumeBy);
+            }
+        } catch (Exception e) {
+            // 自动消课失败不影响主流程
+            log.warn("自动消课检查失败：scheduleId={}", scheduleId, e);
+        }
+    }
+
     private void consumeHours(Long studentId, Long scheduleId) {
-        // 使用数据库原子更新：余额不足时拒绝消课
-        BigDecimal current = hoursLogMapper.sumBalanceByStudent(studentId);
-        if (current == null) current = BigDecimal.ZERO;
-        if (current.compareTo(BigDecimal.ONE) < 0) {
+        BigDecimal hoursToDeduct = BigDecimal.ONE;
+        // 原子扣减课时，防止并发超扣
+        int updated = studentMapper.deductHoursAtomic(studentId, hoursToDeduct);
+        if (updated == 0) {
+            // 扣减失败，查询当前余额用于错误提示
+            BigDecimal current = hoursLogMapper.sumBalanceByStudent(studentId);
+            if (current == null) current = BigDecimal.ZERO;
             throw new BusinessException("学员课时余额不足，无法消课：studentId=" + studentId + ", 当前余额=" + current);
         }
-        BigDecimal balanceAfter = current.subtract(BigDecimal.ONE);
+        // 获取扣减后的余额
+        BigDecimal balanceAfter = hoursLogMapper.sumBalanceByStudent(studentId);
+        if (balanceAfter == null) balanceAfter = BigDecimal.ZERO;
 
         EduStudentHoursLog log = new EduStudentHoursLog();
         log.setStudentId(studentId);
         log.setChangeType("CONSUME");
-        log.setChangeAmount(new BigDecimal("-1"));
+        log.setChangeAmount(hoursToDeduct.negate());
         log.setSourceType("ATTENDANCE");
         log.setSourceId(scheduleId);
         log.setBalanceAfter(balanceAfter);
         hoursLogMapper.insert(log);
-
-        var student = studentMapper.selectById(studentId);
-        if (student != null) {
-            student.setRemainingHours(balanceAfter);
-            student.setLastVisitTime(LocalDateTime.now());
-            studentMapper.updateById(student);
-        }
     }
 }

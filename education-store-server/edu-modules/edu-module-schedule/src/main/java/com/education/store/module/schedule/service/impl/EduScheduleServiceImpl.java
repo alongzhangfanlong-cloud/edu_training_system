@@ -1,19 +1,29 @@
 package com.education.store.module.schedule.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.classinfo.entity.EduClass;
+import com.education.store.module.classinfo.mapper.EduClassMapper;
+import com.education.store.module.course.entity.EduClassroom;
+import com.education.store.module.course.entity.EduCourse;
+import com.education.store.module.course.mapper.EduClassroomMapper;
+import com.education.store.module.course.mapper.EduCourseMapper;
 import com.education.store.module.schedule.entity.EduSchedule;
 import com.education.store.module.schedule.mapper.EduScheduleMapper;
 import com.education.store.module.schedule.service.IEduScheduleService;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +31,10 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
         implements IEduScheduleService {
 
     private final EduScheduleMapper scheduleMapper;
+    private final EduClassMapper classMapper;
+    private final EduCourseMapper courseMapper;
+    private final EduClassroomMapper classroomMapper;
+    private final SysUserMapper userMapper;
 
     @Override
     public IPage<EduSchedule> selectScheduleList(IPage<EduSchedule> page, EduSchedule schedule,
@@ -34,10 +48,87 @@ public class EduScheduleServiceImpl extends ServiceImpl<EduScheduleMapper, EduSc
         if (StrUtil.isNotBlank(startDate)) wrapper.ge(EduSchedule::getScheduleDate, startDate);
         if (StrUtil.isNotBlank(endDate)) wrapper.le(EduSchedule::getScheduleDate, endDate);
         wrapper.orderByDesc(EduSchedule::getScheduleDate);
-        return scheduleMapper.selectPage(page, wrapper);
+        IPage<EduSchedule> result = scheduleMapper.selectPage(page, wrapper);
+        fillScheduleNames(result.getRecords());
+        return result;
     }
 
-    @Override public EduSchedule selectScheduleById(Long id) { return scheduleMapper.selectById(id); }
+    @Override public EduSchedule selectScheduleById(Long id) {
+        EduSchedule schedule = scheduleMapper.selectById(id);
+        if (schedule != null) {
+            fillScheduleNames(Collections.singletonList(schedule));
+        }
+        return schedule;
+    }
+
+    private void fillScheduleNames(List<EduSchedule> schedules) {
+        if (CollUtil.isEmpty(schedules)) {
+            return;
+        }
+
+        Set<Long> classIds = schedules.stream()
+                .map(EduSchedule::getClassId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<Long> courseIds = schedules.stream()
+                .map(EduSchedule::getCourseId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<Long> teacherIds = schedules.stream()
+                .map(EduSchedule::getTeacherId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<Long> roomIds = schedules.stream()
+                .map(EduSchedule::getRoomId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> classNameMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(classIds)) {
+            List<EduClass> classes = classMapper.selectBatchIds(classIds);
+            classNameMap = classes.stream()
+                    .collect(Collectors.toMap(EduClass::getId, EduClass::getName, (v1, v2) -> v1));
+        }
+
+        Map<Long, String> courseNameMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(courseIds)) {
+            List<EduCourse> courses = courseMapper.selectBatchIds(courseIds);
+            courseNameMap = courses.stream()
+                    .collect(Collectors.toMap(EduCourse::getId, EduCourse::getName, (v1, v2) -> v1));
+        }
+
+        Map<Long, String> teacherNameMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(teacherIds)) {
+            List<SysUser> users = userMapper.selectBatchIds(teacherIds);
+            teacherNameMap = users.stream()
+                    .collect(Collectors.toMap(SysUser::getId,
+                            u -> StrUtil.isNotBlank(u.getNickName()) ? u.getNickName() :
+                                    (StrUtil.isNotBlank(u.getRealName()) ? u.getRealName() : u.getUsername()),
+                            (v1, v2) -> v1));
+        }
+
+        Map<Long, String> roomNameMap = new HashMap<>();
+        if (CollUtil.isNotEmpty(roomIds)) {
+            List<EduClassroom> classrooms = classroomMapper.selectBatchIds(roomIds);
+            roomNameMap = classrooms.stream()
+                    .collect(Collectors.toMap(EduClassroom::getId, EduClassroom::getName, (v1, v2) -> v1));
+        }
+
+        for (EduSchedule schedule : schedules) {
+            if (schedule.getClassId() != null) {
+                schedule.setClassName(classNameMap.get(schedule.getClassId()));
+            }
+            if (schedule.getCourseId() != null) {
+                schedule.setCourseName(courseNameMap.get(schedule.getCourseId()));
+            }
+            if (schedule.getTeacherId() != null) {
+                schedule.setTeacherName(teacherNameMap.get(schedule.getTeacherId()));
+            }
+            if (schedule.getRoomId() != null) {
+                schedule.setRoomName(roomNameMap.get(schedule.getRoomId()));
+            }
+        }
+    }
 
     @Override @Transactional(rollbackFor = Exception.class)
     public int insertSchedule(EduSchedule schedule) {

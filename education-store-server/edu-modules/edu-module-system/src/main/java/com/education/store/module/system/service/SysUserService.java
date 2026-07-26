@@ -101,4 +101,7 @@ public interface SysUserService extends IService<SysUser> {
 
     /** 查询拥有指定角色的所有启用用户（用于下拉选项） */
     List<UserSimpleVO> listUsersByRoleCode(String roleCode);
+
+    /** 查询拥有指定角色的启用用户（支持关键字搜索，用于下拉选项） */
+    List<UserSimpleVO> listUsersByRoleCode(String roleCode, String keyword);
 }

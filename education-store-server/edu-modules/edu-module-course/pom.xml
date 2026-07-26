@@ -22,6 +22,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.education.store</groupId>
+            <artifactId>edu-module-system</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>

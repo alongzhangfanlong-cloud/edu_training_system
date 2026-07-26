@@ -7,8 +7,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
 import com.education.store.module.course.entity.EduResource;
+import com.education.store.module.course.entity.EduSubject;
 import com.education.store.module.course.mapper.EduResourceMapper;
+import com.education.store.module.course.mapper.EduSubjectMapper;
 import com.education.store.module.course.service.IEduResourceService;
+import com.education.store.module.system.mapper.SysUserMapper;
+import com.education.store.module.system.entity.system.SysUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,9 +23,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 课件资料 Service 实现
@@ -33,6 +36,8 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
         implements IEduResourceService {
 
     private final EduResourceMapper resourceMapper;
+    private final EduSubjectMapper subjectMapper;
+    private final SysUserMapper userMapper;
 
     @Value("${edu.file.upload-path:./uploads/resources}")
     private String uploadBasePath;
@@ -68,7 +73,36 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
             wrapper.eq(EduResource::getStatus, resource.getStatus());
         }
         wrapper.orderByDesc(EduResource::getCreateTime);
-        return resourceMapper.selectPage(page, wrapper);
+        IPage<EduResource> result = resourceMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
+    }
+
+    private void fillNamesForList(List<EduResource> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> subjectIds = list.stream().map(EduResource::getSubjectId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> userIds = list.stream().map(EduResource::getUploadBy).filter(Objects::nonNull).collect(Collectors.toSet());
+
+        Map<Long, String> subjectMap = new HashMap<>();
+        if (!subjectIds.isEmpty()) {
+            List<EduSubject> subjects = subjectMapper.selectBatchIds(subjectIds);
+            subjects.forEach(s -> subjectMap.put(s.getId(), s.getName()));
+        }
+
+        Map<Long, String> userMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<SysUser> users = userMapper.selectBatchIds(userIds);
+            users.forEach(u -> userMap.put(u.getId(), StrUtil.isNotBlank(u.getNickName()) ? u.getNickName() : u.getUsername()));
+        }
+
+        for (EduResource r : list) {
+            if (r.getSubjectId() != null) {
+                r.setSubjectName(subjectMap.get(r.getSubjectId()));
+            }
+            if (r.getUploadBy() != null) {
+                r.setUploadByName(userMap.get(r.getUploadBy()));
+            }
+        }
     }
 
     @Override
@@ -141,42 +175,72 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
 
     @Override
     public java.util.Map<String, Object> getCategoryTree() {
+        // 查询所有科目
+        List<EduSubject> subjects = subjectMapper.selectList(new LambdaQueryWrapper<EduSubject>()
+                .eq(EduSubject::getStatus, 1).orderByAsc(EduSubject::getSortOrder));
+        Map<Long, String> subjectNameMap = subjects.stream()
+                .collect(Collectors.toMap(EduSubject::getId, EduSubject::getName, (a,b)->a));
+
         // 查询所有未删除的课件
-        java.util.List<EduResource> allResources = lambdaQuery().list();
+        List<EduResource> allResources = lambdaQuery().list();
+
+        // 资源类型中文名映射
+        Map<String, String> typeNameMap = new LinkedHashMap<>();
+        typeNameMap.put("COURSEWARE", "课件");
+        typeNameMap.put("EXERCISE", "习题");
+        typeNameMap.put("TEST", "试卷");
+        typeNameMap.put("VIDEO", "视频");
+        typeNameMap.put("AUDIO", "音频");
+        typeNameMap.put("DOCUMENT", "文档");
+        typeNameMap.put("OTHER", "其他");
 
         // 构建三级分类树: 科目 → 年级 → 资源类型 → 数量
-        java.util.Map<Long, java.util.Map<String, java.util.Map<String, Long>>> tree = new java.util.LinkedHashMap<>();
+        Map<Long, Map<String, Map<String, Long>>> tree = new LinkedHashMap<>();
 
         for (EduResource r : allResources) {
             Long subjectId = r.getSubjectId() != null ? r.getSubjectId() : 0L;
             String grade = StrUtil.isNotBlank(r.getGrade()) ? r.getGrade() : "未分类";
             String type = StrUtil.isNotBlank(r.getResourceType()) ? r.getResourceType() : "OTHER";
 
-            tree.computeIfAbsent(subjectId, k -> new java.util.LinkedHashMap<>())
-                .computeIfAbsent(grade, k -> new java.util.LinkedHashMap<>())
+            tree.computeIfAbsent(subjectId, k -> new LinkedHashMap<>())
+                .computeIfAbsent(grade, k -> new LinkedHashMap<>())
                 .merge(type, 1L, Long::sum);
         }
 
-        // 转换为前端友好的树结构
-        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
-        for (java.util.Map.Entry<Long, java.util.Map<String, java.util.Map<String, Long>>> subjectEntry : tree.entrySet()) {
-            java.util.Map<String, Object> subjectNode = new java.util.LinkedHashMap<>();
-            subjectNode.put("subjectId", subjectEntry.getKey());
-            long subjectCount = subjectEntry.getValue().values().stream()
+        // 转换为前端友好的树结构 {id, label, type, children, count}
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (EduSubject subject : subjects) {
+            Long sid = subject.getId();
+            Map<String, Map<String, Long>> gradeMap = tree.getOrDefault(sid, Collections.emptyMap());
+            long subjectCount = gradeMap.values().stream()
                     .flatMap(m -> m.values().stream()).mapToLong(Long::longValue).sum();
+
+            Map<String, Object> subjectNode = new LinkedHashMap<>();
+            subjectNode.put("id", sid);
+            subjectNode.put("label", subject.getName());
+            subjectNode.put("name", subject.getName());
+            subjectNode.put("type", "subject");
             subjectNode.put("count", subjectCount);
 
-            java.util.List<java.util.Map<String, Object>> gradeChildren = new java.util.ArrayList<>();
-            for (java.util.Map.Entry<String, java.util.Map<String, Long>> gradeEntry : subjectEntry.getValue().entrySet()) {
-                java.util.Map<String, Object> gradeNode = new java.util.LinkedHashMap<>();
-                gradeNode.put("grade", gradeEntry.getKey());
+            List<Map<String, Object>> gradeChildren = new ArrayList<>();
+            for (Map.Entry<String, Map<String, Long>> gradeEntry : gradeMap.entrySet()) {
+                Map<String, Object> gradeNode = new LinkedHashMap<>();
+                gradeNode.put("id", sid + "_" + gradeEntry.getKey());
+                gradeNode.put("label", gradeEntry.getKey());
+                gradeNode.put("name", gradeEntry.getKey());
+                gradeNode.put("type", "grade");
                 long gradeCount = gradeEntry.getValue().values().stream().mapToLong(Long::longValue).sum();
                 gradeNode.put("count", gradeCount);
 
-                java.util.List<java.util.Map<String, Object>> typeChildren = new java.util.ArrayList<>();
-                for (java.util.Map.Entry<String, Long> typeEntry : gradeEntry.getValue().entrySet()) {
-                    java.util.Map<String, Object> typeNode = new java.util.LinkedHashMap<>();
-                    typeNode.put("resourceType", typeEntry.getKey());
+                List<Map<String, Object>> typeChildren = new ArrayList<>();
+                for (Map.Entry<String, Long> typeEntry : gradeEntry.getValue().entrySet()) {
+                    Map<String, Object> typeNode = new LinkedHashMap<>();
+                    String typeKey = typeEntry.getKey();
+                    typeNode.put("id", sid + "_" + gradeEntry.getKey() + "_" + typeKey);
+                    typeNode.put("label", typeNameMap.getOrDefault(typeKey, typeKey));
+                    typeNode.put("name", typeNameMap.getOrDefault(typeKey, typeKey));
+                    typeNode.put("value", typeKey);
+                    typeNode.put("type", "resourceType");
                     typeNode.put("count", typeEntry.getValue());
                     typeChildren.add(typeNode);
                 }
@@ -187,7 +251,44 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
             result.add(subjectNode);
         }
 
-        java.util.Map<String, Object> response = new java.util.LinkedHashMap<>();
+        // 如果有课件不属于任何科目，加一个"未分类"节点
+        Map<String, Map<String, Long>> uncategorized = tree.get(0L);
+        if (uncategorized != null && !uncategorized.isEmpty()) {
+            Map<String, Object> uncNode = new LinkedHashMap<>();
+            uncNode.put("id", 0L);
+            uncNode.put("label", "未分类");
+            uncNode.put("name", "未分类");
+            uncNode.put("type", "subject");
+            long uncCount = uncategorized.values().stream().flatMap(m->m.values().stream()).mapToLong(Long::longValue).sum();
+            uncNode.put("count", uncCount);
+            List<Map<String, Object>> gradeChildren = new ArrayList<>();
+            for (Map.Entry<String, Map<String, Long>> ge : uncategorized.entrySet()) {
+                Map<String, Object> gn = new LinkedHashMap<>();
+                gn.put("id", "0_" + ge.getKey());
+                gn.put("label", ge.getKey());
+                gn.put("name", ge.getKey());
+                gn.put("type", "grade");
+                long gc = ge.getValue().values().stream().mapToLong(Long::longValue).sum();
+                gn.put("count", gc);
+                List<Map<String, Object>> typeChildren = new ArrayList<>();
+                for (Map.Entry<String, Long> te : ge.getValue().entrySet()) {
+                    Map<String, Object> tn = new LinkedHashMap<>();
+                    tn.put("id", "0_" + ge.getKey() + "_" + te.getKey());
+                    tn.put("label", typeNameMap.getOrDefault(te.getKey(), te.getKey()));
+                    tn.put("name", typeNameMap.getOrDefault(te.getKey(), te.getKey()));
+                    tn.put("value", te.getKey());
+                    tn.put("type", "resourceType");
+                    tn.put("count", te.getValue());
+                    typeChildren.add(tn);
+                }
+                gn.put("children", typeChildren);
+                gradeChildren.add(gn);
+            }
+            uncNode.put("children", gradeChildren);
+            result.add(uncNode);
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
         response.put("tree", result);
         response.put("totalCount", allResources.size());
         return response;

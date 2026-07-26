@@ -29,6 +29,7 @@ public class FeeCreateDTO {
     private BigDecimal amountReceivable;
 
     @NotNull(message = "实缴金额不能为空")
+    @DecimalMin(value = "0.00", message = "实缴金额不能为负数")
     private BigDecimal amountPaid;
 
     private String paymentMethod;
@@ -36,4 +37,6 @@ public class FeeCreateDTO {
     private LocalDateTime payTime;
 
     private String remark;
+
+    private Long operatorId;
 }

@@ -4,7 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.classinfo.entity.EduClass;
+import com.education.store.module.classinfo.mapper.EduClassMapper;
 import com.education.store.module.points.service.PointsInternalService;
+import com.education.store.module.schedule.entity.EduSchedule;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import com.education.store.module.teaching.entity.EduEvaluation;
 import com.education.store.module.teaching.entity.EduEvaluationStudent;
 import com.education.store.module.teaching.mapper.EduEvaluationMapper;
@@ -17,7 +22,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.education.store.common.event.EvaluationSubmittedEvent;
@@ -34,6 +39,8 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
     private final PointsInternalService pointsInternalService;
     private final ApplicationEventPublisher eventPublisher;
     private final EduScheduleMapper scheduleMapper;
+    private final EduClassMapper classMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public IPage<EduEvaluation> selectEvaluationList(IPage<EduEvaluation> page, Long scheduleId, Long teacherId, Long studentId, String startDate, String endDate, Integer status) {
@@ -54,12 +61,18 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
             wrapper.le(EduEvaluation::getCreateTime, endDate + " 23:59:59");
         }
         wrapper.orderByDesc(EduEvaluation::getCreateTime);
-        return evaluationMapper.selectPage(page, wrapper);
+        IPage<EduEvaluation> result = evaluationMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
     @Override
     public EduEvaluation getDetail(Long id) {
-        return evaluationMapper.selectById(id);
+        EduEvaluation eval = evaluationMapper.selectById(id);
+        if (eval != null) {
+            fillNamesForList(Collections.singletonList(eval));
+        }
+        return eval;
     }
 
     @Override
@@ -191,5 +204,39 @@ public class EduEvaluationServiceImpl extends ServiceImpl<EduEvaluationMapper, E
                     .map(EduEvaluationStudent::getId).collect(Collectors.toList()));
         }
         return removeById(id);
+    }
+
+    private void fillNamesForList(List<EduEvaluation> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> classIds = new HashSet<>();
+        Set<Long> teacherIds = new HashSet<>();
+        Set<Long> scheduleIds = new HashSet<>();
+        for (EduEvaluation e : list) {
+            if (e.getClassId() != null) classIds.add(e.getClassId());
+            if (e.getTeacherId() != null) teacherIds.add(e.getTeacherId());
+            if (e.getScheduleId() != null) scheduleIds.add(e.getScheduleId());
+        }
+        Map<Long, EduClass> classMap = classIds.isEmpty() ? Collections.emptyMap()
+                : classMapper.selectBatchIds(classIds).stream().collect(Collectors.toMap(EduClass::getId, c -> c));
+        Map<Long, SysUser> teacherMap = teacherIds.isEmpty() ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(teacherIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        Map<Long, EduSchedule> scheduleMap = scheduleIds.isEmpty() ? Collections.emptyMap()
+                : scheduleMapper.selectBatchIds(scheduleIds).stream().collect(Collectors.toMap(EduSchedule::getId, s -> s));
+        for (EduEvaluation e : list) {
+            if (e.getClassId() != null) {
+                EduClass c = classMap.get(e.getClassId());
+                if (c != null) e.setClassName(c.getName());
+            }
+            if (e.getTeacherId() != null) {
+                SysUser u = teacherMap.get(e.getTeacherId());
+                if (u != null) e.setTeacherName(u.getRealName());
+            }
+            if (e.getScheduleId() != null) {
+                EduSchedule s = scheduleMap.get(e.getScheduleId());
+                if (s != null && s.getScheduleDate() != null) {
+                    e.setScheduleDate(s.getScheduleDate().toString());
+                }
+            }
+        }
     }
 }

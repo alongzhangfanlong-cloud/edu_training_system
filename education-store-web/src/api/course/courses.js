@@ -9,6 +9,10 @@ export function listCourse(query) {
   return request({ url: `${BASE}/list`, method: 'get', params: query });
 }
 
+export function listAllCourses() {
+  return request({ url: `${BASE}/all`, method: 'get' });
+}
+
 export function getCourse(id) {
   return request({ url: `${BASE}/${id}`, method: 'get' });
 }

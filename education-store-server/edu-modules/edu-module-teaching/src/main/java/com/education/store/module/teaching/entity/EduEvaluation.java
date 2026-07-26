@@ -1,5 +1,6 @@
 package com.education.store.module.teaching.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import jakarta.validation.constraints.NotBlank;
@@ -38,4 +39,13 @@ public class EduEvaluation extends BaseEntity {
 
     /** 提交时间 */
     private LocalDateTime submitTime;
+
+    @TableField(exist = false)
+    private String className;
+
+    @TableField(exist = false)
+    private String teacherName;
+
+    @TableField(exist = false)
+    private String scheduleDate;
 }

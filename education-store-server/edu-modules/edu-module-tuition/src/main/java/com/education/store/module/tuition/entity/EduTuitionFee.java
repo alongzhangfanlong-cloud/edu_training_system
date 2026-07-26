@@ -22,9 +22,17 @@ public class EduTuitionFee extends BaseEntity {
     private BigDecimal amountPaid;
     private String paymentMethod;
     private String status;
-    @TableField(exist = false)
     private LocalDateTime payTime;
     private String remark;
     private Long operatorId;
     private String updateBy;
+
+    @TableField(exist = false)
+    private String studentName;
+
+    @TableField(exist = false)
+    private String courseName;
+
+    @TableField(exist = false)
+    private String className;
 }

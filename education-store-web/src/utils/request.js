@@ -90,12 +90,7 @@ axiosInstance.interceptors.request.use(
     return config;
   },
   error => {
-    return {
-      success: false,
-      data: null,
-      msg: "发送请求错误",
-      error
-    };
+    return Promise.reject(error);
   }
 );
 
@@ -106,8 +101,11 @@ axiosInstance.interceptors.response.use(
     if (response.config?.responseType === 'blob') {
       return response;
     }
-    // token校验失败（响应体 code 为 401）
+    // token校验失败（响应体 code 为 401）- 尝试刷新Token，与HTTP 401处理一致
     if (response?.data?.code === 401) {
+      if (!response.config?.__isRefreshRequest && isRefreshTokenAvailable()) {
+        return retryRequest(response.config);
+      }
       logout();
     }
     // 默认返回 data，调用方若需要完整响应可通过 service.request 获取

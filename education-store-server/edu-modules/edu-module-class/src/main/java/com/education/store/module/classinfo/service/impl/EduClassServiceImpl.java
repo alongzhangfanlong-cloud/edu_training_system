@@ -8,8 +8,12 @@ import com.education.store.common.exception.BusinessException;
 import com.education.store.module.classinfo.entity.EduClass;
 import com.education.store.module.classinfo.mapper.EduClassMapper;
 import com.education.store.module.classinfo.service.IEduClassService;
+import com.education.store.module.course.entity.EduClassroom;
 import com.education.store.module.course.entity.EduCourse;
+import com.education.store.module.course.mapper.EduClassroomMapper;
 import com.education.store.module.course.mapper.EduCourseMapper;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,8 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * 班级 Service 实现
@@ -30,6 +35,8 @@ public class EduClassServiceImpl extends ServiceImpl<EduClassMapper, EduClass>
 
     private final EduClassMapper classMapper;
     private final EduCourseMapper courseMapper;
+    private final SysUserMapper sysUserMapper;
+    private final EduClassroomMapper classroomMapper;
 
     @Override
     public IPage<EduClass> selectClassList(IPage<EduClass> page, EduClass clazz) {
@@ -50,12 +57,18 @@ public class EduClassServiceImpl extends ServiceImpl<EduClassMapper, EduClass>
             wrapper.eq(EduClass::getStatus, clazz.getStatus());
         }
         wrapper.orderByDesc(EduClass::getCreateTime);
-        return classMapper.selectPage(page, wrapper);
+        IPage<EduClass> result = classMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
     @Override
     public EduClass selectClassById(Long id) {
-        return classMapper.selectById(id);
+        EduClass clazz = classMapper.selectById(id);
+        if (clazz != null) {
+            fillNamesForList(Collections.singletonList(clazz));
+        }
+        return clazz;
     }
 
     @Override
@@ -181,6 +194,38 @@ public class EduClassServiceImpl extends ServiceImpl<EduClassMapper, EduClass>
                 throw new BusinessException("结课/已取消为终态，不可变更");
             default:
                 throw new BusinessException("未知状态: " + oldStatus);
+        }
+    }
+
+    private void fillNamesForList(List<EduClass> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> courseIds = new HashSet<>();
+        Set<Long> teacherIds = new HashSet<>();
+        Set<Long> classroomIds = new HashSet<>();
+        for (EduClass c : list) {
+            if (c.getCourseId() != null) courseIds.add(c.getCourseId());
+            if (c.getTeacherId() != null) teacherIds.add(c.getTeacherId());
+            if (c.getClassroomId() != null) classroomIds.add(c.getClassroomId());
+        }
+        Map<Long, EduCourse> courseMap = courseIds.isEmpty() ? Collections.emptyMap()
+                : courseMapper.selectBatchIds(courseIds).stream().collect(Collectors.toMap(EduCourse::getId, c -> c));
+        Map<Long, SysUser> teacherMap = teacherIds.isEmpty() ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(teacherIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        Map<Long, EduClassroom> classroomMap = classroomIds.isEmpty() ? Collections.emptyMap()
+                : classroomMapper.selectBatchIds(classroomIds).stream().collect(Collectors.toMap(EduClassroom::getId, r -> r));
+        for (EduClass c : list) {
+            if (c.getCourseId() != null) {
+                EduCourse course = courseMap.get(c.getCourseId());
+                if (course != null) c.setCourseName(course.getName());
+            }
+            if (c.getTeacherId() != null) {
+                SysUser teacher = teacherMap.get(c.getTeacherId());
+                if (teacher != null) c.setTeacherName(teacher.getRealName());
+            }
+            if (c.getClassroomId() != null) {
+                EduClassroom room = classroomMap.get(c.getClassroomId());
+                if (room != null) c.setClassroomName(room.getName());
+            }
         }
     }
 }

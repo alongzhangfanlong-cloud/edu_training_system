@@ -110,8 +110,10 @@ const form = ref({
 
 const rules = {
   name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入课程编号', trigger: 'blur' }],
   subjectId: [{ required: true, message: '请选择科目', trigger: 'change' }],
   courseType: [{ required: true, message: '请选择课程类型', trigger: 'change' }],
+  price: [{ required: true, message: '请输入单价', trigger: 'blur' }],
 };
 
 async function onOpen() {

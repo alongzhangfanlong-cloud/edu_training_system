@@ -68,17 +68,48 @@ const completeAsyncRouter = (asyncRouters) => {
 
 const getComponent = (view, name) => {
   let res;
+  let foundPath = null;
   for (const path in modules) {
     const dir = path.split("views/")[1].split(".vue")[0];
     if (dir === view || dir === view + '/index') {
+      foundPath = path;
       res = () =>
-        modules[path]().then(r => {
-          if (r.default) {
-            r.default.name = name;
-          }
-          return r;
-        });
+        modules[path]()
+          .then(r => {
+            if (r.default) {
+              r.default.name = name;
+            }
+            return r;
+          })
+          .catch(err => {
+            console.error(`[Router] Failed to load component: ${view} (name=${name}), path=${path}`, err);
+            return {
+              default: {
+                name: name + 'Error',
+                template: `<div style="padding:40px;text-align:center;color:#f56c6c;">
+                  <h3>组件加载失败</h3>
+                  <p>组件路径: ${view}</p>
+                  <p>文件: ${path}</p>
+                  <p style="color:#909399;font-size:12px;margin-top:10px;">${err?.message || '未知错误'}</p>
+                </div>`
+              }
+            };
+          });
+      break;
     }
+  }
+  if (!res) {
+    console.error(`[Router] Component not found: ${view} (name=${name}). Available paths:`, Object.keys(modules).map(p => p.split("views/")[1]?.split(".vue")[0]).filter(Boolean));
+    res = () => Promise.resolve({
+      default: {
+        name: name + 'NotFound',
+        template: `<div style="padding:40px;text-align:center;color:#e6a23c;">
+          <h3>组件文件不存在</h3>
+          <p>组件路径: ${view}</p>
+          <p style="color:#909399;font-size:12px;">请检查 src/views/${view}/index.vue 是否存在</p>
+        </div>`
+      }
+    });
   }
   return res;
 };

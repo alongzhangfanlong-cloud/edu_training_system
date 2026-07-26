@@ -185,8 +185,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue';
-import { listSchedulePlan, getSchedulePlan, addSchedulePlan, updateSchedulePlan, delSchedulePlan, previewSchedulePlan, regenerateSchedulePlan } from '@/api/schedule/schedulePlans';
-import { getPlanRules, savePlanRules } from '@/api/schedule/schedulePlans';
+import { listSchedulePlan, getSchedulePlan, addSchedulePlan, updateSchedulePlan, delSchedulePlan, previewSchedulePlan, regenerateSchedulePlan, generateSchedulePlan, getPlanRules, savePlanRules } from '@/api/schedule/schedulePlans';
 import { listClass } from '@/api/class/classes';
 import { listClassroom } from '@/api/course/classrooms';
 import { useDictsStore } from '@/stores/dicts';
@@ -355,7 +354,7 @@ function handleGenerateAfterPreview() {
     return;
   }
   ElMessageBox.confirm('确认生成课程表？', '提示', { type: 'info' })
-    .then(() => addSchedulePlan({ id: previewPlanId.value, action: 'generate' })).then(res => {
+    .then(() => generateSchedulePlan(previewPlanId.value, { skipConflict: false })).then(res => {
       if (res.success) { ElMessage.success('课程表生成成功'); previewOpen.value = false; getList(); }
       else { ElMessage.error(res.msg || '生成失败'); }
     });
@@ -363,7 +362,7 @@ function handleGenerateAfterPreview() {
 
 function handleGenerateWithSkip() {
   ElMessageBox.confirm(`存在 ${previewData.value.conflictCount} 个冲突，跳过后将为无冲突的槽位生成排课。确认继续？`, '警告', { type: 'warning' })
-    .then(() => addSchedulePlan({ id: previewPlanId.value, action: 'generate', skipConflict: true })).then(res => {
+    .then(() => generateSchedulePlan(previewPlanId.value, { skipConflict: true })).then(res => {
       if (res.success) { ElMessage.success('课程表生成成功（已跳过冲突）'); previewOpen.value = false; getList(); }
       else { ElMessage.error(res.msg || '生成失败'); }
     });

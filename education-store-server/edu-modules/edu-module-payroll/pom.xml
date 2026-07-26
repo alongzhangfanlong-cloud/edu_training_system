@@ -22,6 +22,14 @@
             <artifactId>edu-module-course</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.education.store</groupId>
+            <artifactId>edu-module-schedule</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.education.store</groupId>
+            <artifactId>edu-module-system</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>

@@ -1,7 +1,10 @@
 package com.education.store.module.teaching.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -32,7 +35,8 @@ public class EduTeacherEvaluation extends BaseEntity {
 
     /** 综合评分 1-5 */
     @NotNull(message = "综合评分不能为空")
-    @Positive(message = "评分必须大于0")
+    @Min(value = 1, message = "评分最小为1")
+    @Max(value = 5, message = "评分最大为5")
     private Integer ratingScore;
 
     /** 评价文字内容 */
@@ -50,4 +54,10 @@ public class EduTeacherEvaluation extends BaseEntity {
 
     /** 提交时间 */
     private LocalDateTime submitTime;
+
+    @TableField(exist = false)
+    private String teacherName;
+
+    @TableField(exist = false)
+    private String studentName;
 }

@@ -34,7 +34,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="手机号" prop="mobile">
-            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" />
+            <el-input v-model="form.mobile" placeholder="请输入手机号" maxlength="11" @input="form.mobile = form.mobile?.replace(/\D/g, '')" />
           </el-form-item>
         </el-col>
       </el-row>

@@ -4,6 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.module.classinfo.entity.EduClass;
+import com.education.store.module.classinfo.mapper.EduClassMapper;
+import com.education.store.module.course.entity.EduSubject;
+import com.education.store.module.course.mapper.EduSubjectMapper;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import com.education.store.module.teaching.entity.EduExamScore;
 import com.education.store.module.teaching.entity.EduExamScoreStudent;
 import com.education.store.module.teaching.mapper.EduExamScoreMapper;
@@ -14,7 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +30,9 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
 
     private final EduExamScoreMapper examMapper;
     private final EduExamScoreStudentMapper studentMapper;
+    private final EduClassMapper classMapper;
+    private final EduSubjectMapper subjectMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public IPage<EduExamScore> selectExamList(IPage<EduExamScore> page, Long classId, Long subjectId, Long studentId, String examType, String startDate, String endDate) {
@@ -35,7 +44,7 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
             wrapper.eq(EduExamScore::getSubjectId, subjectId);
         }
         if (studentId != null) {
-            wrapper.apply("id IN (SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = {0} AND deleted = 0)", studentId);
+            wrapper.apply("id IN (SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = {0})", studentId);
         }
         if (examType != null && !examType.isEmpty()) {
             wrapper.eq(EduExamScore::getExamType, examType);
@@ -47,7 +56,9 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
             wrapper.le(EduExamScore::getExamDate, endDate);
         }
         wrapper.orderByDesc(EduExamScore::getExamDate);
-        return examMapper.selectPage(page, wrapper);
+        IPage<EduExamScore> result = examMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
     @Override
@@ -106,5 +117,37 @@ public class EduExamScoreServiceImpl extends ServiceImpl<EduExamScoreMapper, Edu
     @Override
     public List<EduExamScoreStudent> getStudentsByExamId(Long examScoreId) {
         return studentMapper.selectByExamScoreId(examScoreId);
+    }
+
+    private void fillNamesForList(List<EduExamScore> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> classIds = new HashSet<>();
+        Set<Long> subjectIds = new HashSet<>();
+        Set<Long> teacherIds = new HashSet<>();
+        for (EduExamScore e : list) {
+            if (e.getClassId() != null) classIds.add(e.getClassId());
+            if (e.getSubjectId() != null) subjectIds.add(e.getSubjectId());
+            if (e.getTeacherId() != null) teacherIds.add(e.getTeacherId());
+        }
+        Map<Long, EduClass> classMap = classIds.isEmpty() ? Collections.emptyMap()
+                : classMapper.selectBatchIds(classIds).stream().collect(Collectors.toMap(EduClass::getId, c -> c));
+        Map<Long, EduSubject> subjectMap = subjectIds.isEmpty() ? Collections.emptyMap()
+                : subjectMapper.selectBatchIds(subjectIds).stream().collect(Collectors.toMap(EduSubject::getId, s -> s));
+        Map<Long, SysUser> teacherMap = teacherIds.isEmpty() ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(teacherIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        for (EduExamScore e : list) {
+            if (e.getClassId() != null) {
+                EduClass c = classMap.get(e.getClassId());
+                if (c != null) e.setClassName(c.getName());
+            }
+            if (e.getSubjectId() != null) {
+                EduSubject s = subjectMap.get(e.getSubjectId());
+                if (s != null) e.setSubjectName(s.getName());
+            }
+            if (e.getTeacherId() != null) {
+                SysUser u = teacherMap.get(e.getTeacherId());
+                if (u != null) e.setTeacherName(u.getRealName());
+            }
+        }
     }
 }

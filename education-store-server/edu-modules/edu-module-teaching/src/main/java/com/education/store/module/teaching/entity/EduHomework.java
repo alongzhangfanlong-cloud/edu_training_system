@@ -46,4 +46,20 @@ public class EduHomework extends BaseEntity {
 
     /** 是否被编辑更新过: 0=否, 1=是 */
     private Integer isUpdated;
+
+    /** 班级名称（非数据库字段，关联查询填充） */
+    @TableField(exist = false)
+    private String className;
+
+    /** 课程名称（非数据库字段，关联查询填充） */
+    @TableField(exist = false)
+    private String courseName;
+
+    /** 教师姓名（非数据库字段，关联查询填充） */
+    @TableField(exist = false)
+    private String teacherName;
+
+    /** 排课日期（非数据库字段，关联edu_schedule表查询填充） */
+    @TableField(exist = false)
+    private LocalDate scheduleDate;
 }

@@ -12,6 +12,8 @@ import com.education.store.module.attendance.mapper.EduLeaveStudentMapper;
 import com.education.store.module.attendance.service.IEduLeaveStudentService;
 import com.education.store.module.student.entity.EduStudent;
 import com.education.store.module.student.mapper.EduStudentMapper;
+import com.education.store.module.system.entity.system.SysUser;
+import com.education.store.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -19,9 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +33,7 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
     private final EduAttendanceMapper attendanceMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final EduStudentMapper studentMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public IPage<EduLeaveStudent> selectLeaveList(IPage<EduLeaveStudent> page, EduLeaveStudent leave) {
@@ -39,7 +41,9 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
         if (leave.getStudentId() != null) wrapper.eq(EduLeaveStudent::getStudentId, leave.getStudentId());
         if (leave.getStatus() != null) wrapper.eq(EduLeaveStudent::getStatus, leave.getStatus());
         wrapper.orderByDesc(EduLeaveStudent::getCreateTime);
-        return leaveMapper.selectPage(page, wrapper);
+        IPage<EduLeaveStudent> result = leaveMapper.selectPage(page, wrapper);
+        fillNamesForList(result.getRecords());
+        return result;
     }
 
     @Override public EduLeaveStudent selectLeaveById(Long id) { return leaveMapper.selectById(id); }
@@ -115,6 +119,30 @@ public class EduLeaveStudentServiceImpl extends ServiceImpl<EduLeaveStudentMappe
             att.setSigninTime(LocalDateTime.now());
             att.setOperatorType("SYSTEM");
             attendanceMapper.insert(att);
+        }
+    }
+
+    private void fillNamesForList(List<EduLeaveStudent> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> studentIds = new HashSet<>();
+        Set<Long> teacherIds = new HashSet<>();
+        for (EduLeaveStudent leave : list) {
+            if (leave.getStudentId() != null) studentIds.add(leave.getStudentId());
+            if (leave.getConfirmTeacherId() != null) teacherIds.add(leave.getConfirmTeacherId());
+        }
+        Map<Long, EduStudent> studentMap = studentIds.isEmpty() ? Collections.emptyMap()
+                : studentMapper.selectBatchIds(studentIds).stream().collect(Collectors.toMap(EduStudent::getId, s -> s));
+        Map<Long, SysUser> userMap = teacherIds.isEmpty() ? Collections.emptyMap()
+                : sysUserMapper.selectBatchIds(teacherIds).stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        for (EduLeaveStudent leave : list) {
+            if (leave.getStudentId() != null) {
+                EduStudent student = studentMap.get(leave.getStudentId());
+                if (student != null) leave.setStudentName(student.getName());
+            }
+            if (leave.getConfirmTeacherId() != null) {
+                SysUser user = userMap.get(leave.getConfirmTeacherId());
+                if (user != null) leave.setConfirmTeacherName(user.getRealName());
+            }
         }
     }
 }

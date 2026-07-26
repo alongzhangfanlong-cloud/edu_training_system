@@ -40,7 +40,7 @@ public class EduTeacherPayrollController {
 
     @Operation(summary = "课酬详情")
     @PreAuthorize("@ss.hasPermi('payroll:payroll:query')")
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<EduTeacherPayroll> detail(@PathVariable Long id) {
         return Result.success(payrollService.selectPayrollById(id));
     }
@@ -84,9 +84,27 @@ public class EduTeacherPayrollController {
     @Operation(summary = "删除课酬记录")
     @Log(title = "教师课酬", businessType = BusinessType.DELETE)
     @PreAuthorize("@ss.hasPermi('payroll:payroll:delete')")
-    @DeleteMapping("/{ids}")
+    @DeleteMapping("/{ids:\\d+}")
     public Result<Void> delete(@PathVariable Long[] ids) {
         payrollService.deletePayrollByIds(ids);
         return Result.success();
+    }
+
+    @Operation(summary = "自动统计指定月份所有教师课酬")
+    @Log(title = "教师课酬自动统计", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('payroll:payroll:add')")
+    @PostMapping("/auto-generate")
+    public Result<Integer> autoGenerate(@RequestParam String month) {
+        int count = payrollService.autoGeneratePayroll(month);
+        return Result.success(count);
+    }
+
+    @Operation(summary = "自动统计指定教师指定月份课酬")
+    @Log(title = "教师课酬自动统计", businessType = BusinessType.INSERT)
+    @PreAuthorize("@ss.hasPermi('payroll:payroll:add')")
+    @PostMapping("/auto-generate/{teacherId}")
+    public Result<Integer> autoGenerateTeacher(@PathVariable Long teacherId, @RequestParam String month) {
+        int count = payrollService.autoGenerateTeacherPayroll(teacherId, month);
+        return Result.success(count);
     }
 }

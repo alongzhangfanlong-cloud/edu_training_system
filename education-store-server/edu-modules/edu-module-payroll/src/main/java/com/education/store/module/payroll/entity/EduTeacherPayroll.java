@@ -1,5 +1,6 @@
 package com.education.store.module.payroll.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.education.store.common.base.BaseEntity;
 import jakarta.validation.constraints.DecimalMin;
@@ -59,4 +60,12 @@ public class EduTeacherPayroll extends BaseEntity {
 
     /** 更新者 */
     private String updateBy;
+
+    /** 教师姓名（非数据库字段） */
+    @TableField(exist = false)
+    private String teacherName;
+
+    /** 课程名称（非数据库字段） */
+    @TableField(exist = false)
+    private String courseName;
 }

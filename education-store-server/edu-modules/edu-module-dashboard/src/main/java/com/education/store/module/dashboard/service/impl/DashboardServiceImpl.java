@@ -121,10 +121,11 @@ public class DashboardServiceImpl implements IDashboardService {
         long teacherCount = teacherMapper.selectCount(teacherWrapper);
 
         // 4. 本月营收（edu_tuition_fee 表用 create_time 作为收费时间）
+        // 统计 PAID（全额）和 PARTIAL（部分付款）状态的实收金额，两者都是实际已到账收入
         LambdaQueryWrapper<EduTuitionFee> feeWrapper = new LambdaQueryWrapper<>();
         feeWrapper.between(EduTuitionFee::getCreateTime,
                         monthStart.atStartOfDay(), todayEnd.plusDays(1).atStartOfDay())
-                .eq(EduTuitionFee::getStatus, "PAID")
+                .in(EduTuitionFee::getStatus, "PAID", "PARTIAL", "CONFIRMED")
                 .eq(EduTuitionFee::getDeleted, 0);
         List<EduTuitionFee> fees = tuitionFeeMapper.selectList(feeWrapper);
         BigDecimal monthlyIncome = fees.stream()
@@ -152,7 +153,7 @@ public class DashboardServiceImpl implements IDashboardService {
         LambdaQueryWrapper<EduTuitionFee> lastFeeWrapper = new LambdaQueryWrapper<>();
         lastFeeWrapper.between(EduTuitionFee::getCreateTime,
                         lastMonthStart.atStartOfDay(), lastMonthEnd.plusDays(1).atStartOfDay())
-                .eq(EduTuitionFee::getStatus, "PAID")
+                .in(EduTuitionFee::getStatus, "PAID", "PARTIAL", "CONFIRMED")
                 .eq(EduTuitionFee::getDeleted, 0);
         List<EduTuitionFee> lastFees = tuitionFeeMapper.selectList(lastFeeWrapper);
         BigDecimal lastMonthIncome = lastFees.stream()

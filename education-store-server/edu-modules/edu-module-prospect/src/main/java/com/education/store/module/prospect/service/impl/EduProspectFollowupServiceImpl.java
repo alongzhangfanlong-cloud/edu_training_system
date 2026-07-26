@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.store.common.exception.BusinessException;
+import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.prospect.entity.EduProspect;
 import com.education.store.module.prospect.entity.EduProspectFollowup;
 import com.education.store.module.prospect.mapper.EduProspectFollowupMapper;
@@ -43,6 +44,13 @@ public class EduProspectFollowupServiceImpl extends ServiceImpl<EduProspectFollo
         EduProspect prospect = prospectMapper.selectById(followup.getProspectId());
         if (prospect == null) {
             throw new BusinessException("意向学员不存在");
+        }
+
+        if (followup.getOperatorId() == null) {
+            followup.setOperatorId(SecurityUtils.getUserId());
+        }
+        if (followup.getFollowupDate() == null) {
+            followup.setFollowupDate(LocalDateTime.now());
         }
 
         // 插入跟进记录

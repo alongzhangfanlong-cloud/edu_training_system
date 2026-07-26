@@ -67,4 +67,17 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
             "WHERE r.code = #{roleCode} AND u.deleted = 0 AND u.status = 1 " +
             "ORDER BY u.real_name")
     List<Map<String, Object>> selectUsersByRoleCode(@Param("roleCode") String roleCode);
+
+    /** 查询拥有指定角色的启用用户（支持关键字搜索，用于下拉选项） */
+    @Select("<script>" +
+            "SELECT u.id AS userId, u.real_name AS realName FROM sys_user u " +
+            "INNER JOIN sys_user_role ur ON u.id = ur.user_id " +
+            "INNER JOIN sys_role r ON ur.role_id = r.id " +
+            "WHERE r.code = #{roleCode} AND u.deleted = 0 AND u.status = 1 " +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (u.real_name LIKE CONCAT('%', #{keyword}, '%') OR u.username LIKE CONCAT('%', #{keyword}, '%')) " +
+            "</if>" +
+            "ORDER BY u.real_name LIMIT 100" +
+            "</script>")
+    List<Map<String, Object>> selectUsersByRoleCodeWithKeyword(@Param("roleCode") String roleCode, @Param("keyword") String keyword);
 }

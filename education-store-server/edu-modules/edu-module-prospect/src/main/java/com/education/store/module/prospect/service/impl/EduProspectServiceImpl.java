@@ -183,18 +183,20 @@ public class EduProspectServiceImpl extends ServiceImpl<EduProspectMapper, EduPr
         student.setRemainingHours(BigDecimal.ZERO);
         studentService.insertStudent(student);
 
-        // 2. 创建家长关联（数据继承），含手机号去重校验
-        EduStudentParent parent = new EduStudentParent();
-        parent.setStudentId(student.getId());
-        parent.setName(prospect.getParentName());
-        parent.setRelation(prospect.getParentRelation());
-        parent.setMobile(prospect.getParentMobile());
-        parent.setSort(0);
-        // PRD §7.6: 同一学生下家长手机号不可重复
-        if (!parentService.checkMobileUnique(parent)) {
-            throw new BusinessException("该学生已存在相同手机号的家长");
+        // 2. 创建家长关联（数据继承），仅当家长姓名不为空时创建
+        if (StrUtil.isNotBlank(prospect.getParentName())) {
+            EduStudentParent parent = new EduStudentParent();
+            parent.setStudentId(student.getId());
+            parent.setName(prospect.getParentName());
+            parent.setRelation(StrUtil.isNotBlank(prospect.getParentRelation()) ? prospect.getParentRelation() : "OTHER");
+            parent.setMobile(prospect.getParentMobile());
+            parent.setSort(0);
+            // PRD §7.6: 同一学生下家长手机号不可重复
+            if (!parentService.checkMobileUnique(parent)) {
+                throw new BusinessException("该学生已存在相同手机号的家长");
+            }
+            parentService.insertParent(parent);
         }
-        parentService.insertParent(parent);
 
         // 3. 回填并更新意向学员状态（条件更新防止并发重复转化）
         String oldStatus = prospect.getFollowStatus();

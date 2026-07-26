@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 
 /**
  * 排课计划实体
@@ -16,7 +18,7 @@ import java.time.LocalDate;
 @TableName("edu_schedule_plan")
 public class EduSchedulePlan extends BaseEntity {
 
-    /** 关联班级ID */
+    /** 关联班级ID（兼容旧代码，单班级） */
     private Long classId;
 
     /** 排课起始日期 */
@@ -34,6 +36,12 @@ public class EduSchedulePlan extends BaseEntity {
     /** 备注 */
     private String remark;
 
+    /** 教室ID */
+    private Long roomId;
+
+    /** 排课配置JSON(weekDays/startTime/endTime/teacherId) */
+    private String planConfig;
+
     /** 班级名称（非数据库字段，关联查询填充） */
     @TableField(exist = false)
     private String className;
@@ -46,16 +54,36 @@ public class EduSchedulePlan extends BaseEntity {
     @TableField(exist = false)
     private String teacherName;
 
-    /** 教室ID → edu_classroom.id（创建计划时选定） */
-    private Long roomId;
-
     /** 教室名称（非数据库字段，关联查询填充） */
     @TableField(exist = false)
     private String roomName;
+
+    /** 计划名称（非数据库字段，默认用班级名称） */
+    @TableField(exist = false)
+    private String name;
 
     /** 创建者 */
     private String createBy;
 
     /** 更新者 */
     private String updateBy;
+
+    // ========== 非数据库字段：排课参数（从planConfig解析） ==========
+    @TableField(exist = false)
+    private List<Integer> weekDays;
+
+    @TableField(exist = false)
+    private LocalTime startTime;
+
+    @TableField(exist = false)
+    private LocalTime endTime;
+
+    @TableField(exist = false)
+    private Long teacherId;
+
+    @TableField(exist = false)
+    private Integer plannedLessons;
+
+    @TableField(exist = false)
+    private Integer scheduledLessons;
 }

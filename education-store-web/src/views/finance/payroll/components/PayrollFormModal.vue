@@ -12,7 +12,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="月份" prop="month">
-            <el-month-picker v-model="form.month" placeholder="选择月份" value-format="YYYY-MM" style="width:100%" />
+            <el-date-picker v-model="form.month" type="month" placeholder="选择月份" value-format="YYYY-MM" style="width:100%" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -58,11 +58,11 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { addPayroll } from '@/api/finance/payrolls';
-import { listTeacher } from '@/api/teaching/teachers';
-import { listCourse } from '@/api/course/courses';
+import { listTeacherUsers } from '@/api/teaching/teachers';
+import { listCourse, listAllCourses } from '@/api/course/courses';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -78,14 +78,16 @@ const courseOptions = ref([]);
 const courseLoading = ref(false);
 
 const form = ref({
-  teacherId: null, month: '', courseId: null, lessonCount: 0,
-  payPerLesson: 0, totalPay: 0, status: 'DRAFT',
+  teacherId: null, month: '', courseId: null, lessonCount: 1,
+  payPerLesson: null, totalPay: 0, status: 'DRAFT',
 });
 
 const rules = {
   teacherId: [{ required: true, message: '请选择教师', trigger: 'change' }],
   month: [{ required: true, message: '请选择月份', trigger: 'change' }],
   courseId: [{ required: true, message: '请选择课程', trigger: 'change' }],
+  lessonCount: [{ required: true, message: '请输入消课数', trigger: 'blur' }],
+  payPerLesson: [{ required: true, message: '请输入单节课酬', trigger: 'blur' }],
 };
 
 const totalPay = computed(() => {
@@ -97,12 +99,13 @@ const totalPay = computed(() => {
 let tTimer = null; let tSeq = 0;
 function searchTeachers(keyword) {
   clearTimeout(tTimer);
-  if (!keyword) { teacherOptions.value = []; return; }
   teacherLoading.value = true;
   tTimer = setTimeout(() => { tSeq++; const seq = tSeq;
-    listTeacher({ page: 1, pageSize: 100, keyword }).then(res => {
+    listTeacherUsers(keyword || '').then(res => {
       if (seq !== tSeq) return;
-      if (res.success) teacherOptions.value = res.data?.records || res.rows || [];
+      if (res.success) {
+        teacherOptions.value = (res.data || []).map(u => ({ id: u.userId, name: u.realName }));
+      }
     }).finally(() => { if (seq === tSeq) teacherLoading.value = false; });
   }, 300);
 }
@@ -110,12 +113,18 @@ function searchTeachers(keyword) {
 let cTimer = null; let cSeq = 0;
 function searchCourses(keyword) {
   clearTimeout(cTimer);
-  if (!keyword) { courseOptions.value = []; return; }
   courseLoading.value = true;
   cTimer = setTimeout(() => { cSeq++; const seq = cSeq;
-    listCourse({ page: 1, size: 100, keyword }).then(res => {
+    // 如果没有关键词，加载所有课程；有关键词时分页搜索
+    const apiCall = !keyword 
+      ? listAllCourses() 
+      : listCourse({ page: 1, pageSize: 100, name: keyword });
+    apiCall.then(res => {
       if (seq !== cSeq) return;
-      if (res.success) courseOptions.value = res.data?.records || res.rows || [];
+      if (res.success) {
+        const courses = Array.isArray(res.data) ? res.data : (res.data?.records || res.rows || []);
+        courseOptions.value = courses.map(c => ({ id: c.id, name: c.name }));
+      }
     }).finally(() => { if (seq === cSeq) courseLoading.value = false; });
   }, 300);
 }
@@ -123,8 +132,11 @@ function searchCourses(keyword) {
 function onOpen() { reset(); }
 
 function reset() {
-  form.value = { teacherId: null, month: '', courseId: null, lessonCount: 0, payPerLesson: 0, totalPay: 0, status: 'DRAFT' };
+  form.value = { teacherId: null, month: '', courseId: null, lessonCount: 1, payPerLesson: null, totalPay: 0, status: 'DRAFT' };
   teacherOptions.value = []; courseOptions.value = [];
+  // 默认加载教师和课程列表
+  searchTeachers('');
+  searchCourses('');
   nextTick(() => formRef.value?.clearValidate());
 }
 

@@ -543,6 +543,21 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<UserSimpleVO> listUsersByRoleCode(String roleCode, String keyword) {
+        List<Map<String, Object>> results;
+        if (keyword == null || keyword.trim().isEmpty()) {
+            results = userMapper.selectUsersByRoleCode(roleCode);
+        } else {
+            results = userMapper.selectUsersByRoleCodeWithKeyword(roleCode, keyword.trim());
+        }
+        return results.stream()
+                .map(m -> new UserSimpleVO(
+                        ((Number) m.get("userId")).longValue(),
+                        (String) m.get("realName")))
+                .collect(Collectors.toList());
+    }
+
     /** 性别数值转中文 */
     private String toGenderText(Integer gender) {
         if (gender == null) return "";

@@ -34,3 +34,19 @@ export function previewSchedulePlan(data) {
 export function regenerateSchedulePlan(id) {
   return request({ url: `${BASE}/${id}/regenerate`, method: 'put' });
 }
+
+/** 生成课表（首次生成） */
+export function generateSchedulePlan(id, data = {}) {
+  return request({ url: `${BASE}/${id}/generate`, method: 'put', data });
+}
+
+/** 获取排课计划的规则列表 */
+export function getPlanRules(planId) {
+  return request({ url: `${BASE}/${planId}/rules`, method: 'get' });
+}
+
+/** 保存排课计划的规则 */
+export function savePlanRules(planId, rules) {
+  return request({ url: `${BASE}/${planId}/rules`, method: 'post', data: rules });
+}
+
