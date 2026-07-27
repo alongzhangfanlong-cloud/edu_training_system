@@ -30,7 +30,7 @@ public class EvaluationController {
     private final IEduEvaluationStudentService studentService;
 
     @Operation(summary = "评价列表")
-    @PreAuthorize("@ss.hasPermi('teaching:evaluation:list')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/list")
     public Result<PageResult<EduEvaluation>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
@@ -46,7 +46,7 @@ public class EvaluationController {
     }
 
     @Operation(summary = "评价详情")
-    @PreAuthorize("@ss.hasPermi('teaching:evaluation:list')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
         EduEvaluation evaluation = evaluationService.getDetail(id);
@@ -56,7 +56,7 @@ public class EvaluationController {
 
     @Operation(summary = "暂存草稿")
     @Log(title = "教评学", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('teaching:evaluation:add')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/draft")
     public Result<EduEvaluation> saveDraft(@RequestParam Long scheduleId,
             @RequestParam Long classId,
@@ -70,7 +70,7 @@ public class EvaluationController {
 
     @Operation(summary = "提交评价")
     @Log(title = "教评学", businessType = BusinessType.UPDATE)
-    @PreAuthorize("@ss.hasPermi('teaching:evaluation:add')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/submit")
     public Result<EduEvaluation> submit(@PathVariable Long id,
             @RequestParam String summary,
@@ -82,7 +82,7 @@ public class EvaluationController {
 
     @Operation(summary = "删除评价")
     @Log(title = "教评学", businessType = BusinessType.DELETE)
-    @PreAuthorize("@ss.hasPermi('teaching:evaluation:remove')")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         evaluationService.deleteEvaluation(id, com.education.store.common.utils.SecurityUtils.getUserId());

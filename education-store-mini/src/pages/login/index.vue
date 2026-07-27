@@ -65,10 +65,10 @@ async function navigateAfterLogin(role) {
     await teacherStore.fetchDashboard();
     uni.reLaunch({ url: '/pages/teacher/schedule/index' });
   } else if (role === 'ADMIN') {
-    // 管理员可以查看所有孩子，跳转到家长端首页
-    await childrenStore.fetchChildren();
+    // 管理员跳转到管理员首页
     uni.reLaunch({ url: '/pages/index/index' });
   } else {
+    // 家长加载孩子数据
     await childrenStore.fetchChildren();
     uni.reLaunch({ url: '/pages/index/index' });
   }

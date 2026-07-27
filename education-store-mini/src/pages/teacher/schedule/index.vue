@@ -145,7 +145,7 @@ async function loadData() {
       endDate = y + '-' + String(m + 1).padStart(2, '0') + '-' + new Date(y, m + 1, 0).getDate();
     }
     const res = await getSchedules({ startDate, endDate });
-    if (res.code === 200) list.value = res.data?.records || res.data || [];
+    if (res.code === 200) list.value = res.data || [];
   } catch { error.value = true; }
   finally { loading.value = false; }
 }

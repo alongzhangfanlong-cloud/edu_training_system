@@ -46,7 +46,7 @@ async function loadData(isRefresh) {
   if (!hasMore.value && !isRefresh) return;
   loading.value = true;
   try {
-    const res = await getHomeworkList({ page: page.value, pageSize: 10 });
+    const res = await getHomeworkList({ page: page.value, pageSize: 10, teacherId: authStore.userInfo?.userId });
     if (res.code === 200) {
       const data = res.data?.records || res.data || [];
       if (isRefresh || page.value === 1) list.value = [];

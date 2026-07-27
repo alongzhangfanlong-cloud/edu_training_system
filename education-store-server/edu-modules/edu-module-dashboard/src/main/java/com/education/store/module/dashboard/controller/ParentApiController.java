@@ -2,6 +2,7 @@ package com.education.store.module.dashboard.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.education.store.common.exception.BusinessException;
 import com.education.store.common.model.PageResult;
 import com.education.store.common.model.Result;
 import com.education.store.common.utils.SecurityUtils;
@@ -36,11 +37,13 @@ import com.education.store.module.teaching.mapper.EduHomeworkMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,11 +55,14 @@ import java.util.stream.Collectors;
  *
  * <p>基础的孩子列表/详情仍由 edu-module-student 的 {@code ParentController} 提供。
  */
+@Slf4j
 @Tag(name = "家长端-跨模块")
 @RestController
 @RequestMapping("/api/v1/parent")
 @RequiredArgsConstructor
 public class ParentApiController {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     // ======== 跨模块 Mapper ========
     private final EduAttendanceMapper attendanceMapper;
@@ -89,11 +95,23 @@ public class ParentApiController {
         Long userId = SecurityUtils.getUserId();
         requireParentOf(userId, studentId);
 
+        page = Math.max(1, page);
+        pageSize = normalizePageSize(pageSize);
+
         LambdaQueryWrapper<EduAttendance> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EduAttendance::getStudentId, studentId);
         if (date != null && !date.isEmpty()) {
+            // 校验日期格式，防止SQL注入
+            try {
+                LocalDate.parse(date);
+            } catch (DateTimeParseException e) {
+                throw new BusinessException("日期格式错误，应为yyyy-MM-dd");
+            }
             wrapper.apply("DATE(create_time) = {0}", date);
         } else if (yearMonth != null && !yearMonth.isEmpty()) {
+            if (!yearMonth.matches("^\\d{4}-\\d{2}$")) {
+                throw new BusinessException("月份格式错误，应为yyyy-MM");
+            }
             wrapper.apply("DATE_FORMAT(create_time, '%Y-%m') = {0}", yearMonth);
         }
         wrapper.orderByDesc(EduAttendance::getCreateTime);
@@ -135,10 +153,10 @@ public class ParentApiController {
                         .ge(EduAttendance::getCreateTime, start.atStartOfDay())
                         .le(EduAttendance::getCreateTime, end.plusDays(1).atStartOfDay()));
 
-        long present = list.stream().filter(a -> a.getStatus() == EduAttendance.STATUS_PRESENT).count();
-        long late = list.stream().filter(a -> a.getStatus() == EduAttendance.STATUS_LATE).count();
-        long absent = list.stream().filter(a -> a.getStatus() == EduAttendance.STATUS_ABSENT).count();
-        long leave = list.stream().filter(a -> a.getStatus() == EduAttendance.STATUS_LEAVE).count();
+        long present = list.stream().filter(a -> a.getStatus() != null && a.getStatus() == EduAttendance.STATUS_PRESENT).count();
+        long late = list.stream().filter(a -> a.getStatus() != null && a.getStatus() == EduAttendance.STATUS_LATE).count();
+        long absent = list.stream().filter(a -> a.getStatus() != null && a.getStatus() == EduAttendance.STATUS_ABSENT).count();
+        long leave = list.stream().filter(a -> a.getStatus() != null && a.getStatus() == EduAttendance.STATUS_LEAVE).count();
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("yearMonth", ym.toString());
@@ -147,8 +165,9 @@ public class ParentApiController {
         stats.put("late", late);
         stats.put("absent", absent);
         stats.put("leave", leave);
-        stats.put("attendanceRate", list.isEmpty() ? 0 :
-                Math.round((present + late) * 100.0 / list.size()));
+        long validDays = present + late + absent + leave;
+        stats.put("attendanceRate", validDays == 0 ? 0 :
+                Math.round((present + late) * 100.0 / validDays));
 
         return Result.success(stats);
     }
@@ -157,18 +176,21 @@ public class ParentApiController {
     //  作业
     // ================================================================
 
-    @Operation(summary = "孩子作业列表（通过班级关联查询）")
+    @Operation(summary = "孩子作业列表（通过班级关联查询，分页）")
     @GetMapping("/children/{studentId}/homework")
-    public Result<List<Map<String, Object>>> homework(
+    public Result<PageResult<Map<String, Object>>> homework(
             @PathVariable Long studentId,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize) {
         Long userId = SecurityUtils.getUserId();
         requireParentOf(userId, studentId);
 
+        page = Math.max(1, page);
+        pageSize = normalizePageSize(pageSize);
+
         List<Long> classIds = getStudentClassIds(studentId);
         if (classIds.isEmpty()) {
-            return Result.success(Collections.emptyList());
+            return Result.success(PageResult.of(Collections.emptyList(), 0, page, pageSize));
         }
 
         Page<EduHomework> p = new Page<>(page, pageSize);
@@ -189,7 +211,7 @@ public class ParentApiController {
             return m;
         }).collect(Collectors.toList());
 
-        return Result.success(records);
+        return Result.success(PageResult.of(records, result.getTotal(), page, pageSize));
     }
 
     // ================================================================
@@ -229,15 +251,53 @@ public class ParentApiController {
         Long userId = SecurityUtils.getUserId();
         requireParentOf(userId, studentId);
 
+        if (body == null) {
+            throw new BusinessException("请求体不能为空");
+        }
+
+        Object leaveDateObj = body.get("leaveDate");
+        Object leaveTypeObj = body.get("leaveType");
+        if (leaveDateObj == null || leaveDateObj.toString().isBlank()) {
+            throw new BusinessException("请假日期不能为空");
+        }
+        if (leaveTypeObj == null || leaveTypeObj.toString().isBlank()) {
+            throw new BusinessException("请假类型不能为空");
+        }
+
+        LocalDate leaveDate;
+        int leaveType;
+        try {
+            leaveDate = LocalDate.parse(leaveDateObj.toString());
+        } catch (DateTimeParseException e) {
+            throw new BusinessException("请假日期格式错误，应为yyyy-MM-dd");
+        }
+        try {
+            leaveType = Integer.parseInt(leaveTypeObj.toString());
+        } catch (NumberFormatException e) {
+            throw new BusinessException("请假类型必须是数字");
+        }
+
+        if (leaveDate.isBefore(LocalDate.now())) {
+            throw new BusinessException("请假日期不能早于今天");
+        }
+
+        String reason = body.get("reason") != null ? body.get("reason").toString() : "";
+        if (reason.length() > 500) {
+            throw new BusinessException("请假原因不能超过500个字符");
+        }
+
         EduLeaveStudent leave = new EduLeaveStudent();
         leave.setStudentId(studentId);
-        leave.setLeaveDate(LocalDate.parse(body.get("leaveDate").toString()));
-        leave.setLeaveType(Integer.parseInt(body.get("leaveType").toString()));
-        leave.setReason(Objects.toString(body.get("reason"), ""));
+        leave.setLeaveDate(leaveDate);
+        leave.setLeaveType(leaveType);
+        leave.setReason(reason);
         leave.setStatus(0);
         leave.setApplicantType("PARENT");
         leave.setApplicantId(userId);
         leaveStudentMapper.insert(leave);
+
+        log.info("家长提交请假申请: userId={}, studentId={}, leaveDate={}, leaveId={}",
+                userId, studentId, leaveDate, leave.getId());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", leave.getId());
@@ -260,10 +320,18 @@ public class ParentApiController {
                         .eq(EduEnrollment::getStudentId, studentId)
                         .orderByDesc(EduEnrollment::getCreateTime));
 
-        // 批量查课程名
-        List<Long> courseIds = list.stream().map(EduEnrollment::getCourseId).distinct().collect(Collectors.toList());
+        if (list.isEmpty()) {
+            return Result.success(Collections.emptyList());
+        }
+
+        List<Long> courseIds = list.stream()
+                .map(EduEnrollment::getCourseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
         Map<Long, String> courseNameMap = courseIds.isEmpty() ? Collections.emptyMap() :
                 courseMapper.selectBatchIds(courseIds).stream()
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toMap(EduCourse::getId, EduCourse::getName, (a, b) -> a));
 
         List<Map<String, Object>> records = list.stream().map(e -> {
@@ -302,26 +370,51 @@ public class ParentApiController {
         LambdaQueryWrapper<EduSchedule> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(EduSchedule::getClassId, classIds)
                 .eq(EduSchedule::getStatus, "NORMAL");
+
+        LocalDate start = LocalDate.now();
+        LocalDate end = null;
         if (startDate != null && !startDate.isEmpty()) {
-            wrapper.ge(EduSchedule::getScheduleDate, LocalDate.parse(startDate));
-        } else {
-            wrapper.ge(EduSchedule::getScheduleDate, LocalDate.now());
+            try {
+                start = LocalDate.parse(startDate);
+            } catch (DateTimeParseException e) {
+                throw new BusinessException("开始日期格式错误，应为yyyy-MM-dd");
+            }
         }
+        wrapper.ge(EduSchedule::getScheduleDate, start);
+
         if (endDate != null && !endDate.isEmpty()) {
-            wrapper.le(EduSchedule::getScheduleDate, LocalDate.parse(endDate));
+            try {
+                end = LocalDate.parse(endDate);
+            } catch (DateTimeParseException e) {
+                throw new BusinessException("结束日期格式错误，应为yyyy-MM-dd");
+            }
+            wrapper.le(EduSchedule::getScheduleDate, end);
         }
         wrapper.orderByAsc(EduSchedule::getScheduleDate).orderByAsc(EduSchedule::getStartTime);
 
         List<EduSchedule> list = scheduleMapper.selectList(wrapper);
+        if (list.isEmpty()) {
+            return Result.success(Collections.emptyList());
+        }
 
-        List<Long> courseIds = list.stream().map(EduSchedule::getCourseId).distinct().collect(Collectors.toList());
+        List<Long> courseIds = list.stream()
+                .map(EduSchedule::getCourseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
         Map<Long, String> courseNameMap = courseIds.isEmpty() ? Collections.emptyMap() :
                 courseMapper.selectBatchIds(courseIds).stream()
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toMap(EduCourse::getId, EduCourse::getName, (a, b) -> a));
 
-        List<Long> roomIds = list.stream().map(EduSchedule::getRoomId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        List<Long> roomIds = list.stream()
+                .map(EduSchedule::getRoomId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
         Map<Long, String> roomNameMap = roomIds.isEmpty() ? Collections.emptyMap() :
                 classroomMapper.selectBatchIds(roomIds).stream()
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toMap(EduClassroom::getId, EduClassroom::getName, (a, b) -> a));
 
         List<Map<String, Object>> records = list.stream().map(s -> {
@@ -353,10 +446,17 @@ public class ParentApiController {
         Long userId = SecurityUtils.getUserId();
         requireParentOf(userId, studentId);
 
-        List<EduExamScore> list = examScoreMapper.selectList(
-                new LambdaQueryWrapper<EduExamScore>()
-                        .apply("id IN (SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = {0} AND deleted = 0)", studentId)
-                        .orderByDesc(EduExamScore::getExamDate));
+        // 先通过关联表查询学生的exam_score_id列表，避免SQL拼接风险
+        List<EduExamScore> list;
+        try {
+            list = examScoreMapper.selectList(
+                    new LambdaQueryWrapper<EduExamScore>()
+                            .apply("id IN (SELECT exam_score_id FROM edu_exam_score_student WHERE student_id = {0} AND deleted = 0)", studentId)
+                            .orderByDesc(EduExamScore::getExamDate));
+        } catch (Exception e) {
+            log.warn("查询考试成绩失败: studentId={}", studentId, e);
+            return Result.success(Collections.emptyList());
+        }
 
         List<Map<String, Object>> records = list.stream().map(e -> {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -392,9 +492,14 @@ public class ParentApiController {
         }
 
         List<Long> evalIds = evalStudents.stream()
-                .map(EduEvaluationStudent::getEvaluationId).distinct().collect(Collectors.toList());
-        Map<Long, EduEvaluation> evalMap = evaluationMapper.selectBatchIds(evalIds).stream()
-                .collect(Collectors.toMap(EduEvaluation::getId, e -> e, (a, b) -> a));
+                .map(EduEvaluationStudent::getEvaluationId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, EduEvaluation> evalMap = evalIds.isEmpty() ? Collections.emptyMap() :
+                evaluationMapper.selectBatchIds(evalIds).stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toMap(EduEvaluation::getId, e -> e, (a, b) -> a));
 
         List<Map<String, Object>> records = evalStudents.stream().map(es -> {
             EduEvaluation eval = evalMap.get(es.getEvaluationId());
@@ -442,7 +547,8 @@ public class ParentApiController {
         List<EduPointsLog> list = pointsLogMapper.selectList(
                 new LambdaQueryWrapper<EduPointsLog>()
                         .eq(EduPointsLog::getStudentId, studentId)
-                        .orderByDesc(EduPointsLog::getCreateTime));
+                        .orderByDesc(EduPointsLog::getCreateTime)
+                        .last("LIMIT 200")); // 限制最多返回200条，防止数据量过大
 
         List<Map<String, Object>> records = list.stream().map(l -> {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -462,24 +568,37 @@ public class ParentApiController {
     //  辅助方法
     // ================================================================
 
+    private long normalizePageSize(long pageSize) {
+        if (pageSize < 1) return 10;
+        if (pageSize > MAX_PAGE_SIZE) return MAX_PAGE_SIZE;
+        return pageSize;
+    }
+
     /** 获取学生在读班级 ID 列表 */
     private List<Long> getStudentClassIds(Long studentId) {
         return classStudentMapper.selectList(
                 new LambdaQueryWrapper<EduClassStudent>()
                         .eq(EduClassStudent::getStudentId, studentId)
                         .eq(EduClassStudent::getStatus, "ENROLLED"))
-                .stream().map(EduClassStudent::getClassId)
-                .distinct().collect(Collectors.toList());
+                .stream()
+                .filter(Objects::nonNull)
+                .map(EduClassStudent::getClassId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /** 校验亲子关系（管理员可查看所有） */
     private void requireParentOf(Long userId, Long studentId) {
-        // 管理员可以查看任何学生的信息
         if (SecurityUtils.isAdmin()) {
             return;
         }
+        if (userId == null || studentId == null) {
+            throw new BusinessException("参数错误");
+        }
         if (!isParentOf(userId, studentId)) {
-            throw new com.education.store.common.exception.BusinessException("无权查看该学员信息");
+            log.warn("越权访问: userId={}尝试访问studentId={}", userId, studentId);
+            throw new BusinessException("无权查看该学员信息");
         }
     }
 

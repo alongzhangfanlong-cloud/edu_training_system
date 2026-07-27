@@ -17,7 +17,9 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { createHomework } from '@/api/teacher-evaluation';
+import { useAuthStore } from '@/stores/auth';
 
+const authStore = useAuthStore();
 const submitting = ref(false);
 
 const form = reactive({ content: '' });
@@ -26,7 +28,7 @@ async function handleSubmit() {
   if (!form.content.trim()) { uni.showToast({ title: '请输入作业内容', icon: 'none' }); return; }
   submitting.value = true;
   try {
-    const res = await createHomework({ content: form.content });
+    const res = await createHomework({ content: form.content, teacherId: authStore.userInfo?.userId });
     if (res.code === 200) {
       uni.showToast({ title: '发布成功', icon: 'success' });
       setTimeout(() => uni.navigateBack(), 1500);

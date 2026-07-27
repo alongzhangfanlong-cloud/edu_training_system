@@ -33,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLogin = computed(() => !!token.value);
   const isTeacher = computed(() => role.value === 'TEACHER');
   const isAdmin = computed(() => role.value === 'ADMIN');
+  const isParent = computed(() => role.value === 'PARENT');
 
   async function doLogin(username, password) {
     const res = await apiLogin({ username, password });
@@ -127,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    token, userInfo, role, isLogin, isTeacher, isAdmin,
+    token, userInfo, role, isLogin, isTeacher, isAdmin, isParent,
     login, loginWithPassword, logout, checkAuth, getHomePage,
   };
 });

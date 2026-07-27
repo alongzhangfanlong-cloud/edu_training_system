@@ -126,7 +126,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { listResource, delResource, recordDownload, getCategoryTree } from '@/api/course/resources.js';
+import { listResource, delResource, recordDownload, getTeacherCategoryTree } from '@/api/course/resources.js';
 import UploadDialog from './UploadDialog.vue';
 
 const loading = ref(false);
@@ -149,7 +149,7 @@ const treeLoading = ref(false);
 async function loadTree() {
   treeLoading.value = true;
   try {
-    const res = await getCategoryTree();
+    const res = await getTeacherCategoryTree();
     if (res.success) treeData.value = res.data?.tree || res.data || [];
   } catch { /* ignore */ }
   treeLoading.value = false;

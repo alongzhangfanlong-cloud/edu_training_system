@@ -36,8 +36,9 @@ public class ParentController {
 
         List<EduStudent> students;
         
-        // 管理员可以查看所有学生
-        if (SecurityUtils.isAdmin()) {
+        // 管理员可以查看所有学生（userId=1是超级管理员）
+        boolean isAdmin = SecurityUtils.isAdmin() || (userId != null && userId.longValue() == 1L);
+        if (isAdmin) {
             students = studentMapper.selectList(null);
         } else {
             List<EduStudentParent> relations = parentMapper.selectList(
@@ -78,7 +79,8 @@ public class ParentController {
     public Result<Map<String, Object>> getChildDetail(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
         // 管理员可以查看任何学生，家长只能看自己的孩子
-        if (!SecurityUtils.isAdmin() && !isParentOf(userId, studentId)) {
+        boolean isAdmin = SecurityUtils.isAdmin() || (userId != null && userId == 1L);
+        if (!isAdmin && !isParentOf(userId, studentId)) {
             return Result.error("无权查看该学员信息");
         }
 

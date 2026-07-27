@@ -6,6 +6,7 @@ import com.education.store.module.attendance.entity.EduAttendance;
 import com.education.store.module.attendance.entity.EduLeaveStudent;
 import com.education.store.module.attendance.mapper.EduAttendanceMapper;
 import com.education.store.module.attendance.mapper.EduLeaveStudentMapper;
+import com.education.store.module.attendance.service.IEduAttendanceService;
 import com.education.store.module.classinfo.entity.EduClass;
 import com.education.store.module.classinfo.entity.EduClassStudent;
 import com.education.store.module.classinfo.mapper.EduClassMapper;
@@ -27,6 +28,7 @@ import com.education.store.module.teacher.dashboard.model.*;
 import com.education.store.module.teacher.dashboard.service.ITeacherDashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -60,6 +62,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
     private final EduHomeworkSubmissionMapper homeworkSubmissionMapper;
     private final EduTeacherMapper teacherMapper;
     private final SysUserMapper sysUserMapper;
+    private final IEduAttendanceService attendanceService;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -297,6 +300,22 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
             return Collections.emptyList();
         }
 
+        // 查询班级和课程名称
+        String className = null;
+        String courseName = null;
+        if (schedule.getClassId() != null) {
+            EduClass clazz = classMapper.selectById(schedule.getClassId());
+            if (clazz != null) {
+                className = clazz.getName();
+                if (clazz.getCourseId() != null) {
+                    EduCourse course = courseMapper.selectById(clazz.getCourseId());
+                    if (course != null) {
+                        courseName = course.getName();
+                    }
+                }
+            }
+        }
+
         // 查询班级学生
         LambdaQueryWrapper<EduClassStudent> csWrapper = new LambdaQueryWrapper<>();
         csWrapper.eq(EduClassStudent::getClassId, schedule.getClassId())
@@ -347,6 +366,8 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
                     .studentId(cs.getStudentId())
                     .studentName(student != null ? student.getName() : "--")
                     .attendanceStatus(attStatusStr)
+                    .courseName(courseName)
+                    .className(className)
                     .build());
         }
 
@@ -373,7 +394,216 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
                 .build();
     }
 
+    @Override
+    public List<TeacherScheduleVO> getScheduleByDateRange(String startDate, String endDate) {
+        Long teacherId = getTeacherId();
+        LocalDate start = LocalDate.parse(startDate, DATE_FMT);
+        LocalDate end = LocalDate.parse(endDate, DATE_FMT);
+        LocalTime now = LocalTime.now();
+
+        LambdaQueryWrapper<EduSchedule> sw = new LambdaQueryWrapper<>();
+        sw.eq(EduSchedule::getTeacherId, teacherId)
+                .between(EduSchedule::getScheduleDate, start, end)
+                .notIn(EduSchedule::getStatus, "CANCELLED", "SUSPENDED")
+                .eq(EduSchedule::getDeleted, 0)
+                .orderByAsc(EduSchedule::getScheduleDate)
+                .orderByAsc(EduSchedule::getStartTime);
+        List<EduSchedule> schedules = scheduleMapper.selectList(sw);
+
+        if (schedules.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return buildScheduleVOList(schedules, now);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchSignin(Long scheduleId, List<Map<String, Object>> records) {
+        Long teacherId = getTeacherId();
+
+        // 校验排课属于当前教师
+        EduSchedule schedule = scheduleMapper.selectById(scheduleId);
+        if (schedule == null || !teacherId.equals(schedule.getTeacherId())) {
+            throw new RuntimeException("无权操作此排课");
+        }
+
+        Long classId = schedule.getClassId();
+
+        // 先删除该排课已有的签到记录（请假记录除外），支持重复签到
+        LambdaQueryWrapper<EduAttendance> delWrapper = new LambdaQueryWrapper<>();
+        delWrapper.eq(EduAttendance::getScheduleId, scheduleId)
+                .eq(EduAttendance::getDeleted, 0)
+                .notIn(EduAttendance::getStatus, EduAttendance.STATUS_LEAVE, EduAttendance.STATUS_LEAVE_PENDING);
+        List<EduAttendance> existingRecords = attendanceMapper.selectList(delWrapper);
+        if (!existingRecords.isEmpty()) {
+            List<Long> existingIds = existingRecords.stream().map(EduAttendance::getId).collect(Collectors.toList());
+            attendanceMapper.deleteBatchIds(existingIds);
+        }
+
+        // 构建签到记录
+        List<EduAttendance> attendances = new ArrayList<>();
+        for (Map<String, Object> r : records) {
+            Object studentIdObj = r.get("studentId");
+            Object statusObj = r.get("status");
+            if (studentIdObj == null || statusObj == null) continue;
+
+            Long studentId = Long.valueOf(studentIdObj.toString());
+            String statusStr = statusObj.toString().toUpperCase();
+            int status;
+            switch (statusStr) {
+                case "PRESENT": status = EduAttendance.STATUS_PRESENT; break;
+                case "LATE": status = EduAttendance.STATUS_LATE; break;
+                case "ABSENT": status = EduAttendance.STATUS_ABSENT; break;
+                case "LEAVE": status = EduAttendance.STATUS_LEAVE; break;
+                default: status = EduAttendance.STATUS_PRESENT;
+            }
+
+            EduAttendance att = new EduAttendance();
+            att.setStudentId(studentId);
+            att.setStatus(status);
+            attendances.add(att);
+        }
+
+        if (!attendances.isEmpty()) {
+            attendanceService.batchSignin(scheduleId, classId, attendances, teacherId, "MINI_PROGRAM");
+        }
+    }
+
+    @Override
+    public Map<String, Long> getScheduleSigninStats(Long scheduleId) {
+        Long teacherId = getTeacherId();
+
+        // 校验排课属于当前教师
+        EduSchedule schedule = scheduleMapper.selectById(scheduleId);
+        if (schedule == null || !teacherId.equals(schedule.getTeacherId())) {
+            return Map.of("present", 0L, "late", 0L, "absent", 0L, "leave", 0L, "total", 0L);
+        }
+
+        return attendanceService.getStatsBySchedule(scheduleId);
+    }
+
     // ============ 辅助方法 ============
+
+    /**
+     * 构建课表VO列表（抽取公共逻辑）
+     */
+    private List<TeacherScheduleVO> buildScheduleVOList(List<EduSchedule> schedules, LocalTime now) {
+        // 预加载关联数据
+        Set<Long> classIds = schedules.stream().map(EduSchedule::getClassId).collect(Collectors.toSet());
+        Map<Long, EduClass> classMap = classMapper.selectBatchIds(classIds).stream()
+                .collect(Collectors.toMap(EduClass::getId, c -> c));
+
+        Set<Long> courseIds = classMap.values().stream()
+                .filter(c -> c.getCourseId() != null)
+                .map(EduClass::getCourseId).collect(Collectors.toSet());
+        Map<Long, EduCourse> courseMap = courseIds.isEmpty() ? Collections.emptyMap()
+                : courseMapper.selectBatchIds(courseIds).stream()
+                .collect(Collectors.toMap(EduCourse::getId, c -> c));
+
+        Set<Long> roomIds = new HashSet<>();
+        for (EduSchedule s : schedules) {
+            if (s.getRoomId() != null) {
+                roomIds.add(s.getRoomId());
+            } else {
+                EduClass clazz = classMap.get(s.getClassId());
+                if (clazz != null && clazz.getClassroomId() != null) {
+                    roomIds.add(clazz.getClassroomId());
+                }
+            }
+        }
+        Map<Long, EduClassroom> roomMap = roomIds.isEmpty() ? Collections.emptyMap()
+                : classroomMapper.selectBatchIds(roomIds).stream()
+                .collect(Collectors.toMap(EduClassroom::getId, r -> r));
+
+        // 查询签到数据
+        List<Long> scheduleIds = schedules.stream().map(EduSchedule::getId).collect(Collectors.toList());
+        LambdaQueryWrapper<EduAttendance> attWrapper = new LambdaQueryWrapper<>();
+        attWrapper.in(EduAttendance::getScheduleId, scheduleIds)
+                .eq(EduAttendance::getDeleted, 0);
+        List<EduAttendance> attendances = attendanceMapper.selectList(attWrapper);
+        Map<Long, List<EduAttendance>> attBySchedule = attendances.stream()
+                .collect(Collectors.groupingBy(EduAttendance::getScheduleId));
+
+        // 批量查询班级学生数
+        Map<Long, Long> classStudentCountMap = new HashMap<>();
+        if (!classIds.isEmpty()) {
+            LambdaQueryWrapper<EduClassStudent> csAllWrapper = new LambdaQueryWrapper<>();
+            csAllWrapper.in(EduClassStudent::getClassId, classIds)
+                    .eq(EduClassStudent::getStatus, "ENROLLED")
+                    .eq(EduClassStudent::getDeleted, 0);
+            List<EduClassStudent> allClassStudents = classStudentMapper.selectList(csAllWrapper);
+            classStudentCountMap = allClassStudents.stream()
+                    .collect(Collectors.groupingBy(EduClassStudent::getClassId, Collectors.counting()));
+        }
+
+        List<TeacherScheduleVO> result = new ArrayList<>();
+        for (EduSchedule s : schedules) {
+            EduClass clazz = classMap.get(s.getClassId());
+            EduCourse course = clazz != null && clazz.getCourseId() != null ? courseMap.get(clazz.getCourseId()) : null;
+            Long roomId = s.getRoomId() != null ? s.getRoomId() : (clazz != null ? clazz.getClassroomId() : null);
+            EduClassroom room = roomId != null ? roomMap.get(roomId) : null;
+
+            int expectedCount = clazz != null ? (clazz.getCurrentCount() != null ? clazz.getCurrentCount() : 0) : 0;
+            // 如果班级没有currentCount，从classStudentCountMap获取
+            if (expectedCount == 0) {
+                expectedCount = classStudentCountMap.getOrDefault(s.getClassId(), 0L).intValue();
+            }
+
+            List<EduAttendance> attList = attBySchedule.getOrDefault(s.getId(), Collections.emptyList());
+            int checkedCount = (int) attList.stream()
+                    .filter(a -> a.getStatus() != null
+                            && (a.getStatus() == EduAttendance.STATUS_PRESENT || a.getStatus() == EduAttendance.STATUS_LATE))
+                    .count();
+
+            // 课程状态
+            String courseStatus;
+            LocalDate scheduleDate = s.getScheduleDate();
+            boolean isToday = scheduleDate != null && scheduleDate.equals(LocalDate.now());
+            if (s.getEndTime() != null && isToday && now.isAfter(s.getEndTime())) {
+                courseStatus = "FINISHED";
+            } else if (s.getStartTime() != null && s.getEndTime() != null && isToday
+                    && !now.isBefore(s.getStartTime()) && !now.isAfter(s.getEndTime())) {
+                courseStatus = "IN_PROGRESS";
+            } else {
+                courseStatus = "NOT_STARTED";
+            }
+
+            // 请假学生数
+            long leaveCount = attList.stream()
+                    .filter(a -> a.getStatus() != null
+                            && (a.getStatus() == EduAttendance.STATUS_LEAVE || a.getStatus() == EduAttendance.STATUS_LEAVE_PENDING))
+                    .count();
+            long effectiveTotal = expectedCount - leaveCount;
+
+            String attendanceStatus;
+            if ("NOT_STARTED".equals(courseStatus)) {
+                attendanceStatus = "NOT_STARTED";
+            } else if (attList.isEmpty()) {
+                attendanceStatus = "UNCHECKED";
+            } else if (effectiveTotal > 0 && checkedCount < effectiveTotal) {
+                attendanceStatus = "PARTIAL";
+            } else {
+                attendanceStatus = "COMPLETED";
+            }
+
+            result.add(TeacherScheduleVO.builder()
+                    .scheduleId(s.getId())
+                    .scheduleDate(s.getScheduleDate() != null ? s.getScheduleDate().format(DATE_FMT) : null)
+                    .startTime(s.getStartTime() != null ? s.getStartTime().format(TIME_FMT) : null)
+                    .endTime(s.getEndTime() != null ? s.getEndTime().format(TIME_FMT) : null)
+                    .courseName(course != null ? course.getName() : "--")
+                    .className(clazz != null ? clazz.getName() : "--")
+                    .classroomName(room != null ? room.getName() : "未分配")
+                    .expectedCount(expectedCount)
+                    .checkedCount(checkedCount)
+                    .courseStatus(courseStatus)
+                    .attendanceStatus(attendanceStatus)
+                    .build());
+        }
+
+        return result;
+    }
 
     /**
      * 获取当前登录教师的用户ID
@@ -398,5 +628,86 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
             case SUNDAY: return "周日";
             default: return "";
         }
+    }
+
+    @Override
+    public List<TeacherStudentVO> getMyStudents() {
+        Long teacherId = getTeacherId();
+
+        // 查询该教师所教的所有班级（从排课表中去重）
+        LambdaQueryWrapper<EduSchedule> sWrapper = new LambdaQueryWrapper<>();
+        sWrapper.eq(EduSchedule::getTeacherId, teacherId)
+                .eq(EduSchedule::getDeleted, 0)
+                .select(EduSchedule::getClassId)
+                .groupBy(EduSchedule::getClassId);
+        List<EduSchedule> schedules = scheduleMapper.selectList(sWrapper);
+        Set<Long> classIds = schedules.stream()
+                .map(EduSchedule::getClassId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (classIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 查询班级信息
+        List<EduClass> classes = classMapper.selectBatchIds(classIds);
+        Map<Long, EduClass> classMap = classes.stream()
+                .collect(Collectors.toMap(EduClass::getId, c -> c, (a, b) -> a));
+
+        // 查询课程信息
+        Set<Long> courseIds = classes.stream()
+                .map(EduClass::getCourseId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, EduCourse> courseMap = new HashMap<>();
+        if (!courseIds.isEmpty()) {
+            courseMap = courseMapper.selectBatchIds(courseIds).stream()
+                    .collect(Collectors.toMap(EduCourse::getId, c -> c, (a, b) -> a));
+        }
+
+        // 查询班级学生关联
+        LambdaQueryWrapper<EduClassStudent> csWrapper = new LambdaQueryWrapper<>();
+        csWrapper.in(EduClassStudent::getClassId, classIds)
+                .eq(EduClassStudent::getDeleted, 0);
+        List<EduClassStudent> classStudents = classStudentMapper.selectList(csWrapper);
+
+        if (classStudents.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 查询学生信息（去重）
+        Set<Long> studentIds = classStudents.stream()
+                .map(EduClassStudent::getStudentId)
+                .collect(Collectors.toSet());
+        Map<Long, EduStudent> studentMap = studentMapper.selectBatchIds(studentIds).stream()
+                .collect(Collectors.toMap(EduStudent::getId, s -> s, (a, b) -> a));
+
+        // 学生 -> 班级的映射（一个学生可能在多个班级）
+        Map<Long, List<EduClassStudent>> studentClassMap = classStudents.stream()
+                .collect(Collectors.groupingBy(EduClassStudent::getStudentId));
+
+        List<TeacherStudentVO> result = new ArrayList<>();
+        for (Map.Entry<Long, List<EduClassStudent>> entry : studentClassMap.entrySet()) {
+            EduStudent student = studentMap.get(entry.getKey());
+            if (student == null) continue;
+
+            // 取第一个班级作为主要显示班级
+            EduClassStudent cs = entry.getValue().get(0);
+            EduClass clazz = classMap.get(cs.getClassId());
+            EduCourse course = clazz != null && clazz.getCourseId() != null ? courseMap.get(clazz.getCourseId()) : null;
+
+            TeacherStudentVO vo = new TeacherStudentVO();
+            vo.setStudentId(student.getId());
+            vo.setStudentName(student.getName());
+            vo.setMobile(student.getMobile());
+            vo.setGrade(student.getGrade());
+            vo.setGender("女".equals(student.getGender()) ? "女" : "男");
+            vo.setClassName(clazz != null ? clazz.getName() : "--");
+            vo.setCourseName(course != null ? course.getName() : "--");
+            result.add(vo);
+        }
+
+        return result;
     }
 }

@@ -32,11 +32,10 @@ const tagType = computed(() => {
   const item = props.options.find((d) => String(d.value) === String(props.value));
   if (!item) return undefined;
   const cls = item.listClass || item.cssClass || '';
-  if (cls.includes('primary')) return 'primary';
   if (cls.includes('success')) return 'success';
-  if (cls.includes('info')) return 'info';
   if (cls.includes('warning')) return 'warning';
   if (cls.includes('danger')) return 'danger';
+  if (cls.includes('info') || cls.includes('primary')) return 'info';
   return undefined;
 });
 </script>

@@ -26,7 +26,8 @@ public class EduLeaveTeacherController {
     private final IEduLeaveTeacherService leaveService;
 
     @Operation(summary = "教师请假列表")
-    @GetMapping("/list") @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:list')")
+    @GetMapping("/list")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<EduLeaveTeacher>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize, @RequestParam(required = false) Long teacherId,
             @RequestParam(required = false) Integer status) {
@@ -36,22 +37,26 @@ public class EduLeaveTeacherController {
     }
 
     @Operation(summary = "教师请假详情")
-    @GetMapping("/{id}") @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:query')")
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public Result<EduLeaveTeacher> detail(@PathVariable Long id) { return Result.success(leaveService.selectLeaveById(id)); }
 
     @Operation(summary = "新增教师请假")
-    @PostMapping @Log(title = "教师请假", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:add')")
+    @PostMapping
+    @Log(title = "教师请假", businessType = BusinessType.INSERT)
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> create(@Valid @RequestBody EduLeaveTeacher leave) { leaveService.insertLeave(leave); return Result.success(); }
 
     @Operation(summary = "审批通过教师请假")
-    @PutMapping("/{id}/approve") @Log(title = "教师请假", businessType = BusinessType.UPDATE)
+    @PutMapping("/{id}/approve")
+    @Log(title = "教师请假", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:approve')")
     public Result<Void> approve(@PathVariable Long id, @RequestBody Map<String, Long> b) {
         leaveService.approveLeave(id, b.get("approverId")); return Result.success(); }
 
     @Operation(summary = "驳回教师请假")
-    @PutMapping("/{id}/reject") @Log(title = "教师请假", businessType = BusinessType.UPDATE)
+    @PutMapping("/{id}/reject")
+    @Log(title = "教师请假", businessType = BusinessType.UPDATE)
     @PreAuthorize("@ss.hasPermi('attendance:leave:teacher:approve')")
     public Result<Void> reject(@PathVariable Long id, @RequestBody Map<String, String> b) {
         leaveService.rejectLeave(id, Long.valueOf(b.get("approverId")), b.getOrDefault("reason", "")); return Result.success(); }

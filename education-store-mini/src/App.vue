@@ -5,6 +5,12 @@ import { useChildrenStore } from '@/stores/children';
 
 let appInitialized = false;
 
+const TEACHER_PAGES_PREFIX = '/pages/teacher/';
+const PARENT_ONLY_PAGES = ['/pages/index/index', '/pages/messages/index', '/pages/profile/index',
+  '/pages/schedule/index', '/pages/homework/index', '/pages/attendance/index',
+  '/pages/exam/index', '/pages/evaluation/index', '/pages/points/index',
+  '/pages/leave/index', '/pages/enrollment/index'];
+
 async function initAppData() {
   const authStore = useAuthStore();
   const isAuthed = authStore.checkAuth();
@@ -18,7 +24,18 @@ async function initAppData() {
     return;
   }
 
-  if (authStore.isTeacher) {
+  const isTeacher = authStore.isTeacher;
+
+  if (isTeacher) {
+    const pages = getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    if (currentPage) {
+      const currentPath = '/' + currentPage.route;
+      if (PARENT_ONLY_PAGES.some(p => currentPath === p) || (!currentPath.startsWith(TEACHER_PAGES_PREFIX) && currentPath !== '/pages/login/index')) {
+        uni.reLaunch({ url: '/pages/teacher/schedule/index' });
+        return;
+      }
+    }
     return;
   }
 

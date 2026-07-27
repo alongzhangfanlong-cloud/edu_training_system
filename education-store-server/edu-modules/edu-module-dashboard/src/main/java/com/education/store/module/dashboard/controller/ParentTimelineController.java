@@ -1,6 +1,7 @@
 package com.education.store.module.dashboard.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.education.store.common.exception.BusinessException;
 import com.education.store.common.model.Result;
 import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.attendance.entity.EduAttendance;
@@ -11,18 +12,15 @@ import com.education.store.module.student.mapper.EduStudentMapper;
 import com.education.store.module.student.mapper.EduStudentParentMapper;
 import com.education.store.module.teaching.entity.EduEvaluation;
 import com.education.store.module.teaching.entity.EduEvaluationStudent;
-import com.education.store.module.teaching.entity.EduExamScore;
 import com.education.store.module.teaching.entity.EduHomework;
 import com.education.store.module.teaching.mapper.EduEvaluationMapper;
 import com.education.store.module.teaching.mapper.EduEvaluationStudentMapper;
-import com.education.store.module.teaching.mapper.EduExamScoreMapper;
 import com.education.store.module.teaching.mapper.EduHomeworkMapper;
 import com.education.store.module.classinfo.entity.EduClassStudent;
 import com.education.store.module.classinfo.mapper.EduClassStudentMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -41,13 +39,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ParentTimelineController {
 
+    private static final int MAX_DAYS = 90;
+    private static final int MAX_LIMIT = 50;
+
     private final EduStudentParentMapper parentMapper;
     private final EduStudentMapper studentMapper;
     private final EduAttendanceMapper attendanceMapper;
-    private final EduExamScoreMapper examScoreMapper;
-    private final EduHomeworkMapper homeworkMapper;
     private final EduEvaluationMapper evaluationMapper;
     private final EduEvaluationStudentMapper evaluationStudentMapper;
+    private final EduHomeworkMapper homeworkMapper;
     private final EduClassStudentMapper classStudentMapper;
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("MM-dd HH:mm");
@@ -58,6 +58,15 @@ public class ParentTimelineController {
             @RequestParam(defaultValue = "30") int days,
             @RequestParam(defaultValue = "20") int limit) {
         Long userId = SecurityUtils.getUserId();
+        if (userId == null) {
+            return Result.unauthorized("用户未登录");
+        }
+
+        // 参数校验，防止SQL注入和滥用
+        if (days < 1) days = 30;
+        if (days > MAX_DAYS) days = MAX_DAYS;
+        if (limit < 1) limit = 20;
+        if (limit > MAX_LIMIT) limit = MAX_LIMIT;
 
         // 获取家长的所有孩子
         List<EduStudentParent> relations = parentMapper.selectList(
@@ -67,15 +76,28 @@ public class ParentTimelineController {
         }
 
         List<Long> studentIds = relations.stream()
-                .map(EduStudentParent::getStudentId).distinct().collect(Collectors.toList());
+                .filter(Objects::nonNull)
+                .map(EduStudentParent::getStudentId)
+                .filter(Objects::nonNull)
+                .distinct().collect(Collectors.toList());
+        if (studentIds.isEmpty()) {
+            return Result.success(Map.of("children", Collections.emptyList()));
+        }
+
         List<EduStudent> students = studentMapper.selectBatchIds(studentIds);
+        if (students == null || students.isEmpty()) {
+            return Result.success(Map.of("children", Collections.emptyList()));
+        }
         Map<Long, EduStudent> studentMap = students.stream()
+                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(EduStudent::getId, s -> s, (a, b) -> a));
 
         LocalDateTime since = LocalDateTime.now().minusDays(days);
+        String limitClause = "LIMIT " + limit; // limit已在上文校验为正整数，安全拼接
 
         List<Map<String, Object>> children = new ArrayList<>();
         for (EduStudent student : students) {
+            if (student == null) continue;
             List<Map<String, Object>> events = new ArrayList<>();
 
             // 1. 签到事件
@@ -84,7 +106,7 @@ public class ParentTimelineController {
                             .eq(EduAttendance::getStudentId, student.getId())
                             .ge(EduAttendance::getCreateTime, since)
                             .orderByDesc(EduAttendance::getCreateTime)
-                            .last("LIMIT " + limit));
+                            .last(limitClause));
             for (EduAttendance a : attendances) {
                 events.add(Map.of(
                         "type", "SIGN_IN",
@@ -92,9 +114,9 @@ public class ParentTimelineController {
                         "sortTime", toString(a.getCreateTime()),
                         "summary", statusLabel(a.getStatus()),
                         "data", Map.of(
-                                "status", a.getStatus(),
+                                "status", a.getStatus() != null ? a.getStatus() : 0,
                                 "signinTime", fmt(a.getSigninTime()),
-                                "scheduleId", a.getScheduleId()
+                                "scheduleId", a.getScheduleId() != null ? a.getScheduleId() : 0
                         )
                 ));
             }
@@ -105,13 +127,19 @@ public class ParentTimelineController {
                             .eq(EduEvaluationStudent::getStudentId, student.getId())
                             .ge(EduEvaluationStudent::getCreateTime, since)
                             .orderByDesc(EduEvaluationStudent::getCreateTime)
-                            .last("LIMIT " + limit));
+                            .last(limitClause));
             if (!evalStudents.isEmpty()) {
                 List<Long> evalIds = evalStudents.stream()
-                        .map(EduEvaluationStudent::getEvaluationId).distinct().collect(Collectors.toList());
-                Map<Long, EduEvaluation> evalMap = evaluationMapper.selectBatchIds(evalIds).stream()
-                        .collect(Collectors.toMap(EduEvaluation::getId, e -> e, (a, b) -> a));
+                        .filter(Objects::nonNull)
+                        .map(EduEvaluationStudent::getEvaluationId)
+                        .filter(Objects::nonNull)
+                        .distinct().collect(Collectors.toList());
+                Map<Long, EduEvaluation> evalMap = evalIds.isEmpty() ? Collections.emptyMap() :
+                        evaluationMapper.selectBatchIds(evalIds).stream()
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toMap(EduEvaluation::getId, e -> e, (a, b) -> a));
                 for (EduEvaluationStudent es : evalStudents) {
+                    if (es == null) continue;
                     EduEvaluation eval = evalMap.get(es.getEvaluationId());
                     String summary = "课堂表现";
                     if (es.getStarRating() != null) {
@@ -127,10 +155,10 @@ public class ParentTimelineController {
                             "sortTime", toString(es.getCreateTime()),
                             "summary", summary,
                             "data", Map.of(
-                                    "evaluationId", es.getEvaluationId(),
-                                    "scheduleId", eval != null ? Objects.requireNonNullElse(eval.getScheduleId(), 0L) : 0L,
+                                    "evaluationId", es.getEvaluationId() != null ? es.getEvaluationId() : 0,
+                                    "scheduleId", eval != null && eval.getScheduleId() != null ? eval.getScheduleId() : 0L,
                                     "starRating", es.getStarRating() != null ? es.getStarRating().toString() : "",
-                                    "comment", Objects.requireNonNullElse(es.getComment(), "")
+                                    "comment", es.getComment() != null ? es.getComment() : ""
                             )
                     ));
                 }
@@ -139,36 +167,43 @@ public class ParentTimelineController {
             // 3. 作业事件（通过班级关联）
             List<EduClassStudent> csList = classStudentMapper.selectList(
                     new LambdaQueryWrapper<EduClassStudent>()
-                            .eq(EduClassStudent::getStudentId, student.getId()));
+                            .eq(EduClassStudent::getStudentId, student.getId())
+                            .eq(EduClassStudent::getStatus, "ENROLLED"));
             if (!csList.isEmpty()) {
-                List<Long> classIds = csList.stream().map(EduClassStudent::getClassId).distinct().collect(Collectors.toList());
-                List<EduHomework> homeworks = homeworkMapper.selectList(
-                        new LambdaQueryWrapper<EduHomework>()
-                                .in(EduHomework::getClassId, classIds)
-                                .ge(EduHomework::getCreateTime, since)
-                                .orderByDesc(EduHomework::getCreateTime)
-                                .last("LIMIT " + limit));
-                for (EduHomework h : homeworks) {
-                    String content = h.getTitle() != null ? h.getTitle() : h.getContent();
-                    String preview = content != null && content.length() > 30
-                            ? content.substring(0, 30) + "…" : content;
-                    events.add(Map.of(
-                            "type", "HOMEWORK",
-                            "time", fmt(h.getCreateTime()),
-                            "sortTime", toString(h.getCreateTime()),
-                            "summary", "作业：" + Objects.requireNonNullElse(preview, ""),
-                            "data", Map.of(
-                                    "id", h.getId(),
-                                    "title", Objects.requireNonNullElse(h.getTitle(), ""),
-                                    "content", Objects.requireNonNullElse(h.getContent(), ""),
-                                    "classId", h.getClassId()
-                            )
-                    ));
+                List<Long> classIds = csList.stream()
+                        .filter(Objects::nonNull)
+                        .map(EduClassStudent::getClassId)
+                        .filter(Objects::nonNull)
+                        .distinct().collect(Collectors.toList());
+                if (!classIds.isEmpty()) {
+                    List<EduHomework> homeworks = homeworkMapper.selectList(
+                            new LambdaQueryWrapper<EduHomework>()
+                                    .in(EduHomework::getClassId, classIds)
+                                    .ge(EduHomework::getCreateTime, since)
+                                    .orderByDesc(EduHomework::getCreateTime)
+                                    .last(limitClause));
+                    for (EduHomework h : homeworks) {
+                        if (h == null) continue;
+                        String content = h.getTitle() != null ? h.getTitle() : h.getContent();
+                        String preview = "";
+                        if (content != null) {
+                            preview = content.length() > 30 ? content.substring(0, 30) + "…" : content;
+                        }
+                        events.add(Map.of(
+                                "type", "HOMEWORK",
+                                "time", fmt(h.getCreateTime()),
+                                "sortTime", toString(h.getCreateTime()),
+                                "summary", "作业：" + preview,
+                                "data", Map.of(
+                                        "id", h.getId() != null ? h.getId() : 0,
+                                        "title", h.getTitle() != null ? h.getTitle() : "",
+                                        "content", h.getContent() != null ? h.getContent() : "",
+                                        "classId", h.getClassId() != null ? h.getClassId() : 0
+                                )
+                        ));
+                    }
                 }
             }
-
-            // 4. 成绩事件（EduExamScore 为班级级表，无 studentId 直接关联，跳过避免报错；家长端已通过独立 exam-scores 接口查成绩）
-            // try { /* 通过班级-学员-考试分数关联表查询，此处容错跳过 */ } catch (Exception e) { /* skip */ }
 
             // 按 sortTime 倒序，取前 limit 条
             events.sort((a, b) -> ((String) b.get("sortTime")).compareTo((String) a.get("sortTime")));
@@ -178,8 +213,8 @@ public class ParentTimelineController {
 
             Map<String, Object> child = new LinkedHashMap<>();
             child.put("studentId", student.getId());
-            child.put("name", student.getName());
-            child.put("grade", student.getGrade());
+            child.put("name", student.getName() != null ? student.getName() : "");
+            child.put("grade", student.getGrade() != null ? student.getGrade() : "");
             child.put("events", events);
             children.add(child);
         }

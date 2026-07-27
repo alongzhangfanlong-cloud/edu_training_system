@@ -35,8 +35,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getScheduleStudents } from '@/api/teacher';
-import { batchSignin } from '@/api/checkin';
+import { getScheduleStudents, batchSignin } from '@/api/teacher';
 import { subscribeOne } from '@/utils/subscribe';
 import EmptyState from '@/components/empty-state.vue';
 import LoadingSkeleton from '@/components/loading-skeleton.vue';
@@ -95,12 +94,11 @@ async function handleSubmit() {
 
   submitting.value = true;
   try {
-    const data = students.value.map(s => ({
-      scheduleId: Number(scheduleId),
+    const records = students.value.map(s => ({
       studentId: s.studentId,
       status: s._status,
     }));
-    const res = await batchSignin(data);
+    const res = await batchSignin(Number(scheduleId), records);
     if (res.code === 200) {
       uni.showToast({ title: '签到成功', icon: 'success' });
       setTimeout(async () => {

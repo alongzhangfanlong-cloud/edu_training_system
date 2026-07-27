@@ -28,4 +28,10 @@ public class TeacherScheduleStudentVO implements Serializable {
 
     /** 签到状态：PRESENT / LATE / ABSENT / null(未签到) */
     private String attendanceStatus;
+
+    /** 课程名称 */
+    private String courseName;
+
+    /** 班级名称 */
+    private String className;
 }

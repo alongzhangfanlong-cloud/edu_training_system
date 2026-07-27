@@ -1,5 +1,38 @@
 <template>
-  <view class="home-page">
+  <!-- 管理员首页 -->
+  <view v-if="isAdmin" class="home-page admin-home">
+    <view class="admin-header">
+      <text class="admin-greeting">{{ greetingText }}，{{ authStore.userInfo?.realName || '管理员' }}</text>
+      <text class="admin-date">{{ todayText }}</text>
+    </view>
+
+    <view class="admin-menu">
+      <view class="admin-menu-item" @click="switchTabPage('/pages/admin/students/index')">
+        <view class="ami-icon" style="background:linear-gradient(135deg,#667eea,#409eff)">👥</view>
+        <text class="ami-label">学生管理</text>
+      </view>
+      <view class="admin-menu-item" @click="navigateTo('/pages/enrollment/index')">
+        <view class="ami-icon" style="background:linear-gradient(135deg,#f093fb,#e6a23c)">📋</view>
+        <text class="ami-label">报名记录</text>
+      </view>
+      <view class="admin-menu-item" @click="navigateTo('/pages/schedule/index')">
+        <view class="ami-icon" style="background:linear-gradient(135deg,#43e97b,#67c23a)">📅</view>
+        <text class="ami-label">总课表</text>
+      </view>
+      <view class="admin-menu-item" @click="navigateTo('/pages/points/index')">
+        <view class="ami-icon" style="background:linear-gradient(135deg,#fa709a,#f59e0b)">⭐</view>
+        <text class="ami-label">积分管理</text>
+      </view>
+    </view>
+
+    <view class="admin-tips">
+      <text class="tips-title">📢 提示</text>
+      <text class="tips-text">管理员可查看全部学生数据、课表、报名记录等运营数据</text>
+    </view>
+  </view>
+
+  <!-- 家长首页 -->
+  <view v-else class="home-page">
     <view class="header-section">
       <view class="greeting">
         <text class="greeting-text">{{ greetingText }}</text>
@@ -182,8 +215,10 @@ import { getPoints } from '@/api/points';
 import { getTimeline } from '@/api/timeline';
 import { fromNow, eventMeta, formatDate, STATUS_MAP, parsePaginationResponse, normalizePaginationParams } from '@/utils/index';
 import ChildSwitcher from '@/components/child-switcher.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const childrenStore = useChildrenStore();
+const authStore = useAuthStore();
 const currentChildId = ref(null);
 const loading = ref(true);
 const error = ref(false);
@@ -193,6 +228,8 @@ const todayAttendance = ref(null);
 const pointsBalance = ref(0);
 const timelineList = ref([]);
 const unreadCount = ref(0);
+
+const isAdmin = computed(() => authStore.isAdmin);
 
 const currentChild = computed(() =>
   childrenStore.children.find((c) => c.studentId === currentChildId.value) || childrenStore.children[0] || null
@@ -300,7 +337,20 @@ function navigateTo(url) {
   uni.navigateTo({ url });
 }
 
+function switchTabPage(url) {
+  uni.switchTab({ url });
+}
+
 onShow(async () => {
+  // 教师端不使用首页，自动跳转到课表页
+  if (authStore.isTeacher) {
+    uni.switchTab({ url: '/pages/teacher/schedule/index' });
+    return;
+  }
+  // 管理员使用管理员首页，不加载家长孩子数据
+  if (authStore.isAdmin) {
+    return;
+  }
   if (childrenStore.children.length === 0) {
     await childrenStore.fetchChildren();
   }
@@ -313,6 +363,10 @@ onShow(async () => {
 });
 
 onPullDownRefresh(async () => {
+  if (authStore.isAdmin || authStore.isTeacher) {
+    uni.stopPullDownRefresh();
+    return;
+  }
   await childrenStore.fetchChildren();
   await loadData(true);
   uni.stopPullDownRefresh();
@@ -746,4 +800,31 @@ onPullDownRefresh(async () => {
   font-size: 14px;
   color: #909399;
 }
+
+/* 管理员首页样式 */
+.admin-home { padding-bottom: 40rpx; }
+.admin-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 60rpx 32rpx 48rpx;
+}
+.admin-greeting { font-size: 40rpx; font-weight: 700; color: #fff; display: block; }
+.admin-date { font-size: 26rpx; color: rgba(255,255,255,.8); margin-top: 8rpx; display: block; }
+.admin-menu {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 24rpx;
+  padding: 24rpx; margin-top: -24rpx;
+}
+.admin-menu-item {
+  background: #fff; border-radius: 16rpx; padding: 40rpx 24rpx;
+  display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,.05);
+}
+.ami-icon {
+  width: 96rpx; height: 96rpx; border-radius: 24rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44rpx; margin-bottom: 16rpx;
+}
+.ami-label { font-size: 28rpx; color: #303133; font-weight: 500; }
+.admin-tips { margin: 24rpx; padding: 24rpx; background: #fff; border-radius: 12rpx; }
+.tips-title { font-size: 28rpx; font-weight: 600; color: #303133; display: block; margin-bottom: 8rpx; }
+.tips-text { font-size: 24rpx; color: #909399; line-height: 1.6; }
 </style>

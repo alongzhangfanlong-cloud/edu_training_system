@@ -29,9 +29,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { getEvaluationList } from '@/api/teacher-evaluation';
+import { useAuthStore } from '@/stores/auth';
 import EmptyState from '@/components/empty-state.vue';
 import LoadingSkeleton from '@/components/loading-skeleton.vue';
 
+const authStore = useAuthStore();
 const statusFilter = ref('');
 const list = ref([]);
 const loading = ref(true);
@@ -44,7 +46,7 @@ async function loadData(isRefresh) {
   if (!hasMore.value && !isRefresh) return;
   loading.value = true;
   try {
-    const res = await getEvaluationList({ page: page.value, pageSize: 10, status: statusFilter.value });
+    const res = await getEvaluationList({ page: page.value, pageSize: 10, status: statusFilter.value, teacherId: authStore.userInfo?.userId });
     if (res.code === 200) {
       const data = res.data?.records || res.data || [];
       if (isRefresh || page.value === 1) list.value = [];

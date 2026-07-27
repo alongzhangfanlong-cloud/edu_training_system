@@ -1,0 +1,53 @@
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
+  tomcat:
+    max-threads: 200
+    accept-count: 100
+    max-connections: 10000
+
+spring:
+  # 生产环境关闭Swagger/Knife4j
+  # 数据库连接池（建议使用HikariCP默认即可，以下为可选优化）
+  datasource:
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+# MyBatis-Plus生产配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl  # 关闭SQL日志
+  global-config:
+    banner: false  # 关闭banner
+
+# Knife4j/API文档生产环境关闭
+knife4j:
+  enable: false
+  production: true
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# 日志级别 - 生产环境
+logging:
+  level:
+    root: warn
+    com.education.store: info
+    com.education.store.common.exception: warn  # 异常日志保留warn以上
+  file:
+    name: logs/edu-server.log
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 1GB

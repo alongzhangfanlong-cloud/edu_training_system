@@ -28,7 +28,7 @@ public class HomeworkController {
     private final IEduHomeworkService homeworkService;
 
     @Operation(summary = "作业列表")
-    @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/list")
     public Result<PageResult<EduHomework>> list(@RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
@@ -43,7 +43,7 @@ public class HomeworkController {
     }
 
     @Operation(summary = "作业详情")
-    @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
         return Result.success(homeworkService.getDetail(id));
@@ -51,7 +51,7 @@ public class HomeworkController {
 
     @Operation(summary = "布置作业")
     @Log(title = "课后作业", businessType = BusinessType.INSERT)
-    @PreAuthorize("@ss.hasPermi('teaching:homework:add')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping
     public Result<EduHomework> add(@Valid @RequestBody HomeworkCreateDTO dto) {
         EduHomework homework = new EduHomework();
@@ -69,7 +69,7 @@ public class HomeworkController {
 
     @Operation(summary = "编辑作业")
     @Log(title = "课后作业", businessType = BusinessType.UPDATE)
-    @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody HomeworkCreateDTO dto) {
         EduHomework homework = new EduHomework();
@@ -88,7 +88,7 @@ public class HomeworkController {
 
     @Operation(summary = "删除作业")
     @Log(title = "课后作业", businessType = BusinessType.DELETE)
-    @PreAuthorize("@ss.hasPermi('teaching:homework:remove')")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id, @RequestParam(required = false) Long currentUserId) {
         homeworkService.deleteHomework(id, currentUserId);

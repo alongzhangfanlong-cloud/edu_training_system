@@ -31,14 +31,24 @@ const parentTabs = [
 
 const teacherTabs = [
   { pagePath: '/pages/teacher/schedule/index', text: '课表', icon: 'calendar-fill' },
+  { pagePath: '/pages/teacher/students/index', text: '学生', icon: 'account-fill' },
   { pagePath: '/pages/teacher/checkin/index', text: '签到', icon: 'checkmark-circle-fill' },
   { pagePath: '/pages/teacher/teaching/index', text: '教学', icon: 'file-text-fill' },
-  { pagePath: '/pages/teacher/profile/index', text: '我的', icon: 'account-fill' },
+  { pagePath: '/pages/profile/index', text: '我的', icon: 'account-fill' },
+];
+
+const adminTabs = [
+  { pagePath: '/pages/index/index', text: '首页', icon: 'home-fill' },
+  { pagePath: '/pages/admin/students/index', text: '学生', icon: 'account-fill' },
+  { pagePath: '/pages/messages/index', text: '消息', icon: 'bell-fill' },
+  { pagePath: '/pages/profile/index', text: '我的', icon: 'account-fill' },
 ];
 
 const tabs = computed(() => {
   const r = authStore.role;
-  return (r === 'TEACHER' || r === 'teacher') ? teacherTabs : parentTabs;
+  if (r === 'TEACHER' || r === 'teacher') return teacherTabs;
+  if (r === 'ADMIN' || r === 'admin') return adminTabs;
+  return parentTabs;
 });
 
 const currentIndex = ref(0);
@@ -59,7 +69,7 @@ function updateCurrentIndex() {
 
 function switchTab(tab, index) {
   currentIndex.value = index;
-  uni.reLaunch({ url: tab.pagePath });
+  uni.switchTab({ url: tab.pagePath });
 }
 </script>
 

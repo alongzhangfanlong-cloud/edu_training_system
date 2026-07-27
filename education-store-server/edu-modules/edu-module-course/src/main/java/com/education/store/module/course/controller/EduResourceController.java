@@ -122,6 +122,12 @@ public class EduResourceController {
         return Result.success(resourceService.getCategoryTree());
     }
 
+    @Operation(summary = "获取课件分类树（教师端，无需权限）")
+    @GetMapping("/teacher-category-tree")
+    public Result<java.util.Map<String, Object>> teacherCategoryTree() {
+        return Result.success(resourceService.getCategoryTree());
+    }
+
     private ResourceVO toVO(EduResource resource) {
         ResourceVO vo = BeanUtil.copyProperties(resource, ResourceVO.class);
         return vo;

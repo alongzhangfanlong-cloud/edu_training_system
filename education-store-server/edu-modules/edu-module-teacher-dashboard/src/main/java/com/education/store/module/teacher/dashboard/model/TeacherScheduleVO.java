@@ -23,6 +23,9 @@ public class TeacherScheduleVO implements Serializable {
     /** 排课记录 ID */
     private Long scheduleId;
 
+    /** 排课日期 yyyy-MM-dd */
+    private String scheduleDate;
+
     /** 开始时间 HH:mm */
     private String startTime;
 

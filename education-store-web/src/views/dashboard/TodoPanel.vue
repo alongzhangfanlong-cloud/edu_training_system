@@ -29,7 +29,7 @@
           >
             <div class="todo-item-main">
               <span class="todo-item-name">{{ item.teacherName || item.studentName || '--' }}</span>
-              <el-tag size="small" :type="item.applicantType === 'TEACHER' ? '' : 'success'">
+              <el-tag size="small" :type="item.applicantType === 'TEACHER' ? 'info' : 'success'">
                 {{ item.applicantType === 'TEACHER' ? '教师' : '学生' }}
               </el-tag>
             </div>
@@ -72,7 +72,7 @@
           <div class="todo-section-title">
             <el-icon color="#409eff"><WarningFilled /></el-icon>
             <span>排课冲突预警</span>
-            <el-tag size="small" type="primary">{{ todos.scheduleConflicts.count }}</el-tag>
+            <el-tag size="small" type="info">{{ todos.scheduleConflicts.count }}</el-tag>
           </div>
           <el-icon :class="{ rotated: !expandedSections.conflicts }"><ArrowDown /></el-icon>
         </div>

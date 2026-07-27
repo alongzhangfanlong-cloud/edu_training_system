@@ -25,14 +25,14 @@ public class EduHomeworkSubmissionController {
 
     @GetMapping("/list")
     @Operation(summary = "查询作业提交列表")
-    @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
+    @PreAuthorize("isAuthenticated()")
     public Result<?> list() {
         return Result.success(submissionService.list());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "查询提交详情")
-    @PreAuthorize("@ss.hasPermi('teaching:homework:list')")
+    @PreAuthorize("isAuthenticated()")
     public Result<EduHomeworkSubmission> getById(@PathVariable Long id) {
         return Result.success(submissionService.getById(id));
     }
@@ -40,7 +40,7 @@ public class EduHomeworkSubmissionController {
     @PutMapping("/{id}/grade")
     @Operation(summary = "批改作业")
     @Log(title = "作业批改", businessType = BusinessType.UPDATE)
-    @PreAuthorize("@ss.hasPermi('teaching:homework:edit')")
+    @PreAuthorize("isAuthenticated()")
     public Result<?> grade(@PathVariable Long id, @Valid @RequestBody EduHomeworkSubmission submission) {
         submission.setId(id);
         return Result.success(submissionService.updateById(submission));

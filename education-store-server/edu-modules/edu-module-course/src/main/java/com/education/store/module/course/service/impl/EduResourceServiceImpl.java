@@ -175,14 +175,21 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
 
     @Override
     public java.util.Map<String, Object> getCategoryTree() {
+        try {
+            return buildCategoryTree();
+        } catch (Exception e) {
+            log.error("getCategoryTree error: {}", e.getMessage(), e);
+            throw new BusinessException("获取课件分类树失败: " + e.getMessage());
+        }
+    }
+
+    private java.util.Map<String, Object> buildCategoryTree() {
         // 查询所有科目
         List<EduSubject> subjects = subjectMapper.selectList(new LambdaQueryWrapper<EduSubject>()
                 .eq(EduSubject::getStatus, 1).orderByAsc(EduSubject::getSortOrder));
-        Map<Long, String> subjectNameMap = subjects.stream()
-                .collect(Collectors.toMap(EduSubject::getId, EduSubject::getName, (a,b)->a));
 
         // 查询所有未删除的课件
-        List<EduResource> allResources = lambdaQuery().list();
+        List<EduResource> allResources = resourceMapper.selectList(null);
 
         // 资源类型中文名映射
         Map<String, String> typeNameMap = new LinkedHashMap<>();
@@ -192,6 +199,8 @@ public class EduResourceServiceImpl extends ServiceImpl<EduResourceMapper, EduRe
         typeNameMap.put("VIDEO", "视频");
         typeNameMap.put("AUDIO", "音频");
         typeNameMap.put("DOCUMENT", "文档");
+        typeNameMap.put("PPT", "PPT课件");
+        typeNameMap.put("PDF", "PDF文档");
         typeNameMap.put("OTHER", "其他");
 
         // 构建三级分类树: 科目 → 年级 → 资源类型 → 数量

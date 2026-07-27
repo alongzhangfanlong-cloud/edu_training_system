@@ -2,6 +2,7 @@ package com.education.store.module.system.controller;
 
 import com.education.store.common.constant.Constants;
 import com.education.store.common.enums.BusinessType;
+import com.education.store.common.exception.BusinessException;
 import com.education.store.common.model.Result;
 import com.education.store.common.utils.SecurityUtils;
 import com.education.store.module.system.dto.LoginDTO;
@@ -41,7 +42,13 @@ public class AuthController {
     @Operation(summary = "刷新Token")
     @PostMapping("/refresh")
     public Result<LoginVO> refresh(@RequestBody Map<String, String> body) {
+        if (body == null) {
+            throw new BusinessException("请求体不能为空");
+        }
         String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new BusinessException("refreshToken不能为空");
+        }
         LoginVO vo = userService.refreshToken(refreshToken);
         return Result.success(vo);
     }
@@ -77,8 +84,20 @@ public class AuthController {
     @PutMapping("/password")
     public Result<Void> updatePassword(@RequestBody Map<String, String> body) {
         Long userId = SecurityUtils.getUserId();
+        if (body == null) {
+            throw new BusinessException("请求体不能为空");
+        }
         String oldPassword = body.get("oldPassword");
         String newPassword = body.get("newPassword");
+        if (oldPassword == null || oldPassword.isBlank()) {
+            throw new BusinessException("原密码不能为空");
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new BusinessException("新密码不能为空");
+        }
+        if (newPassword.length() < 6 || newPassword.length() > 32) {
+            throw new BusinessException("新密码长度应为6-32位");
+        }
         userService.changePassword(userId, oldPassword, newPassword);
         return Result.success();
     }

@@ -34,3 +34,8 @@ export function recordDownload(id) {
 export function getCategoryTree() {
   return request({ url: `${BASE}/category-tree`, method: 'get' });
 }
+
+// 获取课件分类树（教师端，无需权限）
+export function getTeacherCategoryTree() {
+  return request({ url: `${BASE}/teacher-category-tree`, method: 'get' });
+}
