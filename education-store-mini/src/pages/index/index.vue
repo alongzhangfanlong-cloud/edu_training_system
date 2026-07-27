@@ -213,7 +213,7 @@ import { getHomework } from '@/api/homework';
 import { getAttendance } from '@/api/attendance';
 import { getPoints } from '@/api/points';
 import { getTimeline } from '@/api/timeline';
-import { fromNow, eventMeta, formatDate, STATUS_MAP, parsePaginationResponse, normalizePaginationParams } from '@/utils/index';
+import { fromNow, eventMeta, formatDate, STATUS_MAP, parsePaginationResponse, normalizePaginationParams, safeNavigate, switchTabPage } from '@/utils/index';
 import ChildSwitcher from '@/components/child-switcher.vue';
 import { useAuthStore } from '@/stores/auth';
 
@@ -334,11 +334,7 @@ function onChildChange(id) {
 }
 
 function navigateTo(url) {
-  uni.navigateTo({ url });
-}
-
-function switchTabPage(url) {
-  uni.reLaunch({ url });
+  safeNavigate(url);
 }
 
 onShow(async () => {

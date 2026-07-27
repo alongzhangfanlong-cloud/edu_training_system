@@ -1,6 +1,6 @@
 <template>
   <view class="messages-page">
-    <u-navbar title="消息通知" :border-bottom="false" bg-color="#fff">
+    <u-navbar title="消息通知" :border-bottom="false" bg-color="#fff" :auto-back="showBackButton" @leftClick="handleBack">
       <template #right>
         <view class="nav-right" @click="handleMarkAllRead" v-if="unreadCount > 0">
           <u-icon name="checkmark" size="18" color="#409eff"></u-icon>
@@ -57,7 +57,7 @@ import {
   markAllNotificationsRead,
   getUnreadCount,
 } from '@/api/notification';
-import { fromNow, normalizePaginationParams, parsePaginationResponse } from '@/utils';
+import { fromNow, normalizePaginationParams, parsePaginationResponse, goBack } from '@/utils';
 
 const list = ref([]);
 const loading = ref(false);
@@ -73,6 +73,16 @@ const loadStatus = computed(() => {
   if (!hasMore.value && list.value.length > 0) return 'nomore';
   return 'loadmore';
 });
+
+// 是否显示返回按钮（页面栈>1时显示）
+const showBackButton = computed(() => {
+  const pages = getCurrentPages();
+  return pages.length > 1;
+});
+
+function handleBack() {
+  goBack();
+}
 
 const typeMetaMap = {
   SIGN_IN: { label: '签到', color: '#67c23a' },

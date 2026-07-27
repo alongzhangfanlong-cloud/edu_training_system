@@ -147,6 +147,7 @@ import { onShow } from '@dcloudio/uni-app';
 import { useChildrenStore } from '@/stores/children';
 import { useTeacherStore } from '@/stores/teacher';
 import { useAuthStore } from '@/stores/auth';
+import { safeNavigate } from '@/utils/index';
 import EmptyState from '@/components/empty-state.vue';
 import LoadingSkeleton from '@/components/loading-skeleton.vue';
 
@@ -168,20 +169,20 @@ onShow(() => {
 });
 
 function goChildDetail(studentId) {
-  uni.navigateTo({ url: `/pages/profile/child-detail?studentId=${studentId}` });
+  safeNavigate(`/pages/profile/child-detail?studentId=${studentId}`);
 }
 
 function goPage(url) {
   const childId = childrenStore.currentChild?.studentId || childrenStore.currentChild?.id;
-  uni.navigateTo({ url: childId ? `${url}?studentId=${childId}` : url });
+  safeNavigate(childId ? `${url}?studentId=${childId}` : url);
 }
 
 function navigateTo(url) {
-  uni.navigateTo({ url });
+  safeNavigate(url);
 }
 
 function switchTabPage(url) {
-  uni.reLaunch({ url });
+  safeNavigate(url);
 }
 
 function handleLogout() {

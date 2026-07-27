@@ -56,12 +56,13 @@
 import { onMounted } from 'vue';
 import { useTeacherStore } from '@/stores/teacher';
 import { useAuthStore } from '@/stores/auth';
+import { safeNavigate } from '@/utils/index';
 
 const teacherStore = useTeacherStore();
 const authStore = useAuthStore();
 
-function goTab(url) { uni.reLaunch({ url }); }
-function goPage(url) { uni.navigateTo({ url }); }
+function goTab(url) { safeNavigate(url); }
+function goPage(url) { safeNavigate(url); }
 
 function handleLogout() {
   uni.showModal({

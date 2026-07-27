@@ -1,5 +1,62 @@
 import dayjs from 'dayjs';
 
+// 所有Tab页面列表（包括custom-tab-bar中显示的页面）
+export const TAB_PAGES = [
+  '/pages/index/index',
+  '/pages/messages/index',
+  '/pages/profile/index',
+  '/pages/teacher/schedule/index',
+  '/pages/teacher/checkin/index',
+  '/pages/teacher/students/index',
+  '/pages/teacher/teaching/index',
+  '/pages/teacher/profile/index',
+  '/pages/admin/students/index',
+];
+
+/**
+ * 安全的页面跳转
+ * - Tab页面之间切换使用reLaunch（清空页面栈）
+ * - 非Tab页面使用navigateTo（保留页面栈，显示返回按钮）
+ */
+export function safeNavigate(url) {
+  if (!url) return;
+  // 处理带参数的URL
+  const path = url.split('?')[0];
+  if (TAB_PAGES.includes(path)) {
+    uni.reLaunch({ url });
+  } else {
+    uni.navigateTo({ url });
+  }
+}
+
+/**
+ * 切换Tab页面（底部导航点击）
+ */
+export function switchTabPage(url) {
+  if (!url) return;
+  uni.reLaunch({ url });
+}
+
+/**
+ * 统一的返回逻辑
+ * - 如果页面栈>1，返回上一页
+ * - 否则返回对应角色的首页
+ */
+export function goBack(delta = 1) {
+  const pages = getCurrentPages();
+  if (pages.length > delta) {
+    uni.navigateBack({ delta });
+  } else {
+    // 页面栈不足，返回对应角色的首页
+    const role = uni.getStorageSync('role') || '';
+    let homeUrl = '/pages/index/index';
+    if (role === 'TEACHER') {
+      homeUrl = '/pages/teacher/schedule/index';
+    }
+    uni.reLaunch({ url: homeUrl });
+  }
+}
+
 /** Format date as YYYY-MM-DD */
 export function formatDate(date) {
   if (!date) return '';
