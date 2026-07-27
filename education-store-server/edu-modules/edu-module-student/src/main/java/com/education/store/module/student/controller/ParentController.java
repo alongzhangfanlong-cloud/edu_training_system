@@ -34,20 +34,27 @@ public class ParentController {
     public Result<List<Map<String, Object>>> getChildren() {
         Long userId = SecurityUtils.getUserId();
 
-        List<EduStudentParent> relations = parentMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EduStudentParent>()
-                        .eq(EduStudentParent::getUserId, userId));
+        List<EduStudent> students;
+        
+        // 管理员可以查看所有学生
+        if (SecurityUtils.isAdmin()) {
+            students = studentMapper.selectList(null);
+        } else {
+            List<EduStudentParent> relations = parentMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EduStudentParent>()
+                            .eq(EduStudentParent::getUserId, userId));
 
-        if (relations.isEmpty()) {
-            return Result.success(Collections.emptyList());
+            if (relations.isEmpty()) {
+                return Result.success(Collections.emptyList());
+            }
+
+            List<Long> studentIds = relations.stream()
+                    .map(EduStudentParent::getStudentId)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            students = studentMapper.selectBatchIds(studentIds);
         }
-
-        List<Long> studentIds = relations.stream()
-                .map(EduStudentParent::getStudentId)
-                .distinct()
-                .collect(Collectors.toList());
-
-        List<EduStudent> students = studentMapper.selectBatchIds(studentIds);
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (EduStudent student : students) {
@@ -70,7 +77,8 @@ public class ParentController {
     @GetMapping("/children/{studentId}")
     public Result<Map<String, Object>> getChildDetail(@PathVariable Long studentId) {
         Long userId = SecurityUtils.getUserId();
-        if (!isParentOf(userId, studentId)) {
+        // 管理员可以查看任何学生，家长只能看自己的孩子
+        if (!SecurityUtils.isAdmin() && !isParentOf(userId, studentId)) {
             return Result.error("无权查看该学员信息");
         }
 

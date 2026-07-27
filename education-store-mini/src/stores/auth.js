@@ -21,8 +21,8 @@ function normalizeRole(role) {
   } else {
     r = String(role).toUpperCase();
   }
+  if (r.includes('ADMIN') || r.includes('MANAGER')) return 'ADMIN';
   if (r.includes('TEACHER')) return 'TEACHER';
-  if (r.includes('ADMIN')) return 'TEACHER';
   return 'PARENT';
 }
 
@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
   const role = ref(uni.getStorageSync('role') || '');
   const isLogin = computed(() => !!token.value);
   const isTeacher = computed(() => role.value === 'TEACHER');
+  const isAdmin = computed(() => role.value === 'ADMIN');
 
   async function doLogin(username, password) {
     const res = await apiLogin({ username, password });
@@ -121,11 +122,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function getHomePage() {
-    return role.value === 'TEACHER' ? '/pages/teacher/schedule/index' : '/pages/index/index';
+    if (role.value === 'TEACHER') return '/pages/teacher/schedule/index';
+    return '/pages/index/index';
   }
 
   return {
-    token, userInfo, role, isLogin, isTeacher,
+    token, userInfo, role, isLogin, isTeacher, isAdmin,
     login, loginWithPassword, logout, checkAuth, getHomePage,
   };
 });

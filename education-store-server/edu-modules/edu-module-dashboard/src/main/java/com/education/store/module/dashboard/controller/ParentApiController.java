@@ -472,8 +472,12 @@ public class ParentApiController {
                 .distinct().collect(Collectors.toList());
     }
 
-    /** 校验亲子关系 */
+    /** 校验亲子关系（管理员可查看所有） */
     private void requireParentOf(Long userId, Long studentId) {
+        // 管理员可以查看任何学生的信息
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
         if (!isParentOf(userId, studentId)) {
             throw new com.education.store.common.exception.BusinessException("无权查看该学员信息");
         }
