@@ -338,13 +338,13 @@ function navigateTo(url) {
 }
 
 function switchTabPage(url) {
-  uni.switchTab({ url });
+  uni.reLaunch({ url });
 }
 
 onShow(async () => {
   // 教师端不使用首页，自动跳转到课表页
   if (authStore.isTeacher) {
-    uni.switchTab({ url: '/pages/teacher/schedule/index' });
+    uni.reLaunch({ url: '/pages/teacher/schedule/index' });
     return;
   }
   // 管理员使用管理员首页，不加载家长孩子数据

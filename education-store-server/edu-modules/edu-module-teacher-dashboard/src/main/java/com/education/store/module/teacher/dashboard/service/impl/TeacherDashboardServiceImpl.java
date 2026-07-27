@@ -634,12 +634,11 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
     public List<TeacherStudentVO> getMyStudents() {
         Long teacherId = getTeacherId();
 
-        // 查询该教师所教的所有班级（从排课表中去重）
+        // 查询该教师所有排课，Java层去重班级ID（避免LambdaQueryWrapper groupBy兼容性问题）
         LambdaQueryWrapper<EduSchedule> sWrapper = new LambdaQueryWrapper<>();
         sWrapper.eq(EduSchedule::getTeacherId, teacherId)
                 .eq(EduSchedule::getDeleted, 0)
-                .select(EduSchedule::getClassId)
-                .groupBy(EduSchedule::getClassId);
+                .select(EduSchedule::getClassId);
         List<EduSchedule> schedules = scheduleMapper.selectList(sWrapper);
         Set<Long> classIds = schedules.stream()
                 .map(EduSchedule::getClassId)

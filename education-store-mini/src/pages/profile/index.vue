@@ -181,7 +181,7 @@ function navigateTo(url) {
 }
 
 function switchTabPage(url) {
-  uni.switchTab({ url });
+  uni.reLaunch({ url });
 }
 
 function handleLogout() {

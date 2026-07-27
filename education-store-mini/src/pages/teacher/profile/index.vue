@@ -60,7 +60,7 @@ import { useAuthStore } from '@/stores/auth';
 const teacherStore = useTeacherStore();
 const authStore = useAuthStore();
 
-function goTab(url) { uni.switchTab({ url }); }
+function goTab(url) { uni.reLaunch({ url }); }
 function goPage(url) { uni.navigateTo({ url }); }
 
 function handleLogout() {

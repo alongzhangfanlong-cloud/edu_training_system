@@ -34,12 +34,12 @@ const teacherTabs = [
   { pagePath: '/pages/teacher/students/index', text: '学生', icon: 'account-fill' },
   { pagePath: '/pages/teacher/checkin/index', text: '签到', icon: 'checkmark-circle-fill' },
   { pagePath: '/pages/teacher/teaching/index', text: '教学', icon: 'file-text-fill' },
-  { pagePath: '/pages/profile/index', text: '我的', icon: 'account-fill' },
+  { pagePath: '/pages/teacher/profile/index', text: '我的', icon: 'account-fill' },
 ];
 
 const adminTabs = [
   { pagePath: '/pages/index/index', text: '首页', icon: 'home-fill' },
-  { pagePath: '/pages/admin/students/index', text: '学生', icon: 'account-fill' },
+  { pagePath: '/pages/admin/students/index', text: '学生管理', icon: 'account-fill' },
   { pagePath: '/pages/messages/index', text: '消息', icon: 'bell-fill' },
   { pagePath: '/pages/profile/index', text: '我的', icon: 'account-fill' },
 ];
@@ -69,7 +69,7 @@ function updateCurrentIndex() {
 
 function switchTab(tab, index) {
   currentIndex.value = index;
-  uni.switchTab({ url: tab.pagePath });
+  uni.reLaunch({ url: tab.pagePath });
 }
 </script>
 
