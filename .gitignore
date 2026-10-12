@@ -1,4 +1,4 @@
-# Java
+﻿# Java
 target/
 *.class
 *.jar
@@ -34,7 +34,15 @@ dump.rdb
 *.log
 *.tmp
 
-# 临时调试/验证脚本
+# AI 工作目录与记忆文件
+.superpowers/
+memory/
+docs/superpowers/
+docs/CLAUDE_*.md
+/CLAUDE.md
+/MEMORY.md
+
+# 临时调试/验证脚本（根目录）
 /check-*.js
 /clean-*.js
 /cleanup-*.js
@@ -49,10 +57,38 @@ dump.rdb
 /final-*.js
 /full-validation*.js
 /login-debug.js
+/test_api.js
 /test_flow.ps1
+/init-mini-data.js
 /validation-report.md
 /CODE_REVIEW_LOG.md
 /CHANGELOG_AND_REVIEW.md
+/debug-*.md
+
+# 数据库备份/导出文件（根目录）
+/edu_system_dump_*.sql
+/edu_system_full_backup_*.sql
+/insert-test-data.sql
+
+# 后端临时测试脚本
+education-store-server/full-test.ps1
+education-store-server/full-validation.js
+education-store-server/role-api-test.js
+
+# 后端 SQL 目录中的临时/调试/测试脚本
+education-store-server/sql/check-*.sql
+education-store-server/sql/fix-*.sql
+education-store-server/sql/verify-*.sql
+education-store-server/sql/insert-test-*.sql
+education-store-server/sql/edu_system_dump_*.sql
+education-store-server/sql/pm-validation.sql
+
+# 设计稿截图（非功能代码）
+/UI/
 
 # 上传文件目录
 education-store-server/edu-server-app/upload/
+
+# 根目录 AI 工具依赖（子项目 package.json 保留）
+/package.json
+/package-lock.json
